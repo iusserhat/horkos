@@ -14,6 +14,7 @@ use near_sdk::{env, near, AccountId, PanicOnDefault};
 mod mandate;
 mod orders;
 mod types;
+mod withdraw;
 pub use types::*;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

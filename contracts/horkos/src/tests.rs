@@ -672,3 +672,142 @@ fn create_cancel_loop_is_bounded_by_storage_deposit() {
         "unexpected panic: {msg}"
     );
 }
+
+// ---------------------------------------------------------------- withdraw
+
+fn give_earnings(c: &mut Contract, who: &AccountId, amount: u128) {
+    c.balances.insert(who, &amount);
+}
+
+fn withdraw_as(c: &mut Contract, who: &AccountId, from: WithdrawSource, amount: Option<u128>) {
+    testing_env!(ctx(who)
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    let _ = c.withdraw(from, amount.map(U128));
+}
+
+fn callback(
+    c: &mut Contract,
+    who: &AccountId,
+    from: WithdrawSource,
+    amount: u128,
+    ok: bool,
+) -> bool {
+    testing_env!(ctx(&horkos()).build());
+    let result = if ok {
+        Ok(())
+    } else {
+        Err(near_sdk::PromiseError::Failed)
+    };
+    c.on_withdraw(who.clone(), from, U128(amount), result)
+}
+
+#[test]
+fn seller_withdraws_earnings_via_ft_transfer() {
+    let mut c = setup();
+    give_earnings(&mut c, &seller(), 7 * USDC);
+    withdraw_as(&mut c, &seller(), WithdrawSource::Earnings, None);
+    assert_eq!(c.balance_of(seller()).0, 0);
+    let receipts = near_sdk::test_utils::get_created_receipts();
+    assert!(
+        receipts.iter().any(|r| r.receiver_id == token()),
+        "ft_transfer sent to token"
+    );
+    assert!(callback(
+        &mut c,
+        &seller(),
+        WithdrawSource::Earnings,
+        7 * USDC,
+        true
+    ));
+    assert_eq!(c.balance_of(seller()).0, 0);
+}
+
+#[test]
+fn partial_withdraw_leaves_rest() {
+    let mut c = setup();
+    give_earnings(&mut c, &seller(), 7 * USDC);
+    withdraw_as(&mut c, &seller(), WithdrawSource::Earnings, Some(2 * USDC));
+    assert_eq!(c.balance_of(seller()).0, 5 * USDC);
+}
+
+#[test]
+fn failed_transfer_to_unregistered_seller_restores_balance() {
+    // The token rejects ft_transfer to an account without storage
+    // registration; the callback sees a failed promise and credits back.
+    let mut c = setup();
+    let unregistered = acc("new-seller.testnet");
+    give_earnings(&mut c, &unregistered, 7 * USDC);
+    withdraw_as(&mut c, &unregistered, WithdrawSource::Earnings, None);
+    assert_eq!(c.balance_of(unregistered.clone()).0, 0);
+    assert!(!callback(
+        &mut c,
+        &unregistered,
+        WithdrawSource::Earnings,
+        7 * USDC,
+        false
+    ));
+    assert_eq!(c.balance_of(unregistered).0, 7 * USDC);
+}
+
+#[test]
+fn owner_withdraws_budget_and_failure_restores_it() {
+    let (mut c, _) = ready();
+    withdraw_as(&mut c, &owner(), WithdrawSource::Budget, Some(50 * USDC));
+    assert_eq!(c.get_mandate(owner()).unwrap().balance.0, 150 * USDC);
+    assert!(!callback(
+        &mut c,
+        &owner(),
+        WithdrawSource::Budget,
+        50 * USDC,
+        false
+    ));
+    assert_eq!(c.get_mandate(owner()).unwrap().balance.0, 200 * USDC);
+}
+
+#[test]
+fn escrowed_funds_are_not_withdrawable_as_budget() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l); // 5 tUSDC escrowed
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _ = c.withdraw(WithdrawSource::Budget, Some(U128(200 * USDC)));
+    }));
+    assert!(panic_msg(r.unwrap_err()).contains("Amount exceeds available balance"));
+}
+
+#[test]
+#[should_panic(expected = "No mandate")]
+fn agent_cannot_withdraw_owner_budget() {
+    let (mut c, _) = ready();
+    withdraw_as(&mut c, &agent(), WithdrawSource::Budget, None);
+}
+
+#[test]
+#[should_panic(expected = "Amount exceeds available balance")]
+fn withdraw_more_than_balance_rejected() {
+    let mut c = setup();
+    give_earnings(&mut c, &seller(), 7 * USDC);
+    withdraw_as(&mut c, &seller(), WithdrawSource::Earnings, Some(8 * USDC));
+}
+
+#[test]
+#[should_panic(expected = "Nothing to withdraw")]
+fn withdraw_with_zero_balance_rejected() {
+    let mut c = setup();
+    withdraw_as(&mut c, &seller(), WithdrawSource::Earnings, None);
+}
+
+#[test]
+#[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+fn withdraw_requires_one_yocto() {
+    let mut c = setup();
+    give_earnings(&mut c, &seller(), 7 * USDC);
+    testing_env!(ctx(&seller()).build());
+    let _ = c.withdraw(WithdrawSource::Earnings, None);
+}
+
+// `#[private]` on `on_withdraw` is enforced by the wasm export wrapper, not
+// by the Rust method, so it is covered by integration tests (near-workspaces).

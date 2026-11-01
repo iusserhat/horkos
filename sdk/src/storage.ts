@@ -3,7 +3,7 @@
  * OutLayer's TEE) and the buyer fetch them by URL, so URLs must be public and
  * should be content-addressed (the buyer also checks the ciphertext hash).
  */
-import { Account } from "near-api-js";
+import { Account, actions } from "near-api-js";
 import { sha256, toHex } from "./crypto.js";
 
 export interface BlobStore {
@@ -56,16 +56,18 @@ export class FastFsStore implements BlobStore {
     const path = `${toHex(sha256(bytes))}.${EXT[contentType] ?? "bin"}`;
     // enum FastfsData::Simple(SimpleFastfs { relative_path, content: Some(FastfsFileContent { mime_type, content }) })
     const args = concat(new Uint8Array([0]), bstr(path), new Uint8Array([1]), bstr(contentType), u32(bytes.length), bytes);
-    try {
-      await this.account.callFunction({
-        contractId: receiver,
-        methodName: "__fastdata_fastfs",
-        args,
-        gas: 1_000_000_000_000n,
-      });
-    } catch {
-      // Expected: the receiver has no such method. The data is in the
-      // transaction arguments, which is what FastFS indexes.
+    // The call fails on chain by design (the receiver has no such method);
+    // FastFS indexes the arguments of the included transaction. Network or
+    // signing errors still throw here.
+    const res = await this.account.signAndSendTransaction({
+      receiverId: receiver,
+      actions: [actions.functionCall("__fastdata_fastfs", args, 1_000_000_000_000n, 0n)],
+      throwOnFailure: false,
+      waitUntil: "INCLUDED_FINAL",
+    });
+    const failure = JSON.stringify((res as { status?: unknown }).status ?? "");
+    if (failure.includes("Failure") && !failure.includes("MethodNotFound")) {
+      throw new Error(`FastFS upload failed: ${failure.slice(0, 300)}`);
     }
     return `https://${host}/${this.account.accountId}/${receiver}/${path}`;
   }

@@ -1,0 +1,17 @@
+{
+  "name": "horkos-demo",
+  "private": true,
+  "type": "module",
+  "description": "Horkos demo: three seller services and scenario scripts for NEAR testnet",
+  "scripts": {
+    "setup": "tsx setup.ts",
+    "demo1": "tsx scenario.ts 1",
+    "demo2": "tsx scenario.ts 2",
+    "demo3": "tsx scenario.ts 3",
+    "seller": "tsx sellers/run.ts",
+    "typecheck": "../sdk/node_modules/.bin/tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

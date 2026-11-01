@@ -5,3 +5,4 @@ export { HorkosOwner } from "./owner.js";
 export { FastFsStore, type BlobStore } from "./storage.js";
 export * from "./crypto.js";
 export * from "./types.js";
+export { Account, JsonRpcProvider, KeyPair } from "near-api-js";

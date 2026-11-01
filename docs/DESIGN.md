@@ -68,8 +68,9 @@ Durumlar: `Open → Verifying → Settled`; `Verifying → Delivered` (geçersiz
 | Anahtar/ödeme boşluğu | Atomik settle, iç bakiye | Yok |
 | Sahte doğrulama sonucu | Sonuç yalnızca kontratın kendi `request_execution` çağrısının callback'inden kabul edilir (`#[private]`); çalışacak WASM hash ile sabitlenir | **Kontrat attestation doğrulamaz.** OutLayer operatörüne güvenilir; operatör hesabında (`worker.outlayer.testnet` / `.near`) full-access anahtarlar var, yani operatör TEE'den geçmeden sonuç yazabilir. TEE çalışması attestation ile zincir dışında, sonradan denetlenebilir |
 | Doğrulayıcının başkası tarafından çağrılması (satıcının veri anahtarını kendi açık anahtarına yeniden şifretmek) | Proje manifestinde `callers: contract only [horkos]`; WASM `NEAR_PREDECESSOR_ID`'yi kontrol eder; `buyer_pubkey` kontratın sipariş kaydından gelir | OutLayer'ın caller kısıtını doğru uygulaması |
+| Admin doğrulayıcıyı değiştirir (her şeye "geçerli" diyen bir WASM ya da başka bir OutLayer hesabı ile emanetteki parayı anlaşmalı satıcıya ödetmek) | Doğrulayıcı sürümleri yalnızca eklenebilir (`set_verifier` yeni sürüm ekler, eskiyi değiştiremez/silemez); her sipariş `create_order`'da o anki sürüme sabitlenir (`verifier_version`), `submit_delivery` yalnızca o sürümü kullanır; ajan `create_order(.., verifier_version)` ile beklediği sürümü verir, değişmişse sipariş reddedilir | Yeni siparişler için ajan/SDK doğrulayıcı sürümünü kontrol etmeli. **Kontrat hesabının full-access anahtarı kodu yeniden deploy edebilir**; bu, admin yetkisinden güçlüdür (testnet'te anahtar duruyor; yol haritası: anahtarı kaldırmak ya da yükseltmeyi DAO/timelock'a bağlamak) |
 | Doğrulama ile iade yarışı | Kesinleşme yalnızca `Verifying` ve `now < deadline` iken; `refund_expired` `Verifying`'i de iade eder; geç callback yok sayılır | Yok |
-| OutLayer kesintisi | Sonuç gelmezse (`null`) sipariş `Delivered`'a döner, son tarihte iade | Satıcının OutLayer ücreti yanar |
+| OutLayer kesintisi | Çalıştırma OutLayer içinde başarısız olursa OutLayer ücreti satıcıya kendisi iade eder ve `null` döner → `Delivered`. `request_execution` çağrısı reddedilirse (callback'te `Err`) ücret runtime tarafından Horkos'a döner, Horkos satıcıya aktarır → `Delivered` | OutLayer'ın kendi callback'i panic verirse (beklenmez) ücret OutLayer'da kalır ve Horkos kendi bakiyesinden öder; tutar `max_fee` ile sınırlı |
 | Çift ödeme/iade | Durum makinesi | Yok |
 | Depolama tüketme (ajan `create_order`/`cancel_order` döngüsüyle kontrat depolamasını doldurur; iptal bütçeyi geri açtığı için token limiti bunu durdurmaz) | Sipariş depolaması sahibin NEAR depozitosundan düşülür, yetmezse ret; mandate başına açık sipariş üst sınırı (varsayılan 50); `ft_on_transfer` mandate'i olmayan hesaba kayıt açmaz; `register_listing` kendi depolamasını öder | Kayıp sahibin yatırdığı depozitoyla sınırlı |
 
@@ -80,9 +81,10 @@ Durumlar: `Open → Verifying → Settled`; `Verifying → Delivered` (geçersiz
 | `ft_on_transfer` | Token kontratı | Yatırılanı mevcut yetkinin bakiyesine yazar; yetki yoksa tutarı iade eder |
 | `set_mandate` / `revoke_mandate` | Kullanıcı (1 yocto + depolama depoziti) | Yetkiyi tanımlar, ekli NEAR'ı depolama depozitosuna ekler / kapatır ve kalan depoziti iade eder |
 | `register_listing` | Satıcı (depolama ücreti ekli) | Fiyat, teslim koşulu hash'i, teslim süresi |
-| `create_order` | Ajan (FC key) | Yetki kontrolü (sipariş başı/toplam limit, satıcı listesi, süre, açık sipariş sınırı), emanet, depolama ücretini depozitodan düşme, NFT basımı |
+| `create_order(owner, listing_id, buyer_pubkey, verifier_version?)` | Ajan (FC key) | Yetki kontrolü (sipariş başı/toplam limit, satıcı listesi, süre, açık sipariş sınırı), doğrulayıcı sürümünü sabitleme (verilen sürüm güncel değilse ret), emanet, depolama ücretini depozitodan düşme, NFT basımı |
 | `cancel_order` | Ajan (FC key) | Yalnızca `Open` iken iptal |
-| `set_verifier` | Admin (1 yocto) | OutLayer hesabı, doğrulayıcı WASM URL + sha256, secrets satırı, asgari ücret |
+| `set_verifier` | Admin (depolama ücreti ekli) | Yeni doğrulayıcı sürümü ekler (OutLayer hesabı, WASM URL + sha256, secrets satırı, asgari/azami ücret); eski sürümler değişmez |
+| `get_verifier`, `get_verifier_version` | Herkes | Güncel sürüm ve numarası; belirli bir sürüm (ajan sipariş öncesi kontrol eder) |
 | `submit_delivery` | Satıcı (OutLayer ücreti ekli) | Şifreli veri referansı + hash; `Open`/`Delivered` → `Verifying`; OutLayer `request_execution`; `Verifying` iken ikinci istek ret |
 | `on_verified` | Kontratın kendisi (`#[private]` callback) | Geçerli + `Verifying` + `now < deadline` → satıcı iç bakiyesi + alıcı için şifreli anahtar → `Settled`; geçersiz/`null` → `Delivered`; son durumdaysa hiçbir şey yapma |
 | `refund_expired` | Herkes | Süresi geçmiş `Open`/`Delivered`/`Verifying` siparişi iade et |
@@ -103,7 +105,8 @@ struct Order {
     id: u64, buyer: AccountId, seller: AccountId, amount: u128, listing_id: u64,
     deadline: u64, buyer_pubkey: String, delivery_ref: Option<String>,
     encrypted_key: Option<String>, status: OrderStatus,
-    attempts: u32,   // verification requests; the callback must match it
+    verifier_version: u32,  // pinned at create_order
+    attempts: u32,          // verification requests; the callback must match it
 }
 ```
 
@@ -127,7 +130,15 @@ Kaynak: 1 Kasım denemesi (`spikes/outlayer/REPORT.md`), OutLayer belgeleri ve `
 4. TEE: `NEAR_PREDECESSOR_ID == horkos` kontrolü; `K`'yi açar; veriyi indirir, çözer; koşulu (şema/test) kontrol eder; geçerse `K`'yi `buyer_pubkey`'e mühürler. Çıktı (≤ 900 bayt): `{order_id, valid, data_sha256, buyer_sealed_key}`.
 5. `on_verified`: sipariş son durumdaysa (ör. iade edildi) hiçbir şey yapma. `Verifying` + `valid` + `order_id` eşleşir + `now < deadline` → satıcı iç bakiyesi += tutar, `encrypted_key = buyer_sealed_key`, `Settled`. Aksi halde `Delivered`.
 
-**Depolama.** `create_order` sipariş kaydı + makbuz + rezervi tek seferde mandate depozitosundan düşer. Rezerv: `delivery_ref` ve `encrypted_key` (her biri ≤ `MAX_STRING_LEN` = 256 + 4 bayt), satıcının ilk iç bakiye kaydı (128 bayt) ve metadata yeniden yazımı (32 bayt). Ölçülen toplam: **sipariş başına ~1513 bayt ≈ 0,015 NEAR** (testnet byte maliyetiyle); 50 açık siparişlik bir yetki ≈ 0,76 NEAR depozit ister. `submit_delivery` ve `on_verified` yeni depolama ödemesi istemez (testle doğrulandı, en uzun alanlarla).
+**Depolama (sipariş başı, ölçülen; testnet byte maliyeti 10¹⁹ yocto/bayt).**
+
+| Kalem | Bayt | NEAR | Ne zaman |
+| --- | --- | --- | --- |
+| Sipariş kaydı + NFT makbuz + metadata payı (32 B) | 869 | ≈ 0,0087 | `create_order`'da düşülür, kalıcı (makbuz kayıt olarak kalır) |
+| Teslimat/kesinleşme rezervi: `delivery_ref` + `encrypted_key` (her biri ≤ 256 + 4 B) + satıcının ilk iç bakiye kaydı (128 B) | 648 | ≈ 0,0065 | `create_order`'da düşülür; sipariş **hiç teslimat almadan** kapanırsa (`Cancelled` ya da teslimatsız `Refunded`) depozitoya iade edilir |
+| **Toplam tahsil** | **1517** | **≈ 0,0152** | |
+
+Sahibin ilk siparişi makbuz dizini (`tokens_per_owner` kümesi) için biraz daha fazla tutar. 50 açık siparişlik bir yetki ≈ 0,76 NEAR depozit ister; kapanan siparişler 869 B bırakır. `submit_delivery` ve `on_verified` yeni depolama ödemesi istemez (en uzun alanlarla testle doğrulandı).
 
 **Hata durumları.** `on_verified` sonuç dışında bir nedenle (ör. gas) başarısız olursa sipariş `Verifying`'de kalır; satıcı yeniden gönderemez, son tarihte `refund_expired` iade eder. `attempts` sayacı eski bir denemenin sonucunun yenisine uygulanmasını engeller.
 

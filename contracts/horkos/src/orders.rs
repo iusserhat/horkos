@@ -109,14 +109,15 @@ impl Contract {
             delivery_ref: None,
             encrypted_key: None,
             status: OrderStatus::Open,
+            attempts: 0,
         };
 
-        // Order record + receipt NFT + slack for later metadata rewrites,
-        // all paid from the owner's storage deposit.
+        // Order record + receipt NFT + reserve for metadata rewrites and for
+        // delivery/settlement data, all paid from the owner's storage deposit.
         let before = env::storage_usage();
         self.orders.insert(&id, &order);
         self.mint_receipt(&order);
-        let after = env::storage_usage() + METADATA_SLACK_BYTES;
+        let after = env::storage_usage() + METADATA_SLACK_BYTES + DELIVERY_RESERVED_BYTES;
         mandate.storage_deposit = U128(apply_storage_delta(
             mandate.storage_deposit.0,
             before,
@@ -155,7 +156,8 @@ impl Contract {
         order
     }
 
-    /// Refunds an `Open` or `Delivered` order whose deadline has passed.
+    /// Refunds an `Open`, `Verifying` or `Delivered` order whose deadline
+    /// has passed. A verification callback arriving later is ignored.
     /// Anyone may call it. A finalized order can never be refunded again.
     pub fn refund_expired(&mut self, order_id: U64) -> Order {
         let mut order = self.orders.get(&order_id.0).expect("Order not found");
@@ -175,7 +177,7 @@ impl Contract {
     /// Returns an order's escrow to its mandate: budget back, limit reopened,
     /// open-order slot freed. Order storage is not freed (the record stays as
     /// a receipt), so create/cancel cycles keep consuming the storage deposit.
-    fn release_to_budget(&mut self, order: &Order) {
+    pub(crate) fn release_to_budget(&mut self, order: &Order) {
         let mut mandate = self
             .mandates
             .get(&order.buyer)

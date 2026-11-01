@@ -15,6 +15,9 @@ pub(crate) fn horkos() -> AccountId {
 pub(crate) fn token() -> AccountId {
     acc("tusdc.testnet")
 }
+pub(crate) fn admin() -> AccountId {
+    acc("admin.testnet")
+}
 
 pub(crate) fn ctx(predecessor: &AccountId) -> VMContextBuilder {
     let mut b = VMContextBuilder::new();
@@ -34,7 +37,7 @@ pub(crate) fn panic_msg(err: Box<dyn std::any::Any + Send>) -> String {
 
 pub(crate) fn setup() -> Contract {
     testing_env!(ctx(&acc("deployer.testnet")).build());
-    Contract::new(token())
+    Contract::new(token(), admin())
 }
 
 #[test]
@@ -60,7 +63,7 @@ fn final_statuses() {
 // ---------------------------------------------------------------- mandates
 
 pub(crate) const NEAR: u128 = 1_000_000_000_000_000_000_000_000;
-pub(crate) const STORAGE_DEPOSIT: u128 = NEAR / 10;
+pub(crate) const STORAGE_DEPOSIT: u128 = NEAR;
 pub(crate) const USDC: u128 = 1_000_000; // 6 decimals
 
 pub(crate) fn owner() -> AccountId {
@@ -482,7 +485,7 @@ fn create_order_rejects_above_open_order_cap() {
 fn default_open_order_cap_is_fifty() {
     let mut c = setup();
     testing_env!(ctx(&owner())
-        .attached_deposit(NearToken::from_yoctonear(NEAR))
+        .attached_deposit(NearToken::from_yoctonear(2 * NEAR))
         .build());
     c.set_mandate(
         agent(),
@@ -943,4 +946,470 @@ fn nft_contract_metadata() {
     assert_eq!(m.spec, "nft-1.0.0");
     assert_eq!(m.symbol, "HORKOS");
     assert_eq!(c.nft_total_supply().0, 0);
+}
+
+#[test]
+fn print_storage_cost_per_order() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l); // first receipt also creates the owner's token set
+    let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    create_as(&mut c, &agent(), l);
+    let cost = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let bytes = cost / env::storage_byte_cost().as_yoctonear();
+    println!(
+        "storage per order: {bytes} bytes = {} milliNEAR",
+        cost / (NEAR / 1000)
+    );
+    assert!(bytes > u128::from(DELIVERY_RESERVED_BYTES));
+}
+
+// ---------------------------------------------------------------- delivery & verification
+
+use near_sdk::test_utils::get_created_receipts;
+use near_sdk::PromiseResult;
+
+pub(crate) const FEE: u128 = NEAR / 100;
+pub(crate) const HASH: &str = "17ad13a91e319c56f3662a77e17eee15b429ddb5ac4bb58be3ab501e363c38ab";
+
+fn verifier_config() -> VerifierConfig {
+    VerifierConfig {
+        outlayer: acc("outlayer.testnet"),
+        wasm_url: format!("https://example.test/{HASH}.wasm"),
+        wasm_hash: HASH.to_string(),
+        build_target: "wasm32-wasip1".to_string(),
+        secrets_profile: Some("verifier".to_string()),
+        secrets_account: Some(acc("horkos.testnet")),
+        min_fee: U128(FEE),
+    }
+}
+
+/// Mandate + listing + one Open order + configured verifier.
+fn ordered() -> (Contract, Order) {
+    let (mut c, l) = ready();
+    testing_env!(ctx(&admin())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.set_verifier(verifier_config());
+    let o = create_as(&mut c, &agent(), l);
+    (c, o)
+}
+
+fn submit_at(c: &mut Contract, who: &AccountId, id: U64, fee: u128, ts: u64) {
+    let usage = env::storage_usage();
+    testing_env!(ctx(who)
+        .attached_deposit(NearToken::from_yoctonear(fee))
+        .block_timestamp(ts)
+        .storage_usage(usage)
+        .build());
+    let _ = c.submit_delivery(
+        id,
+        "https://data.test/enc.bin".to_string(),
+        "sealed-for-verifier".to_string(),
+    );
+}
+
+fn submit(c: &mut Contract, id: U64) {
+    submit_at(c, &seller(), id, FEE, START);
+}
+
+/// Simulates OutLayer resuming the callback with `result`.
+fn callback_at(c: &mut Contract, id: U64, attempt: u32, result: PromiseResult, ts: u64) -> bool {
+    let usage = env::storage_usage();
+    testing_env!(
+        ctx(&horkos())
+            .block_timestamp(ts)
+            .storage_usage(usage)
+            .build(),
+        near_sdk::test_vm_config(),
+        near_sdk::RuntimeFeesConfig::test(),
+        Default::default(),
+        vec![result],
+    );
+    c.on_verified(id, attempt)
+}
+
+fn output(id: U64, attempt: u32, valid: bool, key: Option<&str>) -> PromiseResult {
+    let v = near_sdk::serde_json::json!({
+        "order_id": id, "attempt": attempt, "valid": valid,
+        "buyer_sealed_key": key, "data_sha256": "ab".repeat(32),
+    });
+    PromiseResult::Successful(v.to_string().into_bytes())
+}
+
+fn status(c: &Contract, id: U64) -> OrderStatus {
+    c.get_order(id).unwrap().status
+}
+
+// ---- set_verifier
+
+#[test]
+fn admin_sets_verifier() {
+    let (c, _) = ordered();
+    assert_eq!(c.get_verifier(), Some(verifier_config()));
+}
+
+#[test]
+#[should_panic(expected = "Only the admin can set the verifier")]
+fn non_admin_cannot_set_verifier() {
+    let mut c = setup();
+    testing_env!(ctx(&seller())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.set_verifier(verifier_config());
+}
+
+#[test]
+#[should_panic(expected = "wasm_hash must be 64 hex characters")]
+fn set_verifier_rejects_bad_hash() {
+    let mut c = setup();
+    testing_env!(ctx(&admin())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.set_verifier(VerifierConfig {
+        wasm_hash: "xyz".to_string(),
+        ..verifier_config()
+    });
+}
+
+// ---- submit_delivery
+
+#[test]
+fn submit_delivery_requests_outlayer_and_moves_to_verifying() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    let order = c.get_order(o.id).unwrap();
+    assert_eq!(order.status, OrderStatus::Verifying);
+    assert_eq!(order.attempts, 1);
+    assert_eq!(
+        order.delivery_ref.as_deref(),
+        Some("https://data.test/enc.bin")
+    );
+    assert_eq!(receipt_extra(&c, 0)["status"], "Verifying");
+
+    let receipts = get_created_receipts();
+    let to_outlayer = receipts
+        .iter()
+        .find(|r| r.receiver_id == acc("outlayer.testnet"))
+        .expect("OutLayer call");
+    let (method, args, deposit) = to_outlayer
+        .actions
+        .iter()
+        .find_map(|a| match a {
+            near_sdk::mock::MockAction::FunctionCallWeight {
+                method_name,
+                args,
+                attached_deposit,
+                ..
+            } => Some((
+                String::from_utf8(method_name.clone()).unwrap(),
+                args.clone(),
+                *attached_deposit,
+            )),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(method, "request_execution");
+    assert_eq!(deposit.as_yoctonear(), FEE);
+    let args: near_sdk::serde_json::Value = near_sdk::serde_json::from_slice(&args).unwrap();
+    assert_eq!(args["source"]["WasmUrl"]["hash"], HASH);
+    assert_eq!(args["payer_account_id"], seller().to_string());
+    assert_eq!(args["secrets_ref"]["profile"], "verifier");
+    let input: near_sdk::serde_json::Value =
+        near_sdk::serde_json::from_str(args["input_data"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        input["buyer_pubkey"], "ed25519:buyerpub",
+        "buyer key comes from the order"
+    );
+    assert_eq!(input["attempt"], 1);
+    assert_eq!(input["condition_hash"], "sha256:abc");
+    assert!(
+        receipts.iter().any(|r| r.receiver_id == horkos()),
+        "callback to self"
+    );
+}
+
+#[test]
+#[should_panic(expected = "Only the seller can deliver")]
+fn only_seller_can_submit() {
+    let (mut c, o) = ordered();
+    submit_at(&mut c, &acc("mallory.testnet"), o.id, FEE, START);
+}
+
+#[test]
+#[should_panic(expected = "Verifier not configured")]
+fn submit_requires_configured_verifier() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    submit(&mut c, o.id);
+}
+
+#[test]
+#[should_panic(expected = "Attached deposit is below the verifier fee")]
+fn submit_requires_fee() {
+    let (mut c, o) = ordered();
+    submit_at(&mut c, &seller(), o.id, FEE - 1, START);
+}
+
+#[test]
+#[should_panic(expected = "Delivery deadline has passed")]
+fn submit_rejected_after_deadline() {
+    let (mut c, o) = ordered();
+    submit_at(&mut c, &seller(), o.id, FEE, START + WINDOW);
+}
+
+#[test]
+#[should_panic(expected = "A verification is already in progress")]
+fn second_submit_while_verifying_is_rejected() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    submit(&mut c, o.id);
+}
+
+#[test]
+#[should_panic(expected = "Order cannot accept a delivery")]
+fn submit_rejected_for_cancelled_order() {
+    let (mut c, o) = ordered();
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+    submit(&mut c, o.id);
+}
+
+#[test]
+#[should_panic(expected = "Only Open orders can be cancelled")]
+fn cancel_rejected_while_verifying() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+}
+
+// ---- on_verified
+
+#[test]
+fn valid_result_settles_into_seller_balance_and_releases_key() {
+    let (mut c, o) = ordered();
+    let before = c.get_mandate(owner()).unwrap();
+    submit(&mut c, o.id);
+    assert!(callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some("sealed-for-buyer")),
+        START + 1
+    ));
+    let order = c.get_order(o.id).unwrap();
+    assert_eq!(order.status, OrderStatus::Settled);
+    assert_eq!(order.encrypted_key.as_deref(), Some("sealed-for-buyer"));
+    assert_eq!(c.balance_of(seller()).0, 5 * USDC);
+    let after = c.get_mandate(owner()).unwrap();
+    assert_eq!(after.open_orders, before.open_orders - 1);
+    assert_eq!(after.spent, before.spent, "settled money stays spent");
+    assert_eq!(after.balance, before.balance);
+    assert_eq!(receipt_extra(&c, 0)["status"], "Settled");
+}
+
+#[test]
+fn invalid_result_returns_to_delivered_and_seller_can_retry() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, false, None),
+        START + 1
+    ));
+    assert_eq!(status(&c, o.id), OrderStatus::Delivered);
+    assert_eq!(
+        c.get_order(o.id).unwrap().encrypted_key,
+        None,
+        "buyer gets nothing"
+    );
+    assert_eq!(c.balance_of(seller()).0, 0);
+
+    submit_at(&mut c, &seller(), o.id, FEE, START + 2);
+    assert_eq!(c.get_order(o.id).unwrap().attempts, 2);
+    assert!(callback_at(
+        &mut c,
+        o.id,
+        2,
+        output(o.id, 2, true, Some("k")),
+        START + 3
+    ));
+    assert_eq!(status(&c, o.id), OrderStatus::Settled);
+}
+
+/// Submits, feeds `result` to the callback, and checks nothing was settled.
+fn assert_not_settled(result: PromiseResult) {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(!callback_at(&mut c, o.id, 1, result, START + 1));
+    assert_eq!(status(&c, o.id), OrderStatus::Delivered);
+    assert_eq!(c.get_order(o.id).unwrap().encrypted_key, None);
+    assert_eq!(c.balance_of(seller()).0, 0);
+}
+
+#[test]
+fn null_result_returns_to_delivered() {
+    // OutLayer returns `null` when the run failed or produced nothing.
+    assert_not_settled(PromiseResult::Successful(b"null".to_vec()));
+}
+
+#[test]
+fn failed_promise_returns_to_delivered() {
+    assert_not_settled(PromiseResult::Failed);
+}
+
+#[test]
+fn garbage_output_returns_to_delivered() {
+    assert_not_settled(PromiseResult::Successful(b"{not json".to_vec()));
+}
+
+#[test]
+fn result_for_another_order_does_not_settle() {
+    assert_not_settled(output(U64(99), 1, true, Some("k")));
+}
+
+#[test]
+fn result_for_another_attempt_does_not_settle() {
+    assert_not_settled(output(U64(0), 2, true, Some("k")));
+}
+
+#[test]
+fn valid_result_without_buyer_key_does_not_settle() {
+    assert_not_settled(output(U64(0), 1, true, None));
+}
+
+#[test]
+fn valid_result_with_empty_buyer_key_does_not_settle() {
+    assert_not_settled(output(U64(0), 1, true, Some("")));
+}
+
+#[test]
+fn stale_attempt_callback_is_ignored() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        7,
+        output(o.id, 7, true, Some("k")),
+        START + 1
+    ));
+    assert_eq!(status(&c, o.id), OrderStatus::Verifying);
+}
+
+#[test]
+fn valid_result_after_deadline_does_not_settle_and_order_refunds() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some("k")),
+        START + WINDOW
+    ));
+    assert_eq!(status(&c, o.id), OrderStatus::Delivered);
+    assert_eq!(c.balance_of(seller()).0, 0);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    assert_eq!(c.refund_expired(o.id).status, OrderStatus::Refunded);
+    assert_released(&c);
+}
+
+#[test]
+fn refund_while_verifying_then_late_callback_is_ignored() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    assert_eq!(c.refund_expired(o.id).status, OrderStatus::Refunded);
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some("k")),
+        START + 1
+    ));
+    let order = c.get_order(o.id).unwrap();
+    assert_eq!(order.status, OrderStatus::Refunded);
+    assert_eq!(order.encrypted_key, None);
+    assert_eq!(c.balance_of(seller()).0, 0);
+    assert_released(&c);
+}
+
+#[test]
+fn second_callback_after_settle_cannot_pay_twice() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some("k")),
+        START + 1
+    ));
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some("k")),
+        START + 2
+    ));
+    assert_eq!(c.balance_of(seller()).0, 5 * USDC);
+}
+
+#[test]
+#[should_panic(expected = "Order already finalized")]
+fn settled_order_cannot_be_refunded() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    callback_at(&mut c, o.id, 1, output(o.id, 1, true, Some("k")), START + 1);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(o.id);
+}
+
+/// submit_delivery and settlement must not need storage beyond what
+/// create_order charged, including the seller's first earnings entry and
+/// maximum-length delivery_ref / encrypted_key.
+#[test]
+fn delivery_and_settlement_fit_in_the_reserve() {
+    let (mut c, l) = ready();
+    testing_env!(ctx(&admin())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.set_verifier(verifier_config());
+    create_as(&mut c, &agent(), l); // owner's token set exists from here on
+
+    testing_env!(ctx(&agent()).build());
+    let byte_cost = env::storage_byte_cost().as_yoctonear();
+    let deposit_before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let usage_before = env::storage_usage();
+    let o = c.create_order(owner(), l, "pk".to_string());
+    let charged = (deposit_before - c.get_mandate(owner()).unwrap().storage_deposit.0) / byte_cost;
+
+    let long = "x".repeat(MAX_STRING_LEN);
+    let usage = env::storage_usage();
+    testing_env!(ctx(&seller())
+        .attached_deposit(NearToken::from_yoctonear(FEE))
+        .storage_usage(usage)
+        .build());
+    let _ = c.submit_delivery(o.id, long.clone(), long.clone());
+    assert!(callback_at(
+        &mut c,
+        o.id,
+        1,
+        output(o.id, 1, true, Some(&long)),
+        START + 1
+    ));
+    let used = env::storage_usage() - usage_before;
+    assert!(
+        used <= charged as u64,
+        "used {used} bytes, charged {charged}"
+    );
 }

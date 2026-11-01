@@ -3,7 +3,8 @@
 //! Funds live in this contract per order. An agent can only open orders that
 //! fit the owner's on-chain mandate; unfinished orders refund themselves after
 //! their deadline. Every order is a non-transferable NEP-171 receipt.
-//! Delivery verification and settlement are added in a later step.
+//! Sellers submit deliveries, the contract has OutLayer verify them in a
+//! TEE, and the verification callback settles the order.
 
 // Write-through collections: storage cost is measured with
 // `env::storage_usage()` inside a call, which requires writes to land
@@ -16,6 +17,7 @@ use near_sdk::collections::{LazyOption, LookupMap};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::{env, near, AccountId, PanicOnDefault};
 
+mod delivery;
 mod mandate;
 mod nft;
 mod orders;
@@ -42,14 +44,19 @@ pub struct Contract {
     /// NEP-171 receipts; token_id = order id, owner = buyer.
     pub(crate) nft: NonFungibleToken,
     pub(crate) nft_metadata: LazyOption<NFTContractMetadata>,
+    /// May configure the verifier.
+    pub(crate) admin: AccountId,
+    pub(crate) verifier: Option<VerifierConfig>,
 }
 
 #[near]
 impl Contract {
     #[init]
-    pub fn new(token: AccountId) -> Self {
+    pub fn new(token: AccountId, admin: AccountId) -> Self {
         Self {
             token,
+            admin,
+            verifier: None,
             mandates: LookupMap::new(StorageKey::Mandates),
             listings: LookupMap::new(StorageKey::Listings),
             next_listing_id: 0,
@@ -82,6 +89,14 @@ impl Contract {
 
     pub fn get_token(&self) -> AccountId {
         self.token.clone()
+    }
+
+    pub fn get_admin(&self) -> AccountId {
+        self.admin.clone()
+    }
+
+    pub fn get_verifier(&self) -> Option<VerifierConfig> {
+        self.verifier.clone()
     }
 
     pub fn get_mandate(&self, owner: AccountId) -> Option<Mandate> {

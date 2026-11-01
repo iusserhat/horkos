@@ -11,6 +11,13 @@ pub const MAX_ALLOWED_SELLERS: usize = 20;
 pub const MAX_STRING_LEN: usize = 256;
 /// Longest delivery window a listing may declare: 30 days in nanoseconds.
 pub const MAX_DELIVERY_WINDOW_NS: u64 = 30 * 24 * 60 * 60 * 1_000_000_000;
+/// Storage reserved per order at `create_order` so that delivery and
+/// settlement never need a new payment: `delivery_ref` and `encrypted_key`
+/// (each up to `MAX_STRING_LEN`, plus a 4-byte length prefix) and the
+/// seller's earnings entry (key + u128 + 40-byte trie record overhead).
+pub const DELIVERY_RESERVED_BYTES: u64 = 2 * (4 + MAX_STRING_LEN as u64) + 128;
+/// Largest verifier output the contract reads (OutLayer caps it at 900 bytes).
+pub const MAX_VERIFIER_OUTPUT: usize = 2048;
 
 #[derive(BorshStorageKey)]
 #[near]
@@ -63,6 +70,10 @@ pub struct Listing {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OrderStatus {
     Open,
+    /// A delivery is being checked by the verifier (one request at a time).
+    Verifying,
+    /// A delivery was submitted but did not pass (or no result came back);
+    /// the seller may resubmit until the deadline.
     Delivered,
     Settled,
     Refunded,
@@ -90,8 +101,41 @@ pub struct Order {
     pub deadline: U64,
     pub buyer_pubkey: String,
     pub delivery_ref: Option<String>,
+    /// Data key sealed to `buyer_pubkey`, written only on settlement.
     pub encrypted_key: Option<String>,
     pub status: OrderStatus,
+    /// Number of verification requests made; callbacks carry it so a result
+    /// can only apply to the attempt that asked for it.
+    pub attempts: u32,
+}
+
+/// Where and how deliveries are verified (set by the admin).
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct VerifierConfig {
+    /// OutLayer contract, e.g. `outlayer.testnet`.
+    pub outlayer: AccountId,
+    /// Verifier WASM; the hash pins the exact code OutLayer runs.
+    pub wasm_url: String,
+    pub wasm_hash: String,
+    pub build_target: String,
+    /// OutLayer secrets row holding the verifier key (optional until P1 keys exist).
+    pub secrets_profile: Option<String>,
+    pub secrets_account: Option<AccountId>,
+    /// Smallest deposit a seller must attach for OutLayer's fee (yoctoNEAR).
+    pub min_fee: U128,
+}
+
+/// What the verifier WASM prints to stdout (OutLayer `response_format: Json`).
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct VerifierOutput {
+    pub order_id: U64,
+    pub attempt: u32,
+    pub valid: bool,
+    /// Data key sealed to the buyer's public key; required when `valid`.
+    pub buyer_sealed_key: Option<String>,
+    pub data_sha256: Option<String>,
 }
 
 /// Which internal balance `withdraw` draws from.

@@ -26,7 +26,7 @@ Horkos, AI ajanları için programlanabilir bir emanet (escrow) protokolüdür: 
 - Repoyu herkese açık yapma, push / force-push
 - X'te veya başka yerde paylaşım
 - Anahtarlar, kurtarma kelimeleri, `.env` içerikleri asla repoya girmez; kullanıcıdan kurtarma kelimesi isteme
-- Testnet varsayılandır. Testnet hesabı: `horkos.testnet` (henüz oluşturulmadı). Ödül hesabı mainnet `horkos.near` (kullanıcı kendisi açacak).
+- Testnet varsayılandır. Testnet hesabı: `horkos.testnet` (oluşturuldu 1 Kasım 2026, faucet; anahtar `~/.near-credentials/testnet/`, legacy keychain). Ödül hesabı mainnet `horkos.near` (kullanıcı kendisi açacak).
 
 ## Mimari (kesinleşen kararlar)
 
@@ -38,6 +38,8 @@ Horkos, AI ajanları için programlanabilir bir emanet (escrow) protokolüdür: 
 6. **Tek iade yolu zaman aşımı.** `refund_expired` herkes tarafından çağrılabilir. Hatalı teslimat doğrulamayı geçemediği için ayrı bir anlaşmazlık mekanizması yok.
 7. **İptal kuralı.** `cancel_order` yalnızca `Open` durumunda (satıcı teslimat yüklemeden önce). `Delivered` sonrası iptal yok.
 8. **Durum makinesi:** `Open → Delivered → Settled`, `Open|Delivered → Refunded` (süre), `Open → Cancelled`. Her sipariş yalnızca bir son duruma ulaşır; çift settle/iade engellenir.
+10. **Ajan ayrı bir hesaptır** (`mandate.agent`); kontrat `create_order`/`cancel_order`'da `predecessor == agent` kontrol eder. Limitler kontratta olduğu için ajan anahtarı sızsa bile yalnızca yetki içinde sipariş açılabilir; function-call key ek bir katmandır. `set_mandate`, `revoke_mandate`, `withdraw` 1 yoctoNEAR ister (FC key deposit ekleyemez).
+11. **Depolama sahibin depozitosundan ödenir.** `set_mandate` sırasında sahip NEAR depolama depoziti yatırır (NEP-145 mantığı); `create_order` eklediği depolamayı (`env::storage_usage` farkı × byte maliyeti) bu depozitodan düşer, yetmezse ret. `revoke_mandate` kalan depoziti iade eder. Mandate başına açık sipariş üst sınırı (varsayılan 50). `ft_on_transfer` yalnızca mevcut mandate'e yatırım kabul eder.
 9. **Doğrulayıcı:** önce NEAR OutLayer (Intel TDX TEE, attestation). **Karar noktası 2 Kasım akşamı:** OutLayer içinde doğrulama çalıştırıp attestation'ı kontrata ulaştıramazsak 3 Kasım'da kendi doğrulayıcı servisimize geçeriz ve README'de "bu sürümde doğrulayıcıya güveniliyor, TEE yol haritasında" diye açıkça yazarız.
 
 ## Kapsam

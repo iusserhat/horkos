@@ -68,15 +68,16 @@ Durumlar: `Open → Delivered → Settled`; `Open | Delivered → Refunded`; `Op
 | Anahtar/ödeme boşluğu | Atomik settle, iç bakiye | Yok |
 | Sahte doğrulama | Yalnızca geçerli attestation kabul | TEE'ye ya da (yedek planda) doğrulayıcı servisine güven |
 | Çift ödeme/iade | Durum makinesi | Yok |
+| Depolama tüketme (ajan `create_order`/`cancel_order` döngüsüyle kontrat depolamasını doldurur; iptal bütçeyi geri açtığı için token limiti bunu durdurmaz) | Sipariş depolaması sahibin NEAR depozitosundan düşülür, yetmezse ret; mandate başına açık sipariş üst sınırı (varsayılan 50); `ft_on_transfer` mandate'i olmayan hesaba kayıt açmaz; `register_listing` kendi depolamasını öder | Kayıp sahibin yatırdığı depozitoyla sınırlı |
 
 ## 6. Kontrat arayüzü (taslak)
 
 | Fonksiyon | Çağıran | Ne yapar |
 | --- | --- | --- |
-| `ft_on_transfer` | Token kontratı | Yatırılanı yetki bakiyesine yazar |
-| `set_mandate` / `revoke_mandate` | Kullanıcı | Yetkiyi tanımlar / kapatır |
-| `register_listing` | Satıcı | Fiyat, teslim koşulu hash'i, teslim süresi |
-| `create_order` | Ajan (FC key) | Yetki kontrolü, emanet, NFT basımı |
+| `ft_on_transfer` | Token kontratı | Yatırılanı mevcut yetkinin bakiyesine yazar; yetki yoksa tutarı iade eder |
+| `set_mandate` / `revoke_mandate` | Kullanıcı (1 yocto + depolama depoziti) | Yetkiyi tanımlar, ekli NEAR'ı depolama depozitosuna ekler / kapatır ve kalan depoziti iade eder |
+| `register_listing` | Satıcı (depolama ücreti ekli) | Fiyat, teslim koşulu hash'i, teslim süresi |
+| `create_order` | Ajan (FC key) | Yetki kontrolü (sipariş başı/toplam limit, satıcı listesi, süre, açık sipariş sınırı), emanet, depolama ücretini depozitodan düşme, NFT basımı |
 | `cancel_order` | Ajan (FC key) | Yalnızca `Open` iken iptal |
 | `submit_delivery` | Satıcı | Şifreli veri referansı + hash → `Delivered` |
 | `settle` | Doğrulayıcı | Attestation doğrula, iç bakiyeye yaz, şifreli anahtarı kaydet |
@@ -86,9 +87,11 @@ Durumlar: `Open → Delivered → Settled`; `Open | Delivered → Refunded`; `Op
 
 ```rust
 struct Mandate {
-    owner: AccountId, agent: AccountId, balance: u128,
+    owner: AccountId, agent: AccountId, balance: u128, spent: u128,
     max_total: u128, max_per_order: u128,
     allowed_sellers: Vec<AccountId>, expires_at: u64, active: bool,
+    storage_deposit: u128,          // yoctoNEAR; order storage is charged here
+    open_orders: u32, max_open_orders: u32,  // default cap 50
 }
 struct Listing { seller: AccountId, price: u128, condition_hash: String, delivery_window: u64 }
 enum OrderStatus { Open, Delivered, Settled, Refunded, Cancelled }

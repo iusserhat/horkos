@@ -11,6 +11,7 @@ use near_sdk::collections::LookupMap;
 use near_sdk::json_types::{U128, U64};
 use near_sdk::{env, near, AccountId, PanicOnDefault};
 
+mod mandate;
 mod types;
 pub use types::*;
 

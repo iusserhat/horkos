@@ -266,3 +266,234 @@ fn ft_on_transfer_rejects_other_tokens() {
     testing_env!(ctx(&acc("fake-usdc.testnet")).build());
     let _ = c.ft_on_transfer(owner(), U128(1), String::new());
 }
+
+// ---------------------------------------------------------------- listings & orders
+
+pub(crate) const WINDOW: u64 = 3_600 * T;
+
+pub(crate) fn register_listing_as(c: &mut Contract, who: &AccountId, price: u128) -> U64 {
+    testing_env!(ctx(who)
+        .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
+        .build());
+    c.register_listing(U128(price), "sha256:abc".to_string(), U64(WINDOW))
+}
+
+pub(crate) fn create_as(c: &mut Contract, caller: &AccountId, listing: U64) -> Order {
+    testing_env!(ctx(caller).build());
+    c.create_order(owner(), listing, "ed25519:buyerpub".to_string())
+}
+
+/// Mandate with 200 tUSDC budget (above max_total, so limits are tested in isolation)
+/// and a 5 tUSDC listing from the allowed seller.
+pub(crate) fn ready() -> (Contract, U64) {
+    let mut c = setup();
+    set_default_mandate(&mut c, STORAGE_DEPOSIT);
+    deposit_budget(&mut c, &owner(), 200 * USDC);
+    let l = register_listing_as(&mut c, &seller(), 5 * USDC);
+    (c, l)
+}
+
+#[test]
+fn register_listing_stores_and_refunds_excess() {
+    let mut c = setup();
+    let id = register_listing_as(&mut c, &seller(), 5 * USDC);
+    let l = c.get_listing(id).unwrap();
+    assert_eq!(l.seller, seller());
+    assert_eq!(l.price.0, 5 * USDC);
+    assert_eq!(l.delivery_window.0, WINDOW);
+    let receipts = near_sdk::test_utils::get_created_receipts();
+    assert_eq!(receipts.len(), 1, "excess deposit is refunded");
+    assert_eq!(receipts[0].receiver_id, seller());
+}
+
+#[test]
+#[should_panic(expected = "Insufficient storage deposit")]
+fn register_listing_requires_storage_payment() {
+    let mut c = setup();
+    testing_env!(ctx(&seller()).build());
+    c.register_listing(U128(1), "h".to_string(), U64(WINDOW));
+}
+
+#[test]
+#[should_panic(expected = "price must be positive")]
+fn register_listing_rejects_zero_price() {
+    let mut c = setup();
+    register_listing_as(&mut c, &seller(), 0);
+}
+
+#[test]
+#[should_panic(expected = "delivery_window out of range")]
+fn register_listing_rejects_long_window() {
+    let mut c = setup();
+    testing_env!(ctx(&seller())
+        .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
+        .build());
+    c.register_listing(U128(1), "h".to_string(), U64(MAX_DELIVERY_WINDOW_NS + 1));
+}
+
+#[test]
+fn create_order_escrows_funds_and_charges_storage() {
+    let (mut c, l) = ready();
+    let deposit_before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let o = create_as(&mut c, &agent(), l);
+    assert_eq!(o.id.0, 0);
+    assert_eq!(o.buyer, owner());
+    assert_eq!(o.agent, agent());
+    assert_eq!(o.seller, seller());
+    assert_eq!(o.amount.0, 5 * USDC);
+    assert_eq!(o.deadline.0, START + WINDOW);
+    assert_eq!(o.status, OrderStatus::Open);
+    assert_eq!(c.get_order(U64(0)), Some(o));
+
+    let m = c.get_mandate(owner()).unwrap();
+    assert_eq!(m.balance.0, 195 * USDC);
+    assert_eq!(m.spent.0, 5 * USDC);
+    assert_eq!(m.open_orders, 1);
+    assert!(
+        m.storage_deposit.0 < deposit_before,
+        "order storage is charged"
+    );
+}
+
+#[test]
+#[should_panic(expected = "Price exceeds max_per_order")]
+fn create_order_rejects_per_order_limit() {
+    let (mut c, _) = ready();
+    let big = register_listing_as(&mut c, &seller(), 11 * USDC);
+    create_as(&mut c, &agent(), big);
+}
+
+#[test]
+#[should_panic(expected = "Order would exceed max_total")]
+fn create_order_rejects_total_limit() {
+    let (mut c, _) = ready();
+    let ten = register_listing_as(&mut c, &seller(), 10 * USDC);
+    for _ in 0..10 {
+        create_as(&mut c, &agent(), ten); // 100 tUSDC = max_total
+    }
+    create_as(&mut c, &agent(), ten);
+}
+
+#[test]
+#[should_panic(expected = "Seller not allowed by mandate")]
+fn create_order_rejects_unauthorized_seller() {
+    let (mut c, _) = ready();
+    let rogue = register_listing_as(&mut c, &acc("attacker.testnet"), 5 * USDC);
+    create_as(&mut c, &agent(), rogue);
+}
+
+#[test]
+#[should_panic(expected = "Insufficient mandate balance")]
+fn create_order_rejects_insufficient_balance() {
+    let mut c = setup();
+    set_default_mandate(&mut c, STORAGE_DEPOSIT);
+    deposit_budget(&mut c, &owner(), 4 * USDC);
+    let l = register_listing_as(&mut c, &seller(), 5 * USDC);
+    create_as(&mut c, &agent(), l);
+}
+
+#[test]
+#[should_panic(expected = "Caller is not the mandate's agent")]
+fn create_order_rejects_other_caller() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &acc("mallory.testnet"), l);
+}
+
+#[test]
+#[should_panic(expected = "Caller is not the mandate's agent")]
+fn create_order_rejects_owner_as_caller() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &owner(), l);
+}
+
+#[test]
+#[should_panic(expected = "Mandate expired")]
+fn create_order_rejects_expired_mandate() {
+    let (mut c, l) = ready();
+    testing_env!(ctx(&agent()).block_timestamp(START + 86_400 * T).build());
+    c.create_order(owner(), l, "pk".to_string());
+}
+
+#[test]
+#[should_panic(expected = "Mandate is revoked")]
+fn create_order_rejects_revoked_mandate() {
+    let (mut c, l) = ready();
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.revoke_mandate();
+    create_as(&mut c, &agent(), l);
+}
+
+#[test]
+#[should_panic(expected = "Listing not found")]
+fn create_order_rejects_unknown_listing() {
+    let (mut c, _) = ready();
+    create_as(&mut c, &agent(), U64(99));
+}
+
+#[test]
+#[should_panic(expected = "Insufficient storage deposit")]
+fn create_order_rejects_when_storage_deposit_is_exhausted() {
+    let (mut c, l) = ready();
+    let mut m = c.mandates.get(&owner()).unwrap();
+    m.storage_deposit = U128(0);
+    c.mandates.insert(&owner(), &m);
+    create_as(&mut c, &agent(), l);
+}
+
+#[test]
+#[should_panic(expected = "Too many open orders")]
+fn create_order_rejects_above_open_order_cap() {
+    let mut c = setup();
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
+        .build());
+    c.set_mandate(
+        agent(),
+        U128(100 * USDC),
+        U128(10 * USDC),
+        vec![seller()],
+        U64(START + 86_400 * T),
+        Some(3),
+    );
+    deposit_budget(&mut c, &owner(), 100 * USDC);
+    let l = register_listing_as(&mut c, &seller(), 1 * USDC);
+    for _ in 0..3 {
+        create_as(&mut c, &agent(), l);
+    }
+    create_as(&mut c, &agent(), l);
+}
+
+#[test]
+fn default_open_order_cap_is_fifty() {
+    let mut c = setup();
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(NEAR))
+        .build());
+    c.set_mandate(
+        agent(),
+        U128(1_000 * USDC),
+        U128(10 * USDC),
+        vec![seller()],
+        U64(START + 86_400 * T),
+        None,
+    );
+    deposit_budget(&mut c, &owner(), 1_000 * USDC);
+    let l = register_listing_as(&mut c, &seller(), 1 * USDC);
+    for _ in 0..DEFAULT_MAX_OPEN_ORDERS {
+        create_as(&mut c, &agent(), l);
+    }
+    assert_eq!(c.get_mandate(owner()).unwrap().open_orders, 50);
+    testing_env!(ctx(&agent()).build());
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        c.create_order(owner(), l, "pk".to_string())
+    }));
+    let err = r.expect_err("51st open order must be rejected");
+    let msg = err
+        .downcast_ref::<String>()
+        .cloned()
+        .or_else(|| err.downcast_ref::<&str>().map(|s| s.to_string()))
+        .unwrap_or_default();
+    assert!(msg.contains("Too many open orders"), "unexpected panic: {msg}");
+}

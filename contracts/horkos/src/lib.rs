@@ -12,6 +12,7 @@ use near_sdk::json_types::{U128, U64};
 use near_sdk::{env, near, AccountId, PanicOnDefault};
 
 mod mandate;
+mod orders;
 mod types;
 pub use types::*;
 

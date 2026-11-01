@@ -19,6 +19,10 @@ pub enum Mode {
     Null,
     /// Panic, like OutLayer rejecting the request.
     Reject,
+    /// Valid, and hand the seller's sealed payload back as the buyer's.
+    /// Lets SDK tests exercise decryption when the test makes the verifier
+    /// key equal to the buyer key. A real verifier re-seals to the buyer.
+    Passthrough,
 }
 
 #[derive(PanicOnDefault)]
@@ -66,6 +70,13 @@ impl MockOutlayer {
             json!({"source": source, "payer_account_id": payer_account_id}).to_string();
         match self.mode {
             Mode::Null | Mode::Reject => Value::Null,
+            Mode::Passthrough => json!({
+                "order_id": input["order_id"],
+                "attempt": input["attempt"],
+                "valid": true,
+                "buyer_sealed_key": input["sealed_key"],
+                "data_sha256": null,
+            }),
             mode => json!({
                 "order_id": input["order_id"],
                 "attempt": input["attempt"],

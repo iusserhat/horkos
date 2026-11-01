@@ -43,6 +43,10 @@ impl Contract {
             "wasm_url must be an https URL"
         );
         require!(
+            !config.encryption_pubkey.is_empty() && config.encryption_pubkey.len() <= 64,
+            "encryption_pubkey length out of range"
+        );
+        require!(
             config.max_fee.0 >= config.min_fee.0 && config.max_fee.0 > 0,
             "max_fee must be positive and at least min_fee"
         );

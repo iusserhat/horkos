@@ -974,6 +974,7 @@ fn verifier_config() -> VerifierConfig {
         wasm_url: format!("https://example.test/{HASH}.wasm"),
         wasm_hash: HASH.to_string(),
         build_target: "wasm32-wasip1".to_string(),
+        encryption_pubkey: "verifier-x25519-pubkey-base64".to_string(),
         secrets_profile: Some("verifier".to_string()),
         secrets_account: Some(acc("horkos.testnet")),
         min_fee: U128(FEE),

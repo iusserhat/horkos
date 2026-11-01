@@ -123,6 +123,9 @@ pub struct VerifierConfig {
     pub wasm_url: String,
     pub wasm_hash: String,
     pub build_target: String,
+    /// Verifier's X25519 public key (base64). Sellers seal `K || sha256(ciphertext)`
+    /// to it; the matching secret key lives only inside the TEE.
+    pub encryption_pubkey: String,
     /// OutLayer secrets row holding the verifier key (optional until P1 keys exist).
     pub secrets_profile: Option<String>,
     pub secrets_account: Option<AccountId>,

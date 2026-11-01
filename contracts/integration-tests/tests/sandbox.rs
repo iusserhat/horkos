@@ -104,6 +104,7 @@ async fn setup() -> anyhow::Result<Env> {
             "wasm_url": "https://example.test/verifier.wasm",
             "wasm_hash": "ab".repeat(32),
             "build_target": "wasm32-wasip1",
+            "encryption_pubkey": "verifier-x25519-pubkey-base64",
             "secrets_profile": null,
             "secrets_account": null,
             "min_fee": FEE.as_yoctonear().to_string(),

@@ -82,6 +82,7 @@ Durumlar: `Open → Verifying → Settled`; `Verifying → Delivered` (geçersiz
 | `register_listing` | Satıcı (depolama ücreti ekli) | Fiyat, teslim koşulu hash'i, teslim süresi |
 | `create_order` | Ajan (FC key) | Yetki kontrolü (sipariş başı/toplam limit, satıcı listesi, süre, açık sipariş sınırı), emanet, depolama ücretini depozitodan düşme, NFT basımı |
 | `cancel_order` | Ajan (FC key) | Yalnızca `Open` iken iptal |
+| `set_verifier` | Admin (1 yocto) | OutLayer hesabı, doğrulayıcı WASM URL + sha256, secrets satırı, asgari ücret |
 | `submit_delivery` | Satıcı (OutLayer ücreti ekli) | Şifreli veri referansı + hash; `Open`/`Delivered` → `Verifying`; OutLayer `request_execution`; `Verifying` iken ikinci istek ret |
 | `on_verified` | Kontratın kendisi (`#[private]` callback) | Geçerli + `Verifying` + `now < deadline` → satıcı iç bakiyesi + alıcı için şifreli anahtar → `Settled`; geçersiz/`null` → `Delivered`; son durumdaysa hiçbir şey yapma |
 | `refund_expired` | Herkes | Süresi geçmiş `Open`/`Delivered`/`Verifying` siparişi iade et |
@@ -102,6 +103,7 @@ struct Order {
     id: u64, buyer: AccountId, seller: AccountId, amount: u128, listing_id: u64,
     deadline: u64, buyer_pubkey: String, delivery_ref: Option<String>,
     encrypted_key: Option<String>, status: OrderStatus,
+    attempts: u32,   // verification requests; the callback must match it
 }
 ```
 
@@ -124,6 +126,10 @@ Kaynak: 1 Kasım denemesi (`spikes/outlayer/REPORT.md`), OutLayer belgeleri ve `
 3. Kontrat `request_execution` çağırır: `source` = doğrulayıcı WASM (hash sabit), `input_data` = `{order_id, delivery_ref, sealed_key, condition_hash, buyer_pubkey}` (`buyer_pubkey` sipariş kaydından), `secrets_ref` = doğrulayıcı satırı. Sipariş `Verifying`.
 4. TEE: `NEAR_PREDECESSOR_ID == horkos` kontrolü; `K`'yi açar; veriyi indirir, çözer; koşulu (şema/test) kontrol eder; geçerse `K`'yi `buyer_pubkey`'e mühürler. Çıktı (≤ 900 bayt): `{order_id, valid, data_sha256, buyer_sealed_key}`.
 5. `on_verified`: sipariş son durumdaysa (ör. iade edildi) hiçbir şey yapma. `Verifying` + `valid` + `order_id` eşleşir + `now < deadline` → satıcı iç bakiyesi += tutar, `encrypted_key = buyer_sealed_key`, `Settled`. Aksi halde `Delivered`.
+
+**Depolama.** `create_order` sipariş kaydı + makbuz + rezervi tek seferde mandate depozitosundan düşer. Rezerv: `delivery_ref` ve `encrypted_key` (her biri ≤ `MAX_STRING_LEN` = 256 + 4 bayt), satıcının ilk iç bakiye kaydı (128 bayt) ve metadata yeniden yazımı (32 bayt). Ölçülen toplam: **sipariş başına ~1513 bayt ≈ 0,015 NEAR** (testnet byte maliyetiyle); 50 açık siparişlik bir yetki ≈ 0,76 NEAR depozit ister. `submit_delivery` ve `on_verified` yeni depolama ödemesi istemez (testle doğrulandı, en uzun alanlarla).
+
+**Hata durumları.** `on_verified` sonuç dışında bir nedenle (ör. gas) başarısız olursa sipariş `Verifying`'de kalır; satıcı yeniden gönderemez, son tarihte `refund_expired` iade eder. `attempts` sayacı eski bir denemenin sonucunun yenisine uygulanmasını engeller.
 
 **Henüz denenmedi:** OutLayer secrets ile `PROTECTED_*` üretimi, `callers` manifest kısıtı, büyük verinin WASM içinden HTTP ile çekilmesi (WASI P2 gerekir). P1'de ilk iş bunları denemek.
 

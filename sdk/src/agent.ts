@@ -28,6 +28,28 @@ export interface Purchase {
  * limited to `create_order` / `cancel_order`; every limit is enforced by the
  * contract, not by this SDK.
  */
+/**
+ * Opens a delivery from its on-chain fields: unseals the buyer key, fetches
+ * the manifest and ciphertext, checks the ciphertext is the one the verifier
+ * checked, and decrypts. Exposed for testing the verifier end to end.
+ */
+export async function openDeliveryFrom(
+  delivery: { orderId: string; deliveryRef: string; encryptedKey: string },
+  buyerKeys: BoxKeyPair,
+  get: typeof fetch = fetch,
+): Promise<Uint8Array> {
+  const payload = await openPayload(delivery.encryptedKey, buyerKeys);
+  const manifest = (await (await get(delivery.deliveryRef)).json()) as DeliveryManifest;
+  if (manifest.order_id !== delivery.orderId) throw new Error("delivery manifest is for another order");
+  const res = await get(manifest.data_url);
+  if (!res.ok) throw new Error(`fetching ${manifest.data_url}: HTTP ${res.status}`);
+  const ciphertext = new Uint8Array(await res.arrayBuffer());
+  if (toHex(sha256(ciphertext)) !== toHex(payload.ciphertextSha256)) {
+    throw new Error("ciphertext hash mismatch: the hosted file is not the one that was verified");
+  }
+  return decryptData(ciphertext, payload.key);
+}
+
 export class HorkosAgent extends HorkosClient {
   readonly owner: string;
 
@@ -102,17 +124,11 @@ export class HorkosAgent extends HorkosClient {
     if (order.status !== "Settled" || !order.encrypted_key || !order.delivery_ref) {
       throw new Error(`order ${order.id} is ${order.status}; nothing to open`);
     }
-    const get = opts.fetch ?? fetch;
-    const payload = await openPayload(order.encrypted_key, buyerKeys);
-    const manifest = (await (await get(order.delivery_ref)).json()) as DeliveryManifest;
-    if (manifest.order_id !== order.id) throw new Error("delivery manifest is for another order");
-    const res = await get(manifest.data_url);
-    if (!res.ok) throw new Error(`fetching ${manifest.data_url}: HTTP ${res.status}`);
-    const ciphertext = new Uint8Array(await res.arrayBuffer());
-    if (toHex(sha256(ciphertext)) !== toHex(payload.ciphertextSha256)) {
-      throw new Error("ciphertext hash mismatch: the hosted file is not the one that was verified");
-    }
-    return decryptData(ciphertext, payload.key);
+    return openDeliveryFrom(
+      { orderId: order.id, deliveryRef: order.delivery_ref, encryptedKey: order.encrypted_key },
+      buyerKeys,
+      opts.fetch,
+    );
   }
 
   /** `openDelivery` + UTF-8 JSON parse. */

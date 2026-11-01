@@ -18,6 +18,26 @@ export interface RegisteredListing {
 
 const NEAR = 10n ** 24n;
 
+/**
+ * Encrypts and publishes a delivery, returning what `submit_delivery` takes.
+ * Exposed so the verifier can be tested on exactly what sellers produce.
+ */
+export async function prepareDelivery(args: {
+  orderId: string;
+  data: Uint8Array | unknown;
+  conditionUrl: string;
+  verifierPublicKey: string;
+  store: BlobStore;
+}): Promise<{ deliveryRef: string; sealedKey: string }> {
+  const plaintext = args.data instanceof Uint8Array ? args.data : new TextEncoder().encode(JSON.stringify(args.data));
+  const { key, ciphertext } = await encryptData(plaintext);
+  const dataUrl = await args.store.put(ciphertext, "application/octet-stream");
+  const manifest: DeliveryManifest = { v: 1, order_id: args.orderId, data_url: dataUrl, condition_url: args.conditionUrl };
+  const deliveryRef = await args.store.put(new TextEncoder().encode(JSON.stringify(manifest)), "application/json");
+  const sealedKey = await sealPayload({ key, ciphertextSha256: sha256(ciphertext) }, args.verifierPublicKey);
+  return { deliveryRef, sealedKey };
+}
+
 /** Seller side: list, watch for orders, deliver, withdraw. */
 export class HorkosSeller extends HorkosClient {
   private readonly store: BlobStore;
@@ -107,17 +127,18 @@ export class HorkosSeller extends HorkosClient {
     const verifier = await this.getVerifierVersion(order.verifier_version);
     if (!verifier) throw new Error(`verifier version ${order.verifier_version} not found`);
 
-    const plaintext = args.data instanceof Uint8Array ? args.data : new TextEncoder().encode(JSON.stringify(args.data));
-    const { key, ciphertext } = await encryptData(plaintext);
-    const dataUrl = await this.store.put(ciphertext, "application/octet-stream");
-    const manifest: DeliveryManifest = { v: 1, order_id: order.id, data_url: dataUrl, condition_url: args.conditionUrl };
-    const manifestUrl = await this.store.put(new TextEncoder().encode(JSON.stringify(manifest)), "application/json");
-    const sealed = await sealPayload({ key, ciphertextSha256: sha256(ciphertext) }, verifier.encryption_pubkey);
+    const { deliveryRef, sealedKey } = await prepareDelivery({
+      orderId: order.id,
+      data: args.data,
+      conditionUrl: args.conditionUrl,
+      verifierPublicKey: verifier.encryption_pubkey,
+      store: this.store,
+    });
 
     await this.account.callFunction({
       contractId: this.contractId,
       methodName: "submit_delivery",
-      args: { order_id: order.id, delivery_ref: manifestUrl, sealed_key: sealed },
+      args: { order_id: order.id, delivery_ref: deliveryRef, sealed_key: sealedKey },
       deposit: args.fee ?? BigInt(verifier.min_fee),
       gas: 300n * TGAS,
       waitUntil: "FINAL",

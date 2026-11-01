@@ -26,7 +26,7 @@ Horkos, AI ajanları için programlanabilir bir emanet (escrow) protokolüdür: 
 - Repoyu herkese açık yapma, push / force-push
 - X'te veya başka yerde paylaşım
 - Anahtarlar, kurtarma kelimeleri, `.env` içerikleri asla repoya girmez; kullanıcıdan kurtarma kelimesi isteme
-- Testnet varsayılandır. Testnet hesabı: `horkos.testnet` (oluşturuldu 1 Kasım 2026, faucet; anahtar `~/.near-credentials/testnet/`, legacy keychain). Ödül hesabı mainnet `horkos.near` (kullanıcı kendisi açacak).
+- Testnet varsayılandır. Testnet hesabı: `horkos.testnet` (oluşturuldu 1 Kasım 2026, faucet; anahtar `~/.near-credentials/testnet/`, legacy keychain). Ödül hesabı mainnet `horkos.near` (kullanıcı kendisi açacak). Testnet deploy (1 Kasım): `escrow.horkos.testnet` (kontrat, admin `horkos.testnet`), `tusdc.horkos.testnet` (test token); ayrıntı `docs/TESTNET.md`.
 
 ## Mimari (kesinleşen kararlar)
 

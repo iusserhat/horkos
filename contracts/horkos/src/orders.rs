@@ -126,3 +126,60 @@ impl Contract {
         order
     }
 }
+
+#[near]
+impl Contract {
+    /// Cancels an `Open` order (before the seller delivers). Callable by the
+    /// mandate's current agent or by the owner. Funds return to the budget.
+    pub fn cancel_order(&mut self, order_id: U64) -> Order {
+        let mut order = self.orders.get(&order_id.0).expect("Order not found");
+        let caller = env::predecessor_account_id();
+        let mandate = self
+            .mandates
+            .get(&order.buyer)
+            .expect("No mandate for owner");
+        require!(
+            caller == mandate.agent || caller == order.buyer,
+            "Only the agent or owner can cancel"
+        );
+        require!(
+            order.status == OrderStatus::Open,
+            "Only Open orders can be cancelled"
+        );
+        order.status = OrderStatus::Cancelled;
+        self.release_to_budget(&order);
+        self.orders.insert(&order_id.0, &order);
+        order
+    }
+
+    /// Refunds an `Open` or `Delivered` order whose deadline has passed.
+    /// Anyone may call it. A finalized order can never be refunded again.
+    pub fn refund_expired(&mut self, order_id: U64) -> Order {
+        let mut order = self.orders.get(&order_id.0).expect("Order not found");
+        require!(!order.status.is_final(), "Order already finalized");
+        require!(
+            env::block_timestamp() >= order.deadline.0,
+            "Order not expired yet"
+        );
+        order.status = OrderStatus::Refunded;
+        self.release_to_budget(&order);
+        self.orders.insert(&order_id.0, &order);
+        order
+    }
+}
+
+impl Contract {
+    /// Returns an order's escrow to its mandate: budget back, limit reopened,
+    /// open-order slot freed. Order storage is not freed (the record stays as
+    /// a receipt), so create/cancel cycles keep consuming the storage deposit.
+    fn release_to_budget(&mut self, order: &Order) {
+        let mut mandate = self
+            .mandates
+            .get(&order.buyer)
+            .expect("No mandate for owner");
+        mandate.balance = U128(mandate.balance.0 + order.amount.0);
+        mandate.spent = U128(mandate.spent.0 - order.amount.0);
+        mandate.open_orders -= 1;
+        self.mandates.insert(&order.buyer, &mandate);
+    }
+}

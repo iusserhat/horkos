@@ -25,6 +25,13 @@ pub(crate) fn ctx(predecessor: &AccountId) -> VMContextBuilder {
     b
 }
 
+pub(crate) fn panic_msg(err: Box<dyn std::any::Any + Send>) -> String {
+    err.downcast_ref::<String>()
+        .cloned()
+        .or_else(|| err.downcast_ref::<&str>().map(|s| s.to_string()))
+        .unwrap_or_default()
+}
+
 pub(crate) fn setup() -> Contract {
     testing_env!(ctx(&acc("deployer.testnet")).build());
     Contract::new(token())
@@ -490,10 +497,178 @@ fn default_open_order_cap_is_fifty() {
         c.create_order(owner(), l, "pk".to_string())
     }));
     let err = r.expect_err("51st open order must be rejected");
-    let msg = err
-        .downcast_ref::<String>()
-        .cloned()
-        .or_else(|| err.downcast_ref::<&str>().map(|s| s.to_string()))
-        .unwrap_or_default();
-    assert!(msg.contains("Too many open orders"), "unexpected panic: {msg}");
+    let msg = panic_msg(err);
+    assert!(
+        msg.contains("Too many open orders"),
+        "unexpected panic: {msg}"
+    );
+}
+
+// ---------------------------------------------------------------- cancel & refund
+
+pub(crate) fn set_status(c: &mut Contract, id: u64, status: OrderStatus) {
+    let mut o = c.orders.get(&id).unwrap();
+    o.status = status;
+    c.orders.insert(&id, &o);
+}
+
+fn assert_released(c: &Contract) {
+    let m = c.get_mandate(owner()).unwrap();
+    assert_eq!(m.balance.0, 200 * USDC);
+    assert_eq!(m.spent.0, 0);
+    assert_eq!(m.open_orders, 0);
+}
+
+#[test]
+fn agent_cancels_open_order_and_budget_returns() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&agent()).build());
+    let o = c.cancel_order(o.id);
+    assert_eq!(o.status, OrderStatus::Cancelled);
+    assert_released(&c);
+}
+
+#[test]
+fn owner_can_cancel_open_order() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&owner()).build());
+    assert_eq!(c.cancel_order(o.id).status, OrderStatus::Cancelled);
+}
+
+#[test]
+#[should_panic(expected = "Only the agent or owner can cancel")]
+fn stranger_cannot_cancel() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&seller()).build());
+    c.cancel_order(o.id);
+}
+
+#[test]
+#[should_panic(expected = "Only Open orders can be cancelled")]
+fn cancel_rejected_after_delivery() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    set_status(&mut c, o.id.0, OrderStatus::Delivered);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+}
+
+#[test]
+#[should_panic(expected = "Only Open orders can be cancelled")]
+fn double_cancel_rejected() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+    c.cancel_order(o.id);
+}
+
+#[test]
+#[should_panic(expected = "Order not expired yet")]
+fn refund_rejected_before_deadline() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW - 1)
+        .build());
+    c.refund_expired(o.id);
+}
+
+#[test]
+fn anyone_refunds_expired_open_order() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    assert_eq!(c.refund_expired(o.id).status, OrderStatus::Refunded);
+    assert_released(&c);
+}
+
+#[test]
+fn expired_delivered_order_is_refunded() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    set_status(&mut c, o.id.0, OrderStatus::Delivered);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    assert_eq!(c.refund_expired(o.id).status, OrderStatus::Refunded);
+    assert_released(&c);
+}
+
+#[test]
+#[should_panic(expected = "Order already finalized")]
+fn double_refund_rejected() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(o.id);
+    c.refund_expired(o.id);
+}
+
+#[test]
+#[should_panic(expected = "Order already finalized")]
+fn refund_rejected_for_cancelled_order() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&agent()).block_timestamp(START + WINDOW).build());
+    c.cancel_order(o.id);
+    c.refund_expired(o.id);
+}
+
+#[test]
+#[should_panic(expected = "Order already finalized")]
+fn refund_rejected_for_settled_order() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    set_status(&mut c, o.id.0, OrderStatus::Settled);
+    testing_env!(ctx(&agent()).block_timestamp(START + WINDOW).build());
+    c.refund_expired(o.id);
+}
+
+/// The attack the storage deposit exists for: cancel reopens the token limit,
+/// so create/cancel cycles are not bounded by max_total. They must be bounded
+/// by the owner's storage deposit instead.
+#[test]
+fn create_cancel_loop_is_bounded_by_storage_deposit() {
+    let (mut c, l) = ready();
+    // Measure one order's storage cost.
+    let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let first = create_as(&mut c, &agent(), l);
+    let per_order = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
+    assert!(per_order > 0);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(first.id);
+
+    // Leave room for exactly 25 more orders: 25 x 5 tUSDC = 125 > max_total (100),
+    // so only a reopened limit lets the loop get this far.
+    let cycles = 25;
+    let mut m = c.mandates.get(&owner()).unwrap();
+    m.storage_deposit = U128(per_order * cycles);
+    c.mandates.insert(&owner(), &m);
+    for _ in 0..cycles {
+        let o = create_as(&mut c, &agent(), l);
+        testing_env!(ctx(&agent()).build());
+        c.cancel_order(o.id);
+    }
+    let m = c.get_mandate(owner()).unwrap();
+    assert_eq!(m.storage_deposit.0, 0);
+    assert_eq!(m.spent.0, 0);
+
+    testing_env!(ctx(&agent()).build());
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        c.create_order(owner(), l, "pk".to_string())
+    }));
+    let err = r.expect_err("loop must stop when the deposit runs out");
+    let msg = panic_msg(err);
+    assert!(
+        msg.contains("Insufficient storage deposit"),
+        "unexpected panic: {msg}"
+    );
 }

@@ -119,16 +119,19 @@ Kaynak: 1 Kasım denemesi (`spikes/outlayer/REPORT.md`), OutLayer belgeleri ve `
 **Güven modeli (iddia sınırı).** Kontrat attestation'ı ya da bir imzayı doğrulamaz; OutLayer callback'e yalnızca çıktı JSON'u verir (başarısızlıkta `null`). Kontrat şunlara dayanır: sonucun kendi `request_execution` çağrısının `#[private]` callback'inden gelmesi ve çalışacak WASM'ın sha256 ile sabitlenmesi. OutLayer operatörüne güvenilir (operatör hesabında full-access anahtarlar var). TEE çalışması attestation ile zincir dışında, sonradan doğrulanabilir (`outlayer-verify`, dashboard).
 
 **Anahtarlar.**
-- Doğrulayıcı anahtar çifti (X25519): gizli anahtar OutLayer secrets'ta TEE içinde üretilir (`outlayer secrets set --generate PROTECTED_VERIFIER_SK:hex32`), değeri kimse görmez; satır doğrulayıcı build'ine kilitlenir (`--build <sha256>`, yeni sürümde `secrets access --build` ile taşınır).
-- Açık anahtar: doğrulayıcı WASM bir `pubkey` komutuyla gizli anahtardan türetip çıktı verir; kontrat bunu kendi OutLayer çağrısının callback'inde kaydeder (`verifier_pubkey` view).
-- Alıcı: `create_order`'da `buyer_pubkey` (X25519) verir.
+- Doğrulayıcı anahtar çifti (X25519): gizli anahtar OutLayer secrets'ta TEE içinde üretilir (`outlayer secrets set --generate PROTECTED_VERIFIER_SK:hex32`), değeri kimse görmez; satır doğrulayıcı build'ine kilitlenir (`--build <sha256>`).
+- Açık anahtar `VerifierConfig.encryption_pubkey` olarak doğrulayıcı sürümüyle birlikte yayınlanır; sipariş sürüme sabitlendiği için satıcı her zaman siparişin doğrulayıcısına şifreler. (Admin bu anahtarı TEE'nin `pubkey` çıktısından alır; kontrat bunun TEE'den geldiğini doğrulamaz.)
+- Alıcı: `create_order`'da `buyer_pubkey` (X25519, base64) verir; SDK sipariş başına yeni çift üretir.
 
-**Akış.**
-1. Satıcı veriyi rastgele veri anahtarı `K` ile şifreler (simetrik AEAD), şifreli veriyi bir URL'ye koyar, `K`'yi doğrulayıcı açık anahtarına mühürler (sealed box).
-2. Satıcı `submit_delivery(order_id, delivery_ref, sealed_key)` çağırır ve OutLayer ücretini ekler. Sipariş `Open`/`Delivered` olmalı ve süre dolmamış olmalı; `Verifying` iken ret.
-3. Kontrat `request_execution` çağırır: `source` = doğrulayıcı WASM (hash sabit), `input_data` = `{order_id, delivery_ref, sealed_key, condition_hash, buyer_pubkey}` (`buyer_pubkey` sipariş kaydından), `secrets_ref` = doğrulayıcı satırı. Sipariş `Verifying`.
-4. TEE: `NEAR_PREDECESSOR_ID == horkos` kontrolü; `K`'yi açar; veriyi indirir, çözer; koşulu (şema/test) kontrol eder; geçerse `K`'yi `buyer_pubkey`'e mühürler. Çıktı (≤ 900 bayt): `{order_id, valid, data_sha256, buyer_sealed_key}`.
-5. `on_verified`: sipariş son durumdaysa (ör. iade edildi) hiçbir şey yapma. `Verifying` + `valid` + `order_id` eşleşir + `now < deadline` → satıcı iç bakiyesi += tutar, `encrypted_key = buyer_sealed_key`, `Settled`. Aksi halde `Delivered`.
+**Teslimat protokolü (SDK'da uygulandı: `sdk/src/crypto.ts`, `seller.ts`, `agent.ts`).** Tüm kriptografi libsodium'dan.
+1. Satıcı veriyi rastgele `K` ile XChaCha20-Poly1305 ile şifreler (`nonce || şifreli`), şifreli dosyayı içerik adresli bir URL'ye koyar (FastFS: yol = sha256).
+2. Satıcı bir manifest yayınlar: `{v: 1, order_id, data_url, condition_url}`; `delivery_ref` = manifest URL'si. `condition_url` ilanın koşuludur (JSON Schema); `sha256(koşul) == listing.condition_hash` olmalı.
+3. Satıcı `K || sha256(şifreli)` (64 bayt) yükünü doğrulayıcı açık anahtarına mühürler (sealed box, base64 ~152 karakter) ve `submit_delivery(order_id, delivery_ref, sealed_key)` çağırır (OutLayer ücreti ekli).
+4. Kontrat `request_execution` çağırır; girdi `{order_id, attempt, delivery_ref, sealed_key, condition_hash, buyer_pubkey}` (`buyer_pubkey` ve `condition_hash` sipariş/ilan kaydından).
+5. TEE (doğrulayıcı WASM, P1): `NEAR_PREDECESSOR_ID == horkos` kontrolü → yükü açar → manifest, koşul ve veriyi indirir → `sha256(koşul) == condition_hash` ve `sha256(şifreli) == yükteki hash` kontrolü → çözer → koşulu uygular → geçerse **aynı 64 baytı** `buyer_pubkey`'e yeniden mühürler. Çıktı: `{order_id, attempt, valid, buyer_sealed_key, data_sha256}` (≤ 900 bayt).
+6. `on_verified` kesinleştirir (yukarıdaki kurallar). Alıcı `encrypted_key`'i açar, manifestten şifreli dosyayı indirir, **hash'i yükteki hash'le karşılaştırır** (satıcı dosyayı doğrulamadan sonra değiştirdiyse ret), `K` ile çözer.
+
+Neden hash yükün içinde: satıcı `K`'yi bildiği için doğrulamadan sonra aynı `K` ile başka bir dosya koyabilirdi; hash, alıcının tam olarak doğrulananı almasını sağlar. SDK testi bunu kanıtlar (`refuses to open a delivery whose hosted ciphertext was swapped`).
 
 **Depolama (sipariş başı, ölçülen; testnet byte maliyeti 10¹⁹ yocto/bayt).**
 
@@ -142,7 +145,7 @@ Sahibin ilk siparişi makbuz dizini (`tokens_per_owner` kümesi) için biraz dah
 
 **Hata durumları.** `on_verified` sonuç dışında bir nedenle (ör. gas) başarısız olursa sipariş `Verifying`'de kalır; satıcı yeniden gönderemez, son tarihte `refund_expired` iade eder. `attempts` sayacı eski bir denemenin sonucunun yenisine uygulanmasını engeller.
 
-**Henüz denenmedi:** OutLayer secrets ile `PROTECTED_*` üretimi, `callers` manifest kısıtı, büyük verinin WASM içinden HTTP ile çekilmesi (WASI P2 gerekir). P1'de ilk iş bunları denemek.
+**Henüz yapılmadı (P1):** doğrulayıcı WASM'ın kendisi (yukarıdaki 5. adım; `spikes/outlayer/checker` yalnızca şema kontrolü yapar, şifre çözmez). **Henüz denenmedi:** OutLayer secrets ile `PROTECTED_*` üretimi, `callers` manifest kısıtı, büyük verinin WASM içinden HTTP ile çekilmesi (WASI P2 gerekir). P1'de ilk iş bunları denemek.
 
 ## 7. Entegrasyon katmanları
 

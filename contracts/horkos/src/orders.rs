@@ -111,9 +111,12 @@ impl Contract {
             status: OrderStatus::Open,
         };
 
+        // Order record + receipt NFT + slack for later metadata rewrites,
+        // all paid from the owner's storage deposit.
         let before = env::storage_usage();
         self.orders.insert(&id, &order);
-        let after = env::storage_usage();
+        self.mint_receipt(&order);
+        let after = env::storage_usage() + METADATA_SLACK_BYTES;
         mandate.storage_deposit = U128(apply_storage_delta(
             mandate.storage_deposit.0,
             before,
@@ -148,7 +151,7 @@ impl Contract {
         );
         order.status = OrderStatus::Cancelled;
         self.release_to_budget(&order);
-        self.orders.insert(&order_id.0, &order);
+        self.save_order(&order);
         order
     }
 
@@ -163,7 +166,7 @@ impl Contract {
         );
         order.status = OrderStatus::Refunded;
         self.release_to_budget(&order);
-        self.orders.insert(&order_id.0, &order);
+        self.save_order(&order);
         order
     }
 }

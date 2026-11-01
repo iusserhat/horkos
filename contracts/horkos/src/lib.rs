@@ -2,19 +2,26 @@
 //!
 //! Funds live in this contract per order. An agent can only open orders that
 //! fit the owner's on-chain mandate; unfinished orders refund themselves after
-//! their deadline. NFT receipts (NEP-171) and `settle` are added in later steps.
+//! their deadline. Every order is a non-transferable NEP-171 receipt.
+//! Delivery verification and settlement are added in a later step.
 
 // Write-through collections: storage cost is measured with
 // `env::storage_usage()` inside a call, which requires writes to land
 // immediately (the `near_sdk::store` collections flush only at the end).
-use near_sdk::collections::LookupMap;
+use near_contract_standards::non_fungible_token::metadata::{
+    NFTContractMetadata, NFT_METADATA_SPEC,
+};
+use near_contract_standards::non_fungible_token::NonFungibleToken;
+use near_sdk::collections::{LazyOption, LookupMap};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::{env, near, AccountId, PanicOnDefault};
 
 mod mandate;
+mod nft;
 mod orders;
 mod types;
 mod withdraw;
+pub use nft::{METADATA_SLACK_BYTES, NON_TRANSFERABLE};
 pub use types::*;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -32,6 +39,9 @@ pub struct Contract {
     pub(crate) next_order_id: u64,
     /// Seller earnings (token base units), withdrawable via `withdraw`.
     pub(crate) balances: LookupMap<AccountId, u128>,
+    /// NEP-171 receipts; token_id = order id, owner = buyer.
+    pub(crate) nft: NonFungibleToken,
+    pub(crate) nft_metadata: LazyOption<NFTContractMetadata>,
 }
 
 #[near]
@@ -46,6 +56,25 @@ impl Contract {
             orders: LookupMap::new(StorageKey::Orders),
             next_order_id: 0,
             balances: LookupMap::new(StorageKey::Balances),
+            nft: NonFungibleToken::new(
+                StorageKey::NftOwners,
+                env::current_account_id(),
+                Some(StorageKey::NftMetadata),
+                Some(StorageKey::NftEnumeration),
+                None::<StorageKey>,
+            ),
+            nft_metadata: LazyOption::new(
+                StorageKey::NftContractMetadata,
+                Some(&NFTContractMetadata {
+                    spec: NFT_METADATA_SPEC.to_string(),
+                    name: "Horkos Receipts".to_string(),
+                    symbol: "HORKOS".to_string(),
+                    icon: None,
+                    base_uri: None,
+                    reference: None,
+                    reference_hash: None,
+                }),
+            ),
         }
     }
 

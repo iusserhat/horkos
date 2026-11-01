@@ -19,6 +19,10 @@ pub enum StorageKey {
     Listings,
     Orders,
     Balances,
+    NftOwners,
+    NftMetadata,
+    NftEnumeration,
+    NftContractMetadata,
 }
 
 /// A user's spending policy for one agent, enforced by the contract.

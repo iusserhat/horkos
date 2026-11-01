@@ -259,8 +259,14 @@ fn ft_on_transfer_credits_existing_mandate() {
 #[test]
 fn ft_on_transfer_returns_tokens_without_mandate() {
     let mut c = setup();
+    // Measure after testing_env!, which resets the storage counter.
+    testing_env!(ctx(&token()).build());
     let before = env::storage_usage();
-    assert_eq!(deposit_budget(&mut c, &owner(), 30 * USDC).0, 30 * USDC);
+    let returned = match c.ft_on_transfer(owner(), U128(30 * USDC), String::new()) {
+        PromiseOrValue::Value(v) => v,
+        PromiseOrValue::Promise(_) => panic!("unexpected promise"),
+    };
+    assert_eq!(returned.0, 30 * USDC);
     assert_eq!(c.get_mandate(owner()), None);
     assert_eq!(env::storage_usage(), before);
 }
@@ -638,39 +644,51 @@ fn refund_rejected_for_settled_order() {
 #[test]
 fn create_cancel_loop_is_bounded_by_storage_deposit() {
     let (mut c, l) = ready();
-    // Measure one order's storage cost.
-    let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    // The owner's first receipt also creates their token set, so measure the
+    // steady-state cost on the second order.
     let first = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(first.id);
+    let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let second = create_as(&mut c, &agent(), l);
     let per_order = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
     assert!(per_order > 0);
     testing_env!(ctx(&agent()).build());
-    c.cancel_order(first.id);
+    c.cancel_order(second.id);
 
-    // Leave room for exactly 25 more orders: 25 x 5 tUSDC = 125 > max_total (100),
-    // so only a reopened limit lets the loop get this far.
-    let cycles = 25;
+    // Budget the deposit for ~25 more orders. 25 x 5 tUSDC = 125 > max_total
+    // (100), so getting past 20 cycles proves cancel reopened the limit; the
+    // loop must then stop on the storage deposit, not on any token limit.
+    // (Per-order cost is not exactly constant: token ids grow in length and
+    // the owner index is a balanced tree.)
     let mut m = c.mandates.get(&owner()).unwrap();
-    m.storage_deposit = U128(per_order * cycles);
+    m.storage_deposit = U128(per_order * 25);
     c.mandates.insert(&owner(), &m);
-    for _ in 0..cycles {
-        let o = create_as(&mut c, &agent(), l);
+    let mut cycles = 0;
+    let msg = loop {
         testing_env!(ctx(&agent()).build());
-        c.cancel_order(o.id);
-    }
-    let m = c.get_mandate(owner()).unwrap();
-    assert_eq!(m.storage_deposit.0, 0);
-    assert_eq!(m.spent.0, 0);
-
-    testing_env!(ctx(&agent()).build());
-    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        c.create_order(owner(), l, "pk".to_string())
-    }));
-    let err = r.expect_err("loop must stop when the deposit runs out");
-    let msg = panic_msg(err);
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            c.create_order(owner(), l, "pk".to_string())
+        }));
+        match r {
+            Ok(o) => {
+                c.cancel_order(o.id);
+                cycles += 1;
+                assert!(cycles <= 30, "loop did not stop");
+            }
+            Err(e) => break panic_msg(e),
+        }
+    };
     assert!(
         msg.contains("Insufficient storage deposit"),
         "unexpected panic: {msg}"
     );
+    assert!(
+        cycles > 20,
+        "limit should reopen on cancel; stopped after {cycles}"
+    );
+    assert!(cycles <= 25, "deposit should bound the loop; ran {cycles}");
+    assert_eq!(c.get_mandate(owner()).unwrap().spent.0, 0);
 }
 
 // ---------------------------------------------------------------- withdraw
@@ -811,3 +829,118 @@ fn withdraw_requires_one_yocto() {
 
 // `#[private]` on `on_withdraw` is enforced by the wasm export wrapper, not
 // by the Rust method, so it is covered by integration tests (near-workspaces).
+
+// ---------------------------------------------------------------- NFT receipts
+
+use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
+use near_contract_standards::non_fungible_token::enumeration::NonFungibleTokenEnumeration;
+use near_contract_standards::non_fungible_token::metadata::NonFungibleTokenMetadataProvider;
+
+fn receipt_extra(c: &Contract, id: u64) -> near_sdk::serde_json::Value {
+    let token = c.nft_token(id.to_string()).expect("receipt exists");
+    let extra = token.metadata.unwrap().extra.unwrap();
+    near_sdk::serde_json::from_str(&extra).unwrap()
+}
+
+#[test]
+fn create_order_mints_receipt_owned_by_buyer() {
+    let (mut c, l) = ready();
+    let o = create_as(&mut c, &agent(), l);
+    let receipt = c.nft_token("0".to_string()).unwrap();
+    assert_eq!(receipt.owner_id, owner());
+    let meta = receipt.metadata.unwrap();
+    assert_eq!(meta.title.as_deref(), Some("Horkos receipt #0"));
+    assert_eq!(
+        meta.expires_at,
+        Some(((START + WINDOW) / 1_000_000).to_string())
+    );
+    let extra = receipt_extra(&c, 0);
+    assert_eq!(extra["status"], "Open");
+    assert_eq!(extra["amount"], (5 * USDC).to_string());
+    assert_eq!(extra["seller"], seller().to_string());
+    assert_eq!(extra["token"], token().to_string());
+    assert_eq!(extra["deadline"], o.deadline.0.to_string());
+    assert_eq!(c.nft_supply_for_owner(owner()).0, 1);
+    assert_eq!(c.nft_total_supply().0, 1);
+    assert_eq!(c.nft_tokens_for_owner(owner(), None, None).len(), 1);
+}
+
+#[test]
+fn receipt_status_follows_cancel_and_refund() {
+    let (mut c, l) = ready();
+    let a = create_as(&mut c, &agent(), l);
+    let b = create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(a.id);
+    assert_eq!(receipt_extra(&c, 0)["status"], "Cancelled");
+    let logs = near_sdk::test_utils::get_logs();
+    assert!(logs
+        .iter()
+        .any(|l| l.contains("\"event\":\"order_status\"")));
+
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(b.id);
+    let meta = c.nft_token("1".to_string()).unwrap().metadata.unwrap();
+    assert_eq!(receipt_extra(&c, 1)["status"], "Refunded");
+    assert_eq!(
+        meta.updated_at,
+        Some(((START + WINDOW) / 1_000_000).to_string())
+    );
+}
+
+#[test]
+fn receipt_storage_growth_stays_within_what_was_charged() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l); // first receipt creates the owner's token set
+    testing_env!(ctx(&agent()).build());
+    let byte_cost = env::storage_byte_cost().as_yoctonear();
+    let deposit_before = c.get_mandate(owner()).unwrap().storage_deposit.0;
+    let usage_before = env::storage_usage();
+    let o = c.create_order(owner(), l, "pk".to_string());
+    c.cancel_order(o.id); // "Open" -> "Cancelled": the longest status name
+    let used = env::storage_usage() - usage_before;
+    let charged = (deposit_before - c.get_mandate(owner()).unwrap().storage_deposit.0) / byte_cost;
+    assert!(
+        used <= charged as u64,
+        "used {used} bytes, charged {charged}"
+    );
+}
+
+#[test]
+#[should_panic(expected = "Receipts are non-transferable in this version")]
+fn nft_transfer_is_rejected() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.nft_transfer(acc("bob.testnet"), "0".to_string(), None, None);
+}
+
+#[test]
+#[should_panic(expected = "Receipts are non-transferable in this version")]
+fn nft_transfer_call_is_rejected() {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l);
+    testing_env!(ctx(&owner())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    let _ = c.nft_transfer_call(
+        acc("bob.testnet"),
+        "0".to_string(),
+        None,
+        None,
+        String::new(),
+    );
+}
+
+#[test]
+fn nft_contract_metadata() {
+    let c = setup();
+    let m = c.nft_metadata();
+    assert_eq!(m.spec, "nft-1.0.0");
+    assert_eq!(m.symbol, "HORKOS");
+    assert_eq!(c.nft_total_supply().0, 0);
+}

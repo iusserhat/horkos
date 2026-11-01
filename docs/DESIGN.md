@@ -36,8 +36,8 @@ Alıcı veriye ancak doğrulama geçince erişebildiği için "aldım ama bozuk"
 | NEP-171 | NFT standardı | Sipariş makbuzu |
 | Teslim koşulu | Makine tarafından kontrol edilebilir şart (şema, test paketi, yeniden hesaplama) | Doğrulamanın ölçütü |
 | Hash | Verinin parmak izi | Teslim edilen = doğrulanan veri; doğruluğu kanıtlamaz |
-| TEE / attestation | Yalıtılmış çalışma alanı / donanım imzalı çalışma kanıtı | Doğrulayıcının tarafsızlığı |
-| OutLayer | NEAR'da TEE içinde kod çalıştıran hackathon ortağı | Doğrulayıcının yeri (P1) |
+| TEE / attestation | Yalıtılmış çalışma alanı / donanım imzalı çalışma kanıtı | Doğrulamanın TEE'de çalıştığının sonradan, zincir dışında denetlenmesi (kontrat attestation doğrulamaz) |
+| OutLayer | NEAR'da TEE içinde kod çalıştıran hackathon ortağı | Doğrulayıcının yeri (P1); sonucu kontratın callback'ine verir |
 | İç bakiye | Kontrat içindeki alacak kaydı | Atomik settle; dış transfer ayrı (`withdraw`) |
 
 ## 4. Yaşam döngüsü
@@ -47,12 +47,12 @@ Alıcı veriye ancak doğrulama geçince erişebildiği için "aldım ama bozuk"
 | 1. Yetki ve bütçe | `ft_transfer_call` ile bütçe; `set_mandate`; ajana function-call key | Sınırsız harcama |
 | 2. Sipariş | `create_order`: yetki kontrolü → emanet → NFT makbuz; uygun değilse ret | Sınır dışı ödeme, önden ödeme |
 | 2b. İptal | Yalnızca `Open` iken `cancel_order` → `Cancelled` | Kilitli kalan para; satıcı emeğinin bedava kullanımı |
-| 3. Teslimat ve doğrulama | `submit_delivery` (şifreli) → doğrulayıcı koşulu kontrol eder | Alıcı ve satıcı dolandırıcılığı |
-| 4. Kesinleşme | `settle`: attestation doğrula → satıcı iç bakiyesi → alıcıya şifreli anahtar (tek çağrı) | Anahtar/ödeme boşluğu |
+| 3. Teslimat ve doğrulama | `submit_delivery` (şifreli, OutLayer ücreti ekli) → kontrat `request_execution` → `Verifying`; TEE koşulu kontrol eder | Alıcı ve satıcı dolandırıcılığı |
+| 4. Kesinleşme | `on_verified` callback: geçerli + `Verifying` + süre dolmamış → satıcı iç bakiyesi + alıcıya şifreli anahtar (tek çağrı); değilse `Delivered`, yeniden gönderilebilir | Anahtar/ödeme boşluğu |
 | 5. Zaman aşımı | `refund_expired` → `Refunded` | Teslim etmeyen satıcı |
 | 6. Çekim | `withdraw` | Dış transfer hatasında kayıp |
 
-Durumlar: `Open → Delivered → Settled`; `Open | Delivered → Refunded`; `Open → Cancelled`. Her sipariş tek bir son duruma ulaşır.
+Durumlar: `Open → Verifying → Settled`; `Verifying → Delivered` (geçersiz ya da sonuç yok) → `Verifying` (son tarihe kadar yeniden gönderim); `Open | Delivered | Verifying → Refunded`; `Open → Cancelled`. Her sipariş tek bir son duruma ulaşır.
 
 ## 5. Tehdit modeli
 
@@ -63,10 +63,13 @@ Durumlar: `Open → Delivered → Settled`; `Open | Delivered → Refunded`; `Op
 | Teslim etmeyen satıcı | Emanet + zaman aşımı iadesi | Yok |
 | Koşula uymayan teslimat | Doğrulama geçmez → iade | Koşulun iyi tanımlanması |
 | Koşula uyan işe yaramaz veri | Kısmen; kalite değil uygunluk garanti edilir | Alıcı koşulları okumalı |
-| Alıcı dolandırıcılığı | Veri ancak settle ile açılır | Doğrulayıcının tarafsızlığı |
+| Alıcı dolandırıcılığı | Veri anahtarı alıcıya ancak kesinleşmeyle verilir | OutLayer operatörü ve TEE |
 | İptalin kötüye kullanımı | `Delivered` sonrası iptal yok | Yok |
 | Anahtar/ödeme boşluğu | Atomik settle, iç bakiye | Yok |
-| Sahte doğrulama | Yalnızca geçerli attestation kabul | TEE'ye ya da (yedek planda) doğrulayıcı servisine güven |
+| Sahte doğrulama sonucu | Sonuç yalnızca kontratın kendi `request_execution` çağrısının callback'inden kabul edilir (`#[private]`); çalışacak WASM hash ile sabitlenir | **Kontrat attestation doğrulamaz.** OutLayer operatörüne güvenilir; operatör hesabında (`worker.outlayer.testnet` / `.near`) full-access anahtarlar var, yani operatör TEE'den geçmeden sonuç yazabilir. TEE çalışması attestation ile zincir dışında, sonradan denetlenebilir |
+| Doğrulayıcının başkası tarafından çağrılması (satıcının veri anahtarını kendi açık anahtarına yeniden şifretmek) | Proje manifestinde `callers: contract only [horkos]`; WASM `NEAR_PREDECESSOR_ID`'yi kontrol eder; `buyer_pubkey` kontratın sipariş kaydından gelir | OutLayer'ın caller kısıtını doğru uygulaması |
+| Doğrulama ile iade yarışı | Kesinleşme yalnızca `Verifying` ve `now < deadline` iken; `refund_expired` `Verifying`'i de iade eder; geç callback yok sayılır | Yok |
+| OutLayer kesintisi | Sonuç gelmezse (`null`) sipariş `Delivered`'a döner, son tarihte iade | Satıcının OutLayer ücreti yanar |
 | Çift ödeme/iade | Durum makinesi | Yok |
 | Depolama tüketme (ajan `create_order`/`cancel_order` döngüsüyle kontrat depolamasını doldurur; iptal bütçeyi geri açtığı için token limiti bunu durdurmaz) | Sipariş depolaması sahibin NEAR depozitosundan düşülür, yetmezse ret; mandate başına açık sipariş üst sınırı (varsayılan 50); `ft_on_transfer` mandate'i olmayan hesaba kayıt açmaz; `register_listing` kendi depolamasını öder | Kayıp sahibin yatırdığı depozitoyla sınırlı |
 
@@ -79,11 +82,11 @@ Durumlar: `Open → Delivered → Settled`; `Open | Delivered → Refunded`; `Op
 | `register_listing` | Satıcı (depolama ücreti ekli) | Fiyat, teslim koşulu hash'i, teslim süresi |
 | `create_order` | Ajan (FC key) | Yetki kontrolü (sipariş başı/toplam limit, satıcı listesi, süre, açık sipariş sınırı), emanet, depolama ücretini depozitodan düşme, NFT basımı |
 | `cancel_order` | Ajan (FC key) | Yalnızca `Open` iken iptal |
-| `submit_delivery` | Satıcı | Şifreli veri referansı + hash → `Delivered` |
-| `settle` | Doğrulayıcı | Attestation doğrula, iç bakiyeye yaz, şifreli anahtarı kaydet |
-| `refund_expired` | Herkes | Süresi geçmiş siparişi iade et |
+| `submit_delivery` | Satıcı (OutLayer ücreti ekli) | Şifreli veri referansı + hash; `Open`/`Delivered` → `Verifying`; OutLayer `request_execution`; `Verifying` iken ikinci istek ret |
+| `on_verified` | Kontratın kendisi (`#[private]` callback) | Geçerli + `Verifying` + `now < deadline` → satıcı iç bakiyesi + alıcı için şifreli anahtar → `Settled`; geçersiz/`null` → `Delivered`; son durumdaysa hiçbir şey yapma |
+| `refund_expired` | Herkes | Süresi geçmiş `Open`/`Delivered`/`Verifying` siparişi iade et |
 | `withdraw` | Satıcı / kullanıcı | İç bakiyeyi cüzdana çek |
-| `nft_token`, `nft_tokens_for_owner` | Herkes | NEP-171 görüntüleme |
+| `nft_token`, `nft_tokens_for_owner`, `nft_metadata` | Herkes | NEP-171 görüntüleme; `nft_transfer` bu sürümde reddedilir |
 
 ```rust
 struct Mandate {
@@ -94,7 +97,7 @@ struct Mandate {
     open_orders: u32, max_open_orders: u32,  // default cap 50
 }
 struct Listing { seller: AccountId, price: u128, condition_hash: String, delivery_window: u64 }
-enum OrderStatus { Open, Delivered, Settled, Refunded, Cancelled }
+enum OrderStatus { Open, Verifying, Delivered, Settled, Refunded, Cancelled }
 struct Order {
     id: u64, buyer: AccountId, seller: AccountId, amount: u128, listing_id: u64,
     deadline: u64, buyer_pubkey: String, delivery_ref: Option<String>,
@@ -103,6 +106,26 @@ struct Order {
 ```
 
 Açık soru: alıcının açık anahtarı `create_order` içinde gönderilir (öneri).
+
+## 6b. Doğrulama akışı (OutLayer)
+
+Kaynak: 1 Kasım denemesi (`spikes/outlayer/REPORT.md`), OutLayer belgeleri ve `out-layer/outlayer` kaynak kodu.
+
+**Güven modeli (iddia sınırı).** Kontrat attestation'ı ya da bir imzayı doğrulamaz; OutLayer callback'e yalnızca çıktı JSON'u verir (başarısızlıkta `null`). Kontrat şunlara dayanır: sonucun kendi `request_execution` çağrısının `#[private]` callback'inden gelmesi ve çalışacak WASM'ın sha256 ile sabitlenmesi. OutLayer operatörüne güvenilir (operatör hesabında full-access anahtarlar var). TEE çalışması attestation ile zincir dışında, sonradan doğrulanabilir (`outlayer-verify`, dashboard).
+
+**Anahtarlar.**
+- Doğrulayıcı anahtar çifti (X25519): gizli anahtar OutLayer secrets'ta TEE içinde üretilir (`outlayer secrets set --generate PROTECTED_VERIFIER_SK:hex32`), değeri kimse görmez; satır doğrulayıcı build'ine kilitlenir (`--build <sha256>`, yeni sürümde `secrets access --build` ile taşınır).
+- Açık anahtar: doğrulayıcı WASM bir `pubkey` komutuyla gizli anahtardan türetip çıktı verir; kontrat bunu kendi OutLayer çağrısının callback'inde kaydeder (`verifier_pubkey` view).
+- Alıcı: `create_order`'da `buyer_pubkey` (X25519) verir.
+
+**Akış.**
+1. Satıcı veriyi rastgele veri anahtarı `K` ile şifreler (simetrik AEAD), şifreli veriyi bir URL'ye koyar, `K`'yi doğrulayıcı açık anahtarına mühürler (sealed box).
+2. Satıcı `submit_delivery(order_id, delivery_ref, sealed_key)` çağırır ve OutLayer ücretini ekler. Sipariş `Open`/`Delivered` olmalı ve süre dolmamış olmalı; `Verifying` iken ret.
+3. Kontrat `request_execution` çağırır: `source` = doğrulayıcı WASM (hash sabit), `input_data` = `{order_id, delivery_ref, sealed_key, condition_hash, buyer_pubkey}` (`buyer_pubkey` sipariş kaydından), `secrets_ref` = doğrulayıcı satırı. Sipariş `Verifying`.
+4. TEE: `NEAR_PREDECESSOR_ID == horkos` kontrolü; `K`'yi açar; veriyi indirir, çözer; koşulu (şema/test) kontrol eder; geçerse `K`'yi `buyer_pubkey`'e mühürler. Çıktı (≤ 900 bayt): `{order_id, valid, data_sha256, buyer_sealed_key}`.
+5. `on_verified`: sipariş son durumdaysa (ör. iade edildi) hiçbir şey yapma. `Verifying` + `valid` + `order_id` eşleşir + `now < deadline` → satıcı iç bakiyesi += tutar, `encrypted_key = buyer_sealed_key`, `Settled`. Aksi halde `Delivered`.
+
+**Henüz denenmedi:** OutLayer secrets ile `PROTECTED_*` üretimi, `callers` manifest kısıtı, büyük verinin WASM içinden HTTP ile çekilmesi (WASI P2 gerekir). P1'de ilk iş bunları denemek.
 
 ## 7. Entegrasyon katmanları
 
@@ -131,5 +154,6 @@ Uygun değil: kuruşluk anlık API çağrıları (x402 ortalaması ~0,22 $), öz
 ## 9. Açık sorular
 
 - Birden fazla track'te ödül mümkün mü? (Discord)
-- OutLayer attestation'ı NEAR kontratında nasıl doğrulanıyor? (1–2 Kasım denemesi)
+- ~~OutLayer attestation'ı NEAR kontratında nasıl doğrulanıyor?~~ Doğrulanmıyor; bkz. §6b ve `spikes/outlayer/REPORT.md`.
+- OutLayer operatör hesabındaki full-access anahtarların amacı ve kaldırılma planı (OutLayer ekibine soruldu).
 - Test token: kendi NEP-141'imiz (testnet).

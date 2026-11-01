@@ -33,19 +33,19 @@ Horkos, AI ajanları için programlanabilir bir emanet (escrow) protokolüdür: 
 1. **Tek kontrat + NFT makbuz.** Fonlar kontratta sipariş bazında tutulur; NFT (NEP-171) siparişin kimliğini ve durumunu temsil eder. Her sipariş için ayrı alt hesap **P2**.
 2. **Yetki (mandate) kontratta zorunlu.** Kullanıcı bütçeyi NEP-141 `ft_transfer_call` ile yatırır, `set_mandate` ile limit/satıcı listesi/süre tanımlar. Ajanın function-call key'i yalnızca `create_order` ve `cancel_order` çağırabilir. Function-call key para ekleyemez ve token limitini kendisi uygulamaz: **limit kontrolünü kontrat yapar.**
 3. **Teslim koşulu makine tarafından kontrol edilebilir olmalı:** JSON şeması, test paketi veya yeniden hesaplanabilir çıktı. Horkos kaliteyi değil koşula uygunluğu garanti eder.
-4. **Adil takas.** Satıcı veriyi şifreli teslim eder; anahtarı yalnızca doğrulayıcı açabilir. Doğrulama geçerse doğrulayıcı tek işlemle `settle` çağırır: karar + alıcının açık anahtarıyla şifrelenmiş veri anahtarı + attestation.
-5. **`settle` atomik ve dış transfer yapmaz.** Aynı çağrıda: attestation doğrulanır, ödeme satıcının **iç bakiyesine** yazılır, şifreli anahtar alıcı için kaydedilir. Satıcı sonra `withdraw` ile çeker. (NEAR'da kontratlar arası çağrılar asenkron ve ayrı ayrı başarısız olabilir; bu yüzden dış transfer settle'ın içinde değil.)
+4. **Adil takas.** Satıcı veri anahtarını Horkos doğrulayıcısının açık anahtarıyla şifreleyip `submit_delivery` ile (OutLayer ücreti ekli) teslim eder; kontrat OutLayer'da `request_execution` yapar, sipariş `Verifying` olur. TEE içindeki doğrulayıcı (gizli anahtarı OutLayer secrets'ta, TEE'de üretilmiş) veriyi açar, koşulu kontrol eder, veri anahtarını alıcının `buyer_pubkey`'i ile yeniden şifreleyip çıktı verir (≤ 900 bayt). Ayrıntı: `docs/DESIGN.md` §6b.
+5. **Kesinleşme atomik ve dış transfer yapmaz.** `on_verified` callback'i, sonuç geçerliyse ve sipariş hâlâ `Verifying` ve `now < deadline` ise aynı çağrıda ödemeyi satıcının **iç bakiyesine** yazar ve şifreli anahtarı alıcı için kaydeder. Satıcı sonra `withdraw` ile çeker. (NEAR'da kontratlar arası çağrılar asenkron ve ayrı ayrı başarısız olabilir; bu yüzden dış transfer kesinleşmenin içinde değil.)
 6. **Tek iade yolu zaman aşımı.** `refund_expired` herkes tarafından çağrılabilir. Hatalı teslimat doğrulamayı geçemediği için ayrı bir anlaşmazlık mekanizması yok.
 7. **İptal kuralı.** `cancel_order` yalnızca `Open` durumunda (satıcı teslimat yüklemeden önce). `Delivered` sonrası iptal yok.
-8. **Durum makinesi:** `Open → Delivered → Settled`, `Open|Delivered → Refunded` (süre), `Open → Cancelled`. Her sipariş yalnızca bir son duruma ulaşır; çift settle/iade engellenir.
+8. **Durum makinesi:** `Open → Verifying → Settled`; doğrulama geçmezse ya da sonuç gelmezse `Verifying → Delivered`, satıcı son tarihe kadar yeniden gönderebilir (`Delivered → Verifying`); `Open|Delivered|Verifying → Refunded` (süre); `Open → Cancelled`. Her sipariş yalnızca bir son duruma ulaşır; çift settle/iade engellenir; geç gelen callback yok sayılır.
+9. **Doğrulayıcı: NEAR OutLayer (Intel TDX TEE)** — 1 Kasım denemesinden sonra kesinleşti (`spikes/outlayer/REPORT.md`, DECISIONS #11). **Zincir üstü attestation doğrulaması yok ve iddia edilmez:** doğrulama OutLayer TEE'sinde çalışır, kontrat sonucu OutLayer operatörüne güvenerek alır (operatör hesabında full-access anahtarlar var), attestation zincir dışında, sonradan doğrulanabilir. Kendi servisimize göre fark: üçüncü taraf ve sonradan denetlenebilir.
 10. **Ajan ayrı bir hesaptır** (`mandate.agent`); kontrat `create_order`/`cancel_order`'da `predecessor == agent` kontrol eder. Limitler kontratta olduğu için ajan anahtarı sızsa bile yalnızca yetki içinde sipariş açılabilir; function-call key ek bir katmandır. `set_mandate`, `revoke_mandate`, `withdraw` 1 yoctoNEAR ister (FC key deposit ekleyemez).
 11. **Depolama sahibin depozitosundan ödenir.** `set_mandate` sırasında sahip NEAR depolama depoziti yatırır (NEP-145 mantığı); `create_order` eklediği depolamayı (`env::storage_usage` farkı × byte maliyeti) bu depozitodan düşer, yetmezse ret. `revoke_mandate` kalan depoziti iade eder. Mandate başına açık sipariş üst sınırı (varsayılan 50). `ft_on_transfer` yalnızca mevcut mandate'e yatırım kabul eder.
-9. **Doğrulayıcı:** önce NEAR OutLayer (Intel TDX TEE, attestation). **Karar noktası 2 Kasım akşamı:** OutLayer içinde doğrulama çalıştırıp attestation'ı kontrata ulaştıramazsak 3 Kasım'da kendi doğrulayıcı servisimize geçeriz ve README'de "bu sürümde doğrulayıcıya güveniliyor, TEE yol haritasında" diye açıkça yazarız.
 
 ## Kapsam
 
 - **P0:** tek test token'ı (kendi NEP-141'imiz, testnet), yetki + function-call key, `create_order` ve limit kontrolü, emanet + NFT makbuz, `settle` → iç bakiye, `refund_expired`, `withdraw`, çift işlem engeli, explorer'da ve basit panelde durum. Ajan SDK'sı (TypeScript) ve satıcı SDK'sı.
-- **P1:** şifreli teslimat + doğrulayıcı (OutLayer ya da yedek servis), attestation kontrolü, prompt injection demo senaryosu, MCP sunucusu (5 araç: `horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`).
+- **P1:** şifreli teslimat + OutLayer doğrulayıcısı (`submit_delivery` → `on_verified`), zincir dışı attestation doğrulama adımı (README'de), prompt injection demo senaryosu, MCP sunucusu (5 araç: `horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`).
 - **P2:** NEAR Intents ile çapraz zincir ödeme/iade, sipariş başına alt hesap, alacağın kesinleşmeden devri, x402 uyumluluğu.
 - P0 bitmeden P1'e, P1 bitmeden P2'ye geçilmez.
 
@@ -63,7 +63,8 @@ contracts/horkos/   Rust kontrat (near-sdk, cargo-near)
 contracts/test-token/  testnet NEP-141
 sdk/                TypeScript ajan + satıcı SDK'sı
 mcp/                MCP sunucusu (P1)
-verifier/           doğrulayıcı (OutLayer ya da yedek servis)
+verifier/           OutLayer'da çalışan doğrulayıcı WASM (WASI)
+spikes/             zaman kutulu denemeler (ürün kodu değil)
 app/                basit dApp paneli
 demo/               demo satıcıları ve senaryo betikleri
 docs/               tasarım belgeleri

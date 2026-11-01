@@ -1,0 +1,23 @@
+# Rust / NEAR
+target/
+*.wasm
+neardev/
+
+# Node
+node_modules/
+dist/
+.next/
+
+# Gizli bilgiler: anahtarlar ve kurtarma kelimeleri asla repoya girmez
+.env
+.env.*
+!.env.example
+*.pem
+*-key.json
+credentials/
+
+# Editör ve sistem
+.vscode/
+.DS_Store
+Thumbs.db
+setup.log

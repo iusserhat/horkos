@@ -62,6 +62,7 @@ impl Contract {
         owner: AccountId,
         listing_id: U64,
         buyer_pubkey: String,
+        verifier_version: Option<u32>,
     ) -> Order {
         let mut mandate = self.mandates.get(&owner).expect("No mandate for owner");
         let caller = env::predecessor_account_id();
@@ -94,6 +95,18 @@ impl Contract {
             "buyer_pubkey length out of range"
         );
 
+        let verifiers = self.verifiers.len();
+        require!(verifiers > 0, "Verifier not configured");
+        let current_verifier = (verifiers - 1) as u32;
+        if let Some(expected) = verifier_version {
+            require!(
+                expected == current_verifier,
+                format!(
+                    "Verifier changed: expected version {expected}, current {current_verifier}"
+                )
+            );
+        }
+
         let id = self.next_order_id;
         self.next_order_id += 1;
         let order = Order {
@@ -109,6 +122,7 @@ impl Contract {
             delivery_ref: None,
             encrypted_key: None,
             status: OrderStatus::Open,
+            verifier_version: current_verifier,
             attempts: 0,
         };
 
@@ -175,8 +189,9 @@ impl Contract {
 
 impl Contract {
     /// Returns an order's escrow to its mandate: budget back, limit reopened,
-    /// open-order slot freed. Order storage is not freed (the record stays as
-    /// a receipt), so create/cancel cycles keep consuming the storage deposit.
+    /// open-order slot freed. If no delivery was ever submitted, the unused
+    /// delivery reserve goes back to the storage deposit. The order record
+    /// and receipt stay, so create/cancel cycles still consume the deposit.
     pub(crate) fn release_to_budget(&mut self, order: &Order) {
         let mut mandate = self
             .mandates
@@ -185,6 +200,12 @@ impl Contract {
         mandate.balance = U128(mandate.balance.0 + order.amount.0);
         mandate.spent = U128(mandate.spent.0 - order.amount.0);
         mandate.open_orders -= 1;
+        // Never delivered: the delivery/settlement reserve was not used.
+        if order.attempts == 0 {
+            let reserve =
+                u128::from(DELIVERY_RESERVED_BYTES) * env::storage_byte_cost().as_yoctonear();
+            mandate.storage_deposit = U128(mandate.storage_deposit.0 + reserve);
+        }
         self.mandates.insert(&order.buyer, &mandate);
     }
 }

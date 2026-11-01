@@ -30,6 +30,7 @@ pub enum StorageKey {
     NftMetadata,
     NftEnumeration,
     NftContractMetadata,
+    Verifiers,
 }
 
 /// A user's spending policy for one agent, enforced by the contract.
@@ -104,6 +105,9 @@ pub struct Order {
     /// Data key sealed to `buyer_pubkey`, written only on settlement.
     pub encrypted_key: Option<String>,
     pub status: OrderStatus,
+    /// Verifier version pinned at `create_order`; `submit_delivery` uses only
+    /// this version, so changing the verifier never affects existing orders.
+    pub verifier_version: u32,
     /// Number of verification requests made; callbacks carry it so a result
     /// can only apply to the attempt that asked for it.
     pub attempts: u32,
@@ -124,6 +128,17 @@ pub struct VerifierConfig {
     pub secrets_account: Option<AccountId>,
     /// Smallest deposit a seller must attach for OutLayer's fee (yoctoNEAR).
     pub min_fee: U128,
+    /// Largest fee accepted; bounds what Horkos forwards back to the seller
+    /// when the OutLayer call itself fails.
+    pub max_fee: U128,
+}
+
+/// A verifier version as published by `set_verifier` (immutable once added).
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct VerifierView {
+    pub version: u32,
+    pub config: VerifierConfig,
 }
 
 /// What the verifier WASM prints to stdout (OutLayer `response_format: Json`).

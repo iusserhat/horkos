@@ -296,13 +296,14 @@ pub(crate) fn register_listing_as(c: &mut Contract, who: &AccountId, price: u128
 
 pub(crate) fn create_as(c: &mut Contract, caller: &AccountId, listing: U64) -> Order {
     testing_env!(ctx(caller).build());
-    c.create_order(owner(), listing, "ed25519:buyerpub".to_string())
+    c.create_order(owner(), listing, "ed25519:buyerpub".to_string(), None)
 }
 
 /// Mandate with 200 tUSDC budget (above max_total, so limits are tested in isolation)
 /// and a 5 tUSDC listing from the allowed seller.
 pub(crate) fn ready() -> (Contract, U64) {
     let mut c = setup();
+    publish_verifier(&mut c, verifier_config());
     set_default_mandate(&mut c, STORAGE_DEPOSIT);
     deposit_budget(&mut c, &owner(), 200 * USDC);
     let l = register_listing_as(&mut c, &seller(), 5 * USDC);
@@ -427,7 +428,7 @@ fn create_order_rejects_owner_as_caller() {
 fn create_order_rejects_expired_mandate() {
     let (mut c, l) = ready();
     testing_env!(ctx(&agent()).block_timestamp(START + 86_400 * T).build());
-    c.create_order(owner(), l, "pk".to_string());
+    c.create_order(owner(), l, "pk".to_string(), None);
 }
 
 #[test]
@@ -462,6 +463,7 @@ fn create_order_rejects_when_storage_deposit_is_exhausted() {
 #[should_panic(expected = "Too many open orders")]
 fn create_order_rejects_above_open_order_cap() {
     let mut c = setup();
+    publish_verifier(&mut c, verifier_config());
     testing_env!(ctx(&owner())
         .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
         .build());
@@ -484,6 +486,7 @@ fn create_order_rejects_above_open_order_cap() {
 #[test]
 fn default_open_order_cap_is_fifty() {
     let mut c = setup();
+    publish_verifier(&mut c, verifier_config());
     testing_env!(ctx(&owner())
         .attached_deposit(NearToken::from_yoctonear(2 * NEAR))
         .build());
@@ -503,7 +506,7 @@ fn default_open_order_cap_is_fifty() {
     assert_eq!(c.get_mandate(owner()).unwrap().open_orders, 50);
     testing_env!(ctx(&agent()).build());
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        c.create_order(owner(), l, "pk".to_string())
+        c.create_order(owner(), l, "pk".to_string(), None)
     }));
     let err = r.expect_err("51st open order must be rejected");
     let msg = panic_msg(err);
@@ -654,10 +657,12 @@ fn create_cancel_loop_is_bounded_by_storage_deposit() {
     c.cancel_order(first.id);
     let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
     let second = create_as(&mut c, &agent(), l);
-    let per_order = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
-    assert!(per_order > 0);
     testing_env!(ctx(&agent()).build());
     c.cancel_order(second.id);
+    // Net cost of one create+cancel cycle: the unused delivery reserve comes
+    // back on cancel, the order record and receipt do not.
+    let per_order = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
+    assert!(per_order > 0);
 
     // Budget the deposit for ~25 more orders. 25 x 5 tUSDC = 125 > max_total
     // (100), so getting past 20 cycles proves cancel reopened the limit; the
@@ -671,7 +676,7 @@ fn create_cancel_loop_is_bounded_by_storage_deposit() {
     let msg = loop {
         testing_env!(ctx(&agent()).build());
         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            c.create_order(owner(), l, "pk".to_string())
+            c.create_order(owner(), l, "pk".to_string(), None)
         }));
         match r {
             Ok(o) => {
@@ -901,7 +906,7 @@ fn receipt_storage_growth_stays_within_what_was_charged() {
     let byte_cost = env::storage_byte_cost().as_yoctonear();
     let deposit_before = c.get_mandate(owner()).unwrap().storage_deposit.0;
     let usage_before = env::storage_usage();
-    let o = c.create_order(owner(), l, "pk".to_string());
+    let o = c.create_order(owner(), l, "pk".to_string(), None);
     c.cancel_order(o.id); // "Open" -> "Cancelled": the longest status name
     let used = env::storage_usage() - usage_before;
     let charged = (deposit_before - c.get_mandate(owner()).unwrap().storage_deposit.0) / byte_cost;
@@ -948,21 +953,6 @@ fn nft_contract_metadata() {
     assert_eq!(c.nft_total_supply().0, 0);
 }
 
-#[test]
-fn print_storage_cost_per_order() {
-    let (mut c, l) = ready();
-    create_as(&mut c, &agent(), l); // first receipt also creates the owner's token set
-    let before = c.get_mandate(owner()).unwrap().storage_deposit.0;
-    create_as(&mut c, &agent(), l);
-    let cost = before - c.get_mandate(owner()).unwrap().storage_deposit.0;
-    let bytes = cost / env::storage_byte_cost().as_yoctonear();
-    println!(
-        "storage per order: {bytes} bytes = {} milliNEAR",
-        cost / (NEAR / 1000)
-    );
-    assert!(bytes > u128::from(DELIVERY_RESERVED_BYTES));
-}
-
 // ---------------------------------------------------------------- delivery & verification
 
 use near_sdk::test_utils::get_created_receipts;
@@ -970,6 +960,13 @@ use near_sdk::PromiseResult;
 
 pub(crate) const FEE: u128 = NEAR / 100;
 pub(crate) const HASH: &str = "17ad13a91e319c56f3662a77e17eee15b429ddb5ac4bb58be3ab501e363c38ab";
+
+pub(crate) fn publish_verifier(c: &mut Contract, config: VerifierConfig) -> u32 {
+    testing_env!(ctx(&admin())
+        .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
+        .build());
+    c.set_verifier(config)
+}
 
 fn verifier_config() -> VerifierConfig {
     VerifierConfig {
@@ -980,16 +977,13 @@ fn verifier_config() -> VerifierConfig {
         secrets_profile: Some("verifier".to_string()),
         secrets_account: Some(acc("horkos.testnet")),
         min_fee: U128(FEE),
+        max_fee: U128(10 * FEE),
     }
 }
 
-/// Mandate + listing + one Open order + configured verifier.
+/// Mandate + listing + verifier + one Open order.
 fn ordered() -> (Contract, Order) {
     let (mut c, l) = ready();
-    testing_env!(ctx(&admin())
-        .attached_deposit(NearToken::from_yoctonear(1))
-        .build());
-    c.set_verifier(verifier_config());
     let o = create_as(&mut c, &agent(), l);
     (c, o)
 }
@@ -1025,7 +1019,7 @@ fn callback_at(c: &mut Contract, id: U64, attempt: u32, result: PromiseResult, t
         Default::default(),
         vec![result],
     );
-    c.on_verified(id, attempt)
+    c.on_verified(id, attempt, U128(FEE))
 }
 
 fn output(id: U64, attempt: u32, valid: bool, key: Option<&str>) -> PromiseResult {
@@ -1036,16 +1030,91 @@ fn output(id: U64, attempt: u32, valid: bool, key: Option<&str>) -> PromiseResul
     PromiseResult::Successful(v.to_string().into_bytes())
 }
 
+fn request_call(receipts: &[near_sdk::mock::Receipt]) -> (String, Vec<u8>, u128) {
+    receipts
+        .iter()
+        .flat_map(|r| r.actions.iter())
+        .find_map(|a| match a {
+            near_sdk::mock::MockAction::FunctionCallWeight {
+                method_name,
+                args,
+                attached_deposit,
+                ..
+            } if method_name == b"request_execution" => Some((
+                String::from_utf8(method_name.clone()).unwrap(),
+                args.clone(),
+                attached_deposit.as_yoctonear(),
+            )),
+            _ => None,
+        })
+        .expect("request_execution call")
+}
+
+fn request_args(receipts: &[near_sdk::mock::Receipt]) -> near_sdk::serde_json::Value {
+    near_sdk::serde_json::from_slice(&request_call(receipts).1).unwrap()
+}
+
+fn request_deposit(receipts: &[near_sdk::mock::Receipt]) -> u128 {
+    request_call(receipts).2
+}
+
+fn transfers_to(receipts: &[near_sdk::mock::Receipt], who: &AccountId) -> u128 {
+    receipts
+        .iter()
+        .filter(|r| &r.receiver_id == who)
+        .flat_map(|r| r.actions.iter())
+        .filter_map(|a| match a {
+            near_sdk::mock::MockAction::Transfer { deposit, .. } => Some(deposit.as_yoctonear()),
+            _ => None,
+        })
+        .sum()
+}
+
 fn status(c: &Contract, id: U64) -> OrderStatus {
     c.get_order(id).unwrap().status
 }
 
 // ---- set_verifier
 
+fn other_verifier() -> VerifierConfig {
+    VerifierConfig {
+        outlayer: acc("evil-outlayer.testnet"),
+        wasm_url: "https://evil.test/always-valid.wasm".to_string(),
+        wasm_hash: "ff".repeat(32),
+        ..verifier_config()
+    }
+}
+
 #[test]
-fn admin_sets_verifier() {
-    let (c, _) = ordered();
-    assert_eq!(c.get_verifier(), Some(verifier_config()));
+fn set_verifier_publishes_versions_and_charges_storage() {
+    let mut c = setup();
+    assert_eq!(c.get_verifier(), None);
+    assert_eq!(publish_verifier(&mut c, verifier_config()), 0);
+    assert!(
+        get_created_receipts()
+            .iter()
+            .any(|r| r.receiver_id == admin()),
+        "excess deposit refunded"
+    );
+    assert_eq!(publish_verifier(&mut c, other_verifier()), 1);
+    let v = c.get_verifier().unwrap();
+    assert_eq!(v.version, 1);
+    assert_eq!(v.config, other_verifier());
+    assert_eq!(
+        c.get_verifier_version(0),
+        Some(verifier_config()),
+        "old versions are kept"
+    );
+}
+
+#[test]
+#[should_panic(expected = "Insufficient storage deposit")]
+fn set_verifier_requires_storage_payment() {
+    let mut c = setup();
+    testing_env!(ctx(&admin())
+        .attached_deposit(NearToken::from_yoctonear(1))
+        .build());
+    c.set_verifier(verifier_config());
 }
 
 #[test]
@@ -1053,7 +1122,7 @@ fn admin_sets_verifier() {
 fn non_admin_cannot_set_verifier() {
     let mut c = setup();
     testing_env!(ctx(&seller())
-        .attached_deposit(NearToken::from_yoctonear(1))
+        .attached_deposit(NearToken::from_yoctonear(STORAGE_DEPOSIT))
         .build());
     c.set_verifier(verifier_config());
 }
@@ -1062,13 +1131,70 @@ fn non_admin_cannot_set_verifier() {
 #[should_panic(expected = "wasm_hash must be 64 hex characters")]
 fn set_verifier_rejects_bad_hash() {
     let mut c = setup();
-    testing_env!(ctx(&admin())
-        .attached_deposit(NearToken::from_yoctonear(1))
-        .build());
-    c.set_verifier(VerifierConfig {
-        wasm_hash: "xyz".to_string(),
-        ..verifier_config()
-    });
+    publish_verifier(
+        &mut c,
+        VerifierConfig {
+            wasm_hash: "xyz".to_string(),
+            ..verifier_config()
+        },
+    );
+}
+
+#[test]
+#[should_panic(expected = "max_fee must be positive and at least min_fee")]
+fn set_verifier_rejects_max_fee_below_min() {
+    let mut c = setup();
+    publish_verifier(
+        &mut c,
+        VerifierConfig {
+            max_fee: U128(FEE - 1),
+            ..verifier_config()
+        },
+    );
+}
+
+/// The attack this guards against: the admin swaps in a verifier that always
+/// says "valid" (or another OutLayer account) to pay escrow to a colluding
+/// seller. Open orders must keep the verifier they were created with.
+#[test]
+fn admin_changing_verifier_does_not_affect_existing_orders() {
+    let (mut c, old) = ordered();
+    assert_eq!(old.verifier_version, 0);
+    publish_verifier(&mut c, other_verifier());
+
+    submit(&mut c, old.id);
+    let receipts = get_created_receipts();
+    assert!(
+        receipts
+            .iter()
+            .any(|r| r.receiver_id == acc("outlayer.testnet")),
+        "old order still goes to the pinned OutLayer account"
+    );
+    assert!(!receipts
+        .iter()
+        .any(|r| r.receiver_id == acc("evil-outlayer.testnet")));
+    assert_eq!(request_args(&receipts)["source"]["WasmUrl"]["hash"], HASH);
+
+    // New orders get the new version.
+    let new = create_as(&mut c, &agent(), old.listing_id);
+    assert_eq!(new.verifier_version, 1);
+}
+
+#[test]
+#[should_panic(expected = "Verifier changed: expected version 0, current 1")]
+fn create_order_rejects_unexpected_verifier_version() {
+    let (mut c, l) = ready();
+    publish_verifier(&mut c, other_verifier());
+    testing_env!(ctx(&agent()).build());
+    c.create_order(owner(), l, "pk".to_string(), Some(0));
+}
+
+#[test]
+fn create_order_accepts_expected_verifier_version() {
+    let (mut c, l) = ready();
+    testing_env!(ctx(&agent()).build());
+    let o = c.create_order(owner(), l, "pk".to_string(), Some(0));
+    assert_eq!(o.verifier_version, 0);
 }
 
 // ---- submit_delivery
@@ -1087,30 +1213,9 @@ fn submit_delivery_requests_outlayer_and_moves_to_verifying() {
     assert_eq!(receipt_extra(&c, 0)["status"], "Verifying");
 
     let receipts = get_created_receipts();
-    let to_outlayer = receipts
-        .iter()
-        .find(|r| r.receiver_id == acc("outlayer.testnet"))
-        .expect("OutLayer call");
-    let (method, args, deposit) = to_outlayer
-        .actions
-        .iter()
-        .find_map(|a| match a {
-            near_sdk::mock::MockAction::FunctionCallWeight {
-                method_name,
-                args,
-                attached_deposit,
-                ..
-            } => Some((
-                String::from_utf8(method_name.clone()).unwrap(),
-                args.clone(),
-                *attached_deposit,
-            )),
-            _ => None,
-        })
-        .unwrap();
-    assert_eq!(method, "request_execution");
-    assert_eq!(deposit.as_yoctonear(), FEE);
-    let args: near_sdk::serde_json::Value = near_sdk::serde_json::from_slice(&args).unwrap();
+    assert_eq!(request_call(&receipts).0, "request_execution");
+    assert_eq!(request_deposit(&receipts), FEE);
+    let args = request_args(&receipts);
     assert_eq!(args["source"]["WasmUrl"]["hash"], HASH);
     assert_eq!(args["payer_account_id"], seller().to_string());
     assert_eq!(args["secrets_ref"]["profile"], "verifier");
@@ -1137,10 +1242,19 @@ fn only_seller_can_submit() {
 
 #[test]
 #[should_panic(expected = "Verifier not configured")]
-fn submit_requires_configured_verifier() {
-    let (mut c, l) = ready();
-    let o = create_as(&mut c, &agent(), l);
-    submit(&mut c, o.id);
+fn create_order_requires_a_verifier() {
+    let mut c = setup();
+    set_default_mandate(&mut c, STORAGE_DEPOSIT);
+    deposit_budget(&mut c, &owner(), 50 * USDC);
+    let l = register_listing_as(&mut c, &seller(), 5 * USDC);
+    create_as(&mut c, &agent(), l);
+}
+
+#[test]
+#[should_panic(expected = "Attached deposit is above the verifier's max fee")]
+fn submit_rejects_fee_above_max() {
+    let (mut c, o) = ordered();
+    submit_at(&mut c, &seller(), o.id, 10 * FEE + 1, START);
 }
 
 #[test]
@@ -1256,8 +1370,48 @@ fn null_result_returns_to_delivered() {
 }
 
 #[test]
-fn failed_promise_returns_to_delivered() {
-    assert_not_settled(PromiseResult::Failed);
+fn failed_promise_returns_to_delivered_and_forwards_fee_to_seller() {
+    // Err means request_execution itself failed, so the runtime refunded the
+    // attached fee to Horkos; Horkos must pass it on to the seller.
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    assert!(!callback_at(
+        &mut c,
+        o.id,
+        1,
+        PromiseResult::Failed,
+        START + 1
+    ));
+    assert_eq!(status(&c, o.id), OrderStatus::Delivered);
+    assert_eq!(transfers_to(&get_created_receipts(), &seller()), FEE);
+}
+
+#[test]
+fn null_result_does_not_forward_fee() {
+    // `null`: the run failed inside OutLayer, which refunds the seller itself.
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    callback_at(
+        &mut c,
+        o.id,
+        1,
+        PromiseResult::Successful(b"null".to_vec()),
+        START + 1,
+    );
+    assert_eq!(transfers_to(&get_created_receipts(), &seller()), 0);
+}
+
+#[test]
+fn failed_promise_after_refund_still_forwards_fee() {
+    let (mut c, o) = ordered();
+    submit(&mut c, o.id);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(o.id);
+    callback_at(&mut c, o.id, 1, PromiseResult::Failed, START + WINDOW);
+    assert_eq!(status(&c, o.id), OrderStatus::Refunded);
+    assert_eq!(transfers_to(&get_created_receipts(), &seller()), FEE);
 }
 
 #[test]
@@ -1380,17 +1534,13 @@ fn settled_order_cannot_be_refunded() {
 #[test]
 fn delivery_and_settlement_fit_in_the_reserve() {
     let (mut c, l) = ready();
-    testing_env!(ctx(&admin())
-        .attached_deposit(NearToken::from_yoctonear(1))
-        .build());
-    c.set_verifier(verifier_config());
     create_as(&mut c, &agent(), l); // owner's token set exists from here on
 
     testing_env!(ctx(&agent()).build());
     let byte_cost = env::storage_byte_cost().as_yoctonear();
     let deposit_before = c.get_mandate(owner()).unwrap().storage_deposit.0;
     let usage_before = env::storage_usage();
-    let o = c.create_order(owner(), l, "pk".to_string());
+    let o = c.create_order(owner(), l, "pk".to_string(), None);
     let charged = (deposit_before - c.get_mandate(owner()).unwrap().storage_deposit.0) / byte_cost;
 
     let long = "x".repeat(MAX_STRING_LEN);
@@ -1411,5 +1561,78 @@ fn delivery_and_settlement_fit_in_the_reserve() {
     assert!(
         used <= charged as u64,
         "used {used} bytes, charged {charged}"
+    );
+}
+
+// ---------------------------------------------------------------- unused reserve refund
+
+fn reserve_yocto() -> u128 {
+    u128::from(DELIVERY_RESERVED_BYTES) * env::storage_byte_cost().as_yoctonear()
+}
+
+fn deposit_of(c: &Contract) -> u128 {
+    c.get_mandate(owner()).unwrap().storage_deposit.0
+}
+
+/// Ready + one order already made, so the owner's token set exists and the
+/// next order's cost is the steady-state cost.
+fn warmed() -> (Contract, U64) {
+    let (mut c, l) = ready();
+    create_as(&mut c, &agent(), l);
+    (c, l)
+}
+
+#[test]
+fn cancel_returns_unused_delivery_reserve() {
+    let (mut c, l) = warmed();
+    let before = deposit_of(&c);
+    let o = create_as(&mut c, &agent(), l);
+    let gross = before - deposit_of(&c);
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+    assert_eq!(before - deposit_of(&c), gross - reserve_yocto());
+}
+
+#[test]
+fn refund_without_delivery_returns_unused_reserve() {
+    let (mut c, l) = warmed();
+    let before = deposit_of(&c);
+    let o = create_as(&mut c, &agent(), l);
+    let gross = before - deposit_of(&c);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(o.id);
+    assert_eq!(before - deposit_of(&c), gross - reserve_yocto());
+}
+
+#[test]
+fn refund_after_a_delivery_keeps_the_reserve() {
+    let (mut c, l) = warmed();
+    let before = deposit_of(&c);
+    let o = create_as(&mut c, &agent(), l);
+    let gross = before - deposit_of(&c);
+    submit(&mut c, o.id);
+    callback_at(&mut c, o.id, 1, output(o.id, 1, false, None), START + 1);
+    testing_env!(ctx(&acc("anyone.testnet"))
+        .block_timestamp(START + WINDOW)
+        .build());
+    c.refund_expired(o.id);
+    assert_eq!(before - deposit_of(&c), gross, "delivery data was stored");
+}
+
+#[test]
+fn print_storage_cost_breakdown() {
+    let (mut c, l) = warmed();
+    let byte_cost = env::storage_byte_cost().as_yoctonear();
+    let before = deposit_of(&c);
+    let o = create_as(&mut c, &agent(), l);
+    let gross = (before - deposit_of(&c)) / byte_cost;
+    testing_env!(ctx(&agent()).build());
+    c.cancel_order(o.id);
+    let net = (before - deposit_of(&c)) / byte_cost;
+    println!(
+        "per order: charged {gross} B, reserve {} B, kept after cancel/undelivered refund {net} B; byte cost {byte_cost} yocto",
+        DELIVERY_RESERVED_BYTES
     );
 }

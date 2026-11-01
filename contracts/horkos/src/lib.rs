@@ -13,7 +13,7 @@ use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, NFT_METADATA_SPEC,
 };
 use near_contract_standards::non_fungible_token::NonFungibleToken;
-use near_sdk::collections::{LazyOption, LookupMap};
+use near_sdk::collections::{LazyOption, LookupMap, Vector};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::{env, near, AccountId, PanicOnDefault};
 
@@ -44,9 +44,10 @@ pub struct Contract {
     /// NEP-171 receipts; token_id = order id, owner = buyer.
     pub(crate) nft: NonFungibleToken,
     pub(crate) nft_metadata: LazyOption<NFTContractMetadata>,
-    /// May configure the verifier.
+    /// May publish new verifier versions.
     pub(crate) admin: AccountId,
-    pub(crate) verifier: Option<VerifierConfig>,
+    /// Append-only: a published version is never changed or removed.
+    pub(crate) verifiers: Vector<VerifierConfig>,
 }
 
 #[near]
@@ -56,7 +57,7 @@ impl Contract {
         Self {
             token,
             admin,
-            verifier: None,
+            verifiers: Vector::new(StorageKey::Verifiers),
             mandates: LookupMap::new(StorageKey::Mandates),
             listings: LookupMap::new(StorageKey::Listings),
             next_listing_id: 0,
@@ -95,8 +96,18 @@ impl Contract {
         self.admin.clone()
     }
 
-    pub fn get_verifier(&self) -> Option<VerifierConfig> {
-        self.verifier.clone()
+    /// The verifier new orders will be pinned to (latest version). Agents
+    /// can check it, then pass `verifier_version` to `create_order`.
+    pub fn get_verifier(&self) -> Option<VerifierView> {
+        let len = self.verifiers.len();
+        (len > 0).then(|| VerifierView {
+            version: (len - 1) as u32,
+            config: self.verifiers.get(len - 1).unwrap(),
+        })
+    }
+
+    pub fn get_verifier_version(&self, version: u32) -> Option<VerifierConfig> {
+        self.verifiers.get(u64::from(version))
     }
 
     pub fn get_mandate(&self, owner: AccountId) -> Option<Mandate> {

@@ -5,9 +5,12 @@
 //! call (`#[private]`), with the WASM pinned by hash. OutLayer's operator is
 //! trusted to deliver that result; the attestation can be checked off-chain.
 
+use near_sdk::json_types::U128;
 use near_sdk::json_types::U64;
 use near_sdk::serde_json::{self, json};
-use near_sdk::{assert_one_yocto, env, log, near, require, Gas, Promise, PromiseError};
+use near_sdk::{env, log, near, require, Gas, NearToken, Promise, PromiseError};
+
+use crate::mandate::apply_storage_delta;
 
 use crate::*;
 
@@ -16,14 +19,19 @@ const GAS_ON_VERIFIED: Gas = Gas::from_tgas(20);
 
 #[near]
 impl Contract {
-    /// Admin-only: sets where and how deliveries are verified.
+    /// Admin-only: publishes a new verifier version and returns its number.
+    /// Existing versions are never changed, and every order keeps the version
+    /// it was created with, so the admin cannot redirect open orders. The
+    /// admin pays the new entry's storage from the attached deposit.
     #[payable]
-    pub fn set_verifier(&mut self, config: VerifierConfig) {
-        assert_one_yocto();
+    pub fn set_verifier(&mut self, config: VerifierConfig) -> u32 {
+        let attached = env::attached_deposit().as_yoctonear();
         require!(
-            env::predecessor_account_id() == self.admin,
-            "Only the admin can set the verifier"
+            attached >= 1,
+            "Requires attached deposit of at least 1 yoctoNEAR"
         );
+        let admin = env::predecessor_account_id();
+        require!(admin == self.admin, "Only the admin can set the verifier");
         require!(
             config.wasm_hash.len() == 64 && config.wasm_hash.bytes().all(|b| b.is_ascii_hexdigit()),
             "wasm_hash must be 64 hex characters"
@@ -32,7 +40,19 @@ impl Contract {
             config.wasm_url.starts_with("https://") && config.wasm_url.len() <= MAX_STRING_LEN,
             "wasm_url must be an https URL"
         );
-        self.verifier = Some(config);
+        require!(
+            config.max_fee.0 >= config.min_fee.0 && config.max_fee.0 > 0,
+            "max_fee must be positive and at least min_fee"
+        );
+        let before = env::storage_usage();
+        self.verifiers.push(&config);
+        let refund = apply_storage_delta(attached, before, env::storage_usage());
+        if refund > 0 {
+            Promise::new(admin)
+                .transfer(NearToken::from_yoctonear(refund))
+                .detach();
+        }
+        (self.verifiers.len() - 1) as u32
     }
 
     /// Seller submits a delivery and pays OutLayer's fee (attached NEAR; the
@@ -49,8 +69,12 @@ impl Contract {
         delivery_ref: String,
         sealed_key: String,
     ) -> Promise {
-        let verifier = self.verifier.clone().expect("Verifier not configured");
         let mut order = self.orders.get(&order_id.0).expect("Order not found");
+        // Only the version pinned at create_order, never the latest one.
+        let verifier = self
+            .verifiers
+            .get(u64::from(order.verifier_version))
+            .expect("Pinned verifier version missing");
         require!(
             env::predecessor_account_id() == order.seller,
             "Only the seller can deliver"
@@ -79,6 +103,10 @@ impl Contract {
         require!(
             fee.as_yoctonear() >= verifier.min_fee.0,
             "Attached deposit is below the verifier fee"
+        );
+        require!(
+            fee.as_yoctonear() <= verifier.max_fee.0,
+            "Attached deposit is above the verifier's max fee"
         );
         let listing = self
             .listings
@@ -130,7 +158,7 @@ impl Contract {
             .then(
                 Self::ext(env::current_account_id())
                     .with_static_gas(GAS_ON_VERIFIED)
-                    .on_verified(order.id, order.attempts),
+                    .on_verified(order.id, order.attempts, U128(fee.as_yoctonear())),
             )
     }
 
@@ -140,10 +168,28 @@ impl Contract {
     /// the order to `Delivered` (seller may resubmit). A result for an order
     /// that was refunded meanwhile changes nothing. Returns true on settle.
     #[private]
-    pub fn on_verified(&mut self, order_id: U64, attempt: u32) -> bool {
+    pub fn on_verified(&mut self, order_id: U64, attempt: u32, fee: U128) -> bool {
         let Some(mut order) = self.orders.get(&order_id.0) else {
             return false;
         };
+        let raw: Result<Vec<u8>, PromiseError> =
+            env::promise_result_checked(0, MAX_VERIFIER_OUTPUT);
+
+        // `Err`: `request_execution` itself failed (e.g. OutLayer paused or
+        // rejected the args), so the runtime refunded the attached fee to
+        // this contract. Forward it to the seller who paid it, whatever the
+        // order's state. (When the run fails inside OutLayer, OutLayer
+        // refunds the seller itself and returns `null`, handled below.)
+        if raw.is_err() && fee.0 > 0 {
+            Promise::new(order.seller.clone())
+                .transfer(NearToken::from_yoctonear(fee.0))
+                .detach();
+            log!(
+                "OutLayer call failed for order {}; fee returned to seller",
+                order_id.0
+            );
+        }
+
         if order.status != OrderStatus::Verifying || order.attempts != attempt {
             log!(
                 "Ignoring verifier result for order {} attempt {} (status {:?}, attempts {})",
@@ -155,8 +201,6 @@ impl Contract {
             return false;
         }
 
-        let raw: Result<Vec<u8>, PromiseError> =
-            env::promise_result_checked(0, MAX_VERIFIER_OUTPUT);
         // OutLayer returns `null` when the run failed or produced nothing.
         let output: Option<VerifierOutput> = raw
             .ok()

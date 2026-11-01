@@ -15,7 +15,9 @@ use crate::mandate::apply_storage_delta;
 use crate::*;
 
 const GAS_REQUEST_EXECUTION: Gas = Gas::from_tgas(100);
-const GAS_ON_VERIFIED: Gas = Gas::from_tgas(20);
+/// Measured in sandbox (near-workspaces, nearcore 2.14): 2.0-2.4 Tgas burnt
+/// across settle / invalid / Err-with-fee-transfer paths. ~4x headroom.
+pub(crate) const GAS_ON_VERIFIED: Gas = Gas::from_tgas(10);
 
 #[near]
 impl Contract {

@@ -13,7 +13,8 @@ use near_sdk::{
 use crate::*;
 
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(10);
-const GAS_ON_WITHDRAW: Gas = Gas::from_tgas(10);
+/// Measured in sandbox: 1.5 Tgas (success), 1.7 Tgas (restore). ~3x headroom.
+const GAS_ON_WITHDRAW: Gas = Gas::from_tgas(5);
 
 #[near]
 impl Contract {

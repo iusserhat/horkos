@@ -1,0 +1,22 @@
+[package]
+name = "outlayer-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone spike: not part of the contracts workspace.
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "=5.30.0"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

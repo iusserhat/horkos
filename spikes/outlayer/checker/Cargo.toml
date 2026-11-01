@@ -1,0 +1,21 @@
+[package]
+name = "horkos-checker"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: not part of the contracts workspace.
+[workspace]
+
+[[bin]]
+name = "horkos-checker"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

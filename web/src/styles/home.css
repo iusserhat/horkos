@@ -1057,3 +1057,46 @@
   .motto span { white-space: normal; }
 }
 .motto + .lead { margin-top: var(--s6); }
+
+/* Horkos Market callout inside the use cases */
+.uc-market {
+  margin-top: var(--s7);
+  margin-bottom: var(--s6);
+  padding: var(--s5) var(--s6);
+  background: var(--mint);
+  color: #1d2140;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s5);
+  align-items: center;
+  transform: rotate(-0.4deg);
+}
+.uc-market h3 {
+  font-size: 1.5rem;
+}
+.uc-market p {
+  margin-top: var(--s2);
+  color: #2c3152;
+}
+.uc-market-btns {
+  display: grid;
+  gap: var(--s3);
+}
+.uc-market .btn:not(.btn-gold) {
+  background: #ffffff;
+  color: #1d2140;
+}
+.page-home .band > .wrap.stack > .uc-market + .uses {
+  margin-top: 0;
+}
+.use-ex a.own {
+  background: var(--gold);
+  color: #1d2140;
+  padding: 0 6px;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+}
+@media (max-width: 768px) {
+  .uc-market { grid-template-columns: 1fr; transform: none; }
+}

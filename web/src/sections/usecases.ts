@@ -31,6 +31,7 @@ const CASES: UseCase[] = [
     checked: "JSON Schema: required fields, types, minimum row count.",
     refund: "The data fails the schema on every attempt, or nothing arrives before the deadline.",
     examples: [
+      { name: "Horkos Market", what: "listing #0 sells live NEAR/USD prices under escrow today, on testnet", url: "./market.html#offers" },
       { name: "CoinGecko", what: "sells price and market data to agents per request over x402", url: "https://www.coingecko.com/en/api/x402" },
       { name: "CoinMarketCap", what: "offers its crypto data API to agents over x402", url: "https://coinmarketcap.com/api/x402/" },
     ],
@@ -52,6 +53,7 @@ const CASES: UseCase[] = [
     checked: "JSON Schema of each record and the number of records.",
     refund: "Missing fields, too few records, or nothing before the deadline.",
     examples: [
+      { name: "Horkos Market", what: "has no extraction offer yet; anyone with a NEAR account can list the first one", url: "./market.html#sell" },
       { name: "Firecrawl", what: "lets agents pay per search and scrape over x402", url: "https://www.coinbase.com/developer-platform/discover/case-studies/firecrawl" },
       { name: "Exa", what: "accepts x402 payments for its search API", url: "https://exa.ai/docs/reference/x402-guide" },
       { name: "Apify", what: "Store scrapers charge per result or per event", url: "https://docs.apify.com/platform/actors/publishing/monetize" },
@@ -69,6 +71,7 @@ const CASES: UseCase[] = [
     checked: "Shape only: the schema of the output. Hidden control samples are planned.",
     refund: "Wrong shape, missing fields, or no delivery by the deadline.",
     examples: [
+      { name: "Horkos Market", what: "takes listings from other agents too: a seller can be an agent running the seller SDK", url: "./market.html#sell" },
       { name: "Olas Mech Marketplace", what: "agents hire other agents and pay per request on chain", url: "https://olas.network/mech-marketplace" },
     ],
     mainnet: {
@@ -108,6 +111,17 @@ export function useCases() {
         "Agents already pay for data and work. Over x402 the money leaves before anything is checked, which is fine for a one-cent call. For purchases worth checking, Horkos is the escrow step in between.",
       ),
       h(
+        "aside",
+        { class: "uc-market panel", "aria-labelledby": "uc-market-title" },
+        h(
+          "div",
+          {},
+          h("h3", { id: "uc-market-title" }, "Or buy where escrow is already built in: Horkos Market"),
+          h("p", {}, "Sellers on Horkos Market deliver through the escrow from the start, so your agent never pays before the check. Each offer shows the seller's settled and refunded orders, read from the receipts on chain. Anyone can list a dataset, a database export or an API result."),
+        ),
+        h("div", { class: "uc-market-btns" }, h("a", { class: "btn btn-gold", href: "./market.html#offers" }, "Browse the market"), h("a", { class: "btn", href: "./market.html#sell" }, "Sell your data")),
+      ),
+      h(
         "div",
         { class: "uses" },
         ...CASES.map((c) =>
@@ -136,7 +150,7 @@ export function useCases() {
               h(
                 "ul",
                 {},
-                ...c.examples.map((e) => h("li", {}, h("a", { href: e.url, rel: "noopener", target: "_blank" }, e.name), " ", e.what, ".")),
+                ...c.examples.map((e) => h("li", {}, h("a", e.url.startsWith("./") ? { href: e.url, class: "own" } : { href: e.url, rel: "noopener", target: "_blank" }, e.name), " ", e.what, ".")),
               ),
             ),
             c.demoSource ? h("div", { class: "use-src" }, h("p", { class: "use-ex-title" }, "Where the demo's data comes from"), ...c.demoSource.map((t) => h("p", {}, t))) : null,

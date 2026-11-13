@@ -21,3 +21,6 @@ credentials/
 .DS_Store
 Thumbs.db
 setup.log
+
+# Chrome profiles that Lighthouse may create under web/ when TEMP points to a Windows path
+web/C:*

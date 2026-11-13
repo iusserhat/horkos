@@ -8,6 +8,7 @@
     "demo1": "tsx scenario.ts 1",
     "demo2": "tsx scenario.ts 2",
     "demo3": "tsx scenario.ts 3",
+    "sandbox": "tsx sandbox.ts",
     "seller": "tsx sellers/run.ts",
     "typecheck": "../sdk/node_modules/.bin/tsc -p tsconfig.json"
   },

@@ -41,6 +41,8 @@ Yetişmezse metinden çıkar: OutLayer/TEE satırı (yedek doğrulayıcıyı yaz
 
 ## X paylaşımı taslağı
 
+Zorunlu: paylaşımda **@NEARProtocol** etiketi ve **#NEARHackathon** hashtag'i olmalı; video şart (ekran görüntüsü yetmez).
+
 ```
 AI agents can pay. They can't get refunds.
 
@@ -51,5 +53,5 @@ We don't resolve disputes. We prevent them.
 Demo 👇
 [video]
 Repo: github.com/...
-@NEARProtocol
+@NEARProtocol #NEARHackathon
 ```

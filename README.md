@@ -4,16 +4,17 @@ Horkos is an escrow protocol for purchases made by AI agents on NEAR. A user dep
 
 Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). License: MIT.
 
-## Status (1 Nov 2026)
+## Status (13 Nov 2026)
 
 | Part | State |
 | --- | --- |
 | Contract: mandate, budget deposit, orders, limits, escrow, NFT receipts, cancel, timeout refund, withdraw | Done. Unit and sandbox tests. Deployed on testnet. |
-| Contract: delivery and verification through NEAR OutLayer (`submit_delivery` → `on_verified`) | Done and tested against a mock OutLayer. Not yet run against real OutLayer. |
-| Verifier program that runs in OutLayer's TEE (decrypt, check condition, re-encrypt for the buyer) | **Not built yet.** A spike ran a schema checker through the real OutLayer testnet contract (see `spikes/outlayer/REPORT.md`). |
+| Contract: delivery and verification through NEAR OutLayer (`submit_delivery` → `on_verified`) | Done. Tested in the sandbox against a mock OutLayer. Not yet run end to end on testnet (see below). |
+| Verifier program for OutLayer's TEE (`verifier/`: decrypt, check the JSON Schema, re-seal the data key to the buyer) | Done. Unit tests and an end-to-end test with SDK-built deliveries. WASM v0 hosted publicly, sha256 pinned; OutLayer testnet downloaded and ran it (tx `6dnGVTiB1e8sDyEYrv7MoSdKGsLnPqUDFe7oCyNKo8wv`). Its secret key was generated inside OutLayer (`PROTECTED_VERIFIER_SK`, locked to that build). |
+| Verifier published on the testnet contract (`set_verifier`) | **Not yet.** It needs the verifier's public key, which comes from a run on OutLayer. Since 13 Nov ~12:00 UTC every OutLayer testnet execution fails with an infrastructure error ("Execution request not found" when the result is written on chain), ours included. Details: `docs/TESTNET.md`. |
 | TypeScript SDK (agent, seller, owner) | Done. Tests on a local sandbox. |
-| Demo scenario 3 (out-of-mandate purchase rejected) | Ran on testnet. |
-| Demo scenarios 1 and 2 (successful purchase; bad delivery refunded) | Scripts written. They need the verifier, so they have not run on testnet yet. |
+| Demo 3 (out-of-mandate purchase rejected) | Ran on testnet. |
+| Demos 1 and 2 (successful purchase; bad delivery refunded) | Run locally: sandbox with the real contracts, a mock OutLayer and the real verifier code (Try it, step 6). Not yet on testnet. |
 | MCP server | Not started. |
 
 ## Problem
@@ -38,11 +39,12 @@ Full design (Turkish): `docs/DESIGN.md`. Decisions and reasons: `docs/DECISIONS.
 ```
 contracts/horkos/            escrow contract (Rust, near-sdk 5.30)
 contracts/test-token/        testnet NEP-141 token "tUSDC" (6 decimals)
-contracts/mock-outlayer/     test-only stand-in for OutLayer's request_execution
+contracts/mock-outlayer/     test-only stand-in for OutLayer's request_execution (Worker mode: yields until resolved, like OutLayer)
 contracts/integration-tests/ sandbox tests (near-workspaces)
 contracts/scripts/           build, sandbox test runner, Docker wrapper for the sandbox node
 sdk/                         TypeScript SDK: HorkosAgent, HorkosSeller, HorkosOwner
-demo/                        three seller services and scenario scripts (testnet)
+verifier/                    delivery verifier (Rust, WASI P2) that runs in OutLayer's TEE
+demo/                        seller services and scenario scripts (testnet), local sandbox demo
 spikes/outlayer/             OutLayer experiment: WASI schema checker, probe contract, report
 docs/                        design, decisions, testnet deployment
 ```
@@ -93,7 +95,24 @@ You should see a mandate that allows only `horkos-seller-a.testnet` and `horkos-
 The scripts sign with the demo accounts' keys, which only the team has, so judges cannot run them as-is. They are in `demo/` (`npm run setup`, `npm run demo1|demo2|demo3`).
 
 - **Demo 3** ran on 1 Nov 2026. The agent, signing with its function-call key, sent `create_order` for 500 tUSDC from seller C. The contract rejected it with `Seller not allowed by mandate`, and the budget (50 tUSDC) and open-order count did not change.
-- **Demos 1 and 2** need the verifier and have not run yet.
+- **Demos 1 and 2** need a verifier published on the contract, which is blocked by the OutLayer testnet outage (Status). Step 6 runs them locally.
+
+### 6. Demos 1–3 locally (sandbox, mock OutLayer, real verifier code)
+
+```bash
+contracts/scripts/build.sh
+cd demo
+npm ci
+CARGO_TARGET_DIR=../contracts/target npm run sandbox
+```
+
+Run after step 3 (it needs `sdk/node_modules`, the built wasm and the sandbox binary). It starts a local NEAR node, deploys the real Horkos and test-token contracts and `mock-outlayer` in `Worker` mode, and builds the verifier natively. When the contract calls `request_execution`, the mock yields like OutLayer does; a worker loop in `demo/sandbox.ts` runs the verifier on the request and resumes it with the verifier's output. You should see:
+
+1. `order 0: Settled`, then the buyer decrypts `{"symbol":"NEAR/USD","rows":[...]}`.
+2. `valid=false, reason: schema: ... at /rows`, `order 1: Delivered`, the buyer gets `nothing to open`, and after the 25 s window `refund_expired → order 1: Refunded` with the 5 tUSDC back in the budget.
+3. `create_order rejected: ... Seller not allowed by mandate`.
+
+Not real in this demo: the TEE and OutLayer's operator (the worker is a local loop), and HTTPS hosting (files are `file://` URLs).
 
 ## Trust model and limits
 
@@ -118,7 +137,7 @@ Costs and other limits:
 
 ## Roadmap
 
-- Verifier WASM for OutLayer (decrypt, fetch, check JSON Schema, re-seal to the buyer), OutLayer secrets for the verifier key, then demos 1 and 2 on testnet.
+- When OutLayer testnet works again: read the verifier's public key, `set_verifier` v0, run demos 1 and 2 on testnet.
 - Delete the contract accounts' full-access keys, or put upgrades behind a DAO or timelock.
 - MCP server (`horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`).
 - Later: cross-chain payment and refund via NEAR Intents, transferable receipts, x402 compatibility.
@@ -127,6 +146,7 @@ Costs and other limits:
 
 Libraries (exact versions are pinned in `Cargo.lock` / `package-lock.json`):
 - Rust: `near-sdk` 5.30.0, `near-contract-standards` 5.30.0, `near-workspaces` 0.24.0 (tests), `tokio`, `serde_json`, `anyhow`, `sha2` (spike). Toolchain: `cargo-near` 0.22.0, near-sandbox / nearcore 2.14.0 (tests).
+- Verifier (Rust): `crypto_box` 0.9.1, `chacha20poly1305` 0.10.1, `jsonschema` 0.59.0, `sha2`, `base64`, `hex`, `serde_json`, `wasi-http-client` 0.2.1 (WASM build only).
 - TypeScript: `near-api-js` 7.3.1, `libsodium-wrappers` 0.8.4 (all encryption), `typescript` 7.0.2, `tsx` 4.23.15.
 - Docker image `ubuntu:24.04`, used only to run the sandbox node on hosts with an older glibc.
 

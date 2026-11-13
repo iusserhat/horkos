@@ -70,6 +70,11 @@
   .nav .nav-cta {
     display: none;
   }
+  /* keep each link on one line so the header height does not change while the page loads */
+  .nav a {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   .theme-toggle {
     margin-left: auto;
   }

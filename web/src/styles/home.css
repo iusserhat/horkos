@@ -1038,7 +1038,7 @@
 }
 
 /* the principle, as a stamped sticker under the tagline */
-.motto {
+.hero .motto {
   margin-top: var(--s6);
   padding: 14px 28px 16px;
   background: var(--coral);
@@ -1050,13 +1050,13 @@
   font: 700 clamp(1.35rem, 1rem + 1.6vw, 2.1rem) / 1.2 var(--font-display);
   max-width: none;
 }
-.motto span {
+.hero .motto span {
   white-space: nowrap;
 }
 @media (max-width: 480px) {
-  .motto span { white-space: normal; }
+  .hero .motto span { white-space: normal; }
 }
-.motto + .lead { margin-top: var(--s6); }
+.hero .motto + .lead { margin-top: var(--s6); }
 
 /* Horkos Market callout inside the use cases */
 .uc-market {
@@ -1104,6 +1104,7 @@
 /* wordmark: one colour per letter, a hover hops the letter to a new colour */
 .wordmark .wm-l {
   display: inline-block;
+  vertical-align: top; /* line height stays 0.9em whatever font is showing, so the swap does not shift the page */
   color: var(--c);
   transition: color 0.25s ease-out;
   cursor: default;

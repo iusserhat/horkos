@@ -169,6 +169,7 @@ Libraries (exact versions are pinned in `Cargo.lock` / `package-lock.json`):
 - Rust: `near-sdk` 5.30.0, `near-contract-standards` 5.30.0, `near-workspaces` 0.24.0 (tests), `tokio`, `serde_json`, `anyhow`, `sha2` (spike). Toolchain: `cargo-near` 0.22.0, near-sandbox / nearcore 2.14.0 (tests).
 - Verifier (Rust): `crypto_box` 0.9.1, `chacha20poly1305` 0.10.1, `jsonschema` 0.59.0, `sha2`, `base64`, `hex`, `serde_json`, `wasi-http-client` 0.2.1 (WASM build only).
 - TypeScript: `near-api-js` 7.3.1, `libsodium-wrappers` 0.8.4 (all encryption), `typescript` 7.0.2, `tsx` 4.23.15.
+- MCP server: `@modelcontextprotocol/sdk` 1.32.2, `zod` 3.25.76.
 - Docker image `ubuntu:24.04`, used only to run the sandbox node on hosts with an older glibc.
 
 Templates and borrowed formats:

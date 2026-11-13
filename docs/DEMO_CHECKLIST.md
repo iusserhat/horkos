@@ -4,11 +4,7 @@ Post must include the video (no screenshots only), **@NEARProtocol** and **#NEAR
 
 ## Before recording
 
-1. **Rotate the agent key** (the old function-call public key is written in `docs/TESTNET.md`; the full-access key is still on the account). Commands not yet run; check with `near account list-keys` after each:
-   - New FC key: `near account add-key horkos-agent.testnet grant-function-call-access --allowance '1 NEAR' --contract-account-id escrow.horkos.testnet --function-names 'create_order, cancel_order' autogenerate-new-keypair save-to-legacy-keychain network-config testnet sign-with-legacy-keychain send`
-   - Delete the old FC key: `near account delete-keys horkos-agent.testnet public-keys ed25519:3Py9s8PuWvcSbrrCpw14T6RVbF6WqBxikNBSva1skmpK network-config testnet sign-with-legacy-keychain send`
-   - Owner's decision: delete the agent's full-access key too (then the agent can only buy within the mandate). Do this last; it cannot be undone without another key.
-   - Update the FC key line in `docs/TESTNET.md`. `demo/config.ts` finds the FC key automatically.
+1. Agent key: **done 13 Nov** (new function-call key, old one and the full-access key deleted; `docs/TESTNET.md`). Check before recording: `near account list-keys horkos-agent.testnet network-config testnet now` shows one function-call key.
 2. Close other terminal tabs; font ≥ 18 pt; dark theme; window ~110 columns so lines do not wrap.
 3. Nothing secret on screen: no `~/.near-credentials`, no `.env`, no OutLayer secrets page.
 4. Dry run once, off camera.
@@ -31,6 +27,7 @@ Fallback (sandbox, stated in README and on screen): `contracts/scripts/build.sh`
 | 18–40 s | Demo 1: order created → seller delivers → `status: Settled` → decrypted JSON → receipt NFT | "5 tUSDC locked, receipt minted. The data passes the schema check, the seller is paid, the buyer gets the key." |
 | 40–65 s | Demo 2: `Delivered; buyer key on chain: none` → (cut the 3 min wait, caption "+3 min") → `Refunded` | "Bad data fails verification. The buyer never sees it, the seller is never paid, and the deadline refunds the money." |
 | 65–80 s | Demo 3: prompt-injection text → `create_order rejected: Seller not allowed by mandate` | "A hijacked agent tries to pay 500 tUSDC to an unknown seller. The contract refuses." |
+| (optional) | Claude Desktop with the Horkos MCP server: "buy a NEAR/USD feed, max 10 tUSDC" → tool calls → data; then "buy the premium feed" → rejected | Only if it fits in 90 s; otherwise a second clip. |
 | 80–90 s | README status table + repo URL | "We don't resolve disputes. We prevent them." |
 
 ## After recording

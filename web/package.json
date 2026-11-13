@@ -1,0 +1,23 @@
+{
+  "name": "horkos-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Static site for Horkos: product page, MCP guide, live testnet explorer",
+  "scripts": {
+    "data": "node scripts/demo-history.mjs",
+    "dev": "npm run data && vite",
+    "build": "npm run data && tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "shots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  }
+}

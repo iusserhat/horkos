@@ -1,0 +1,93 @@
+/* Design tokens: docs/DESIGN_BRIEF.md §3–5. All text pairs are WCAG AA on --bg and --surface. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f6f7f8;
+  --border: #e3e5e8;
+  --text: #0e1116;
+  --muted: #5a616c;
+  --accent: #0b7363;
+  --on-accent: #ffffff;
+  --st-open: #0e1116;
+  --st-verify: #0b7363;
+  --st-deliv: #9a4a06;
+  --st-settle: #167a3a;
+  --st-refund: #4a5668;
+  --st-cancel: #5a616c;
+  --danger: #b42318;
+  --code-bg: #f6f7f8;
+
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --fs-caption: 0.8125rem;
+  --fs-small: 0.9375rem;
+  --fs-body: 1rem;
+  --fs-h4: 1.25rem;
+  --fs-h3: 1.5rem;
+  --fs-h2: 2rem;
+  --fs-h1: clamp(2rem, 1.2rem + 3vw, 2.75rem);
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --s9: 96px;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --content: 1120px;
+  --gutter: 24px;
+  --section-gap: var(--s9);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0d10;
+  --surface: #14171b;
+  --border: #262b31;
+  --text: #e8eaed;
+  --muted: #9aa3ae;
+  --accent: #45bba8;
+  --on-accent: #0b0d10;
+  --st-open: #e8eaed;
+  --st-verify: #45bba8;
+  --st-deliv: #e2a64e;
+  --st-settle: #5cc47f;
+  --st-refund: #a7b4c4;
+  --st-cancel: #9aa3ae;
+  --danger: #f27d6f;
+  --code-bg: #14171b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0b0d10;
+    --surface: #14171b;
+    --border: #262b31;
+    --text: #e8eaed;
+    --muted: #9aa3ae;
+    --accent: #45bba8;
+    --on-accent: #0b0d10;
+    --st-open: #e8eaed;
+    --st-verify: #45bba8;
+    --st-deliv: #e2a64e;
+    --st-settle: #5cc47f;
+    --st-refund: #a7b4c4;
+    --st-cancel: #9aa3ae;
+    --danger: #f27d6f;
+    --code-bg: #14171b;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --gutter: 16px;
+    --section-gap: var(--s8);
+  }
+}

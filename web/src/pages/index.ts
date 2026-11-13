@@ -1,0 +1,21 @@
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/components.css";
+import "../styles/home.css";
+import { mount, qs } from "../lib/dom";
+import { header } from "../sections/header";
+import { footer } from "../sections/footer";
+import { hero } from "../sections/hero";
+import { problem } from "../sections/problem";
+import { flow } from "../sections/flow";
+import { useCases } from "../sections/usecases";
+import { security } from "../sections/security";
+
+mount(qs("#header"), header("home"));
+mount(qs("#main"), hero(), problem(), flow(), useCases(), security());
+mount(qs("#footer"), footer());

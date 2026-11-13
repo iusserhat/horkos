@@ -114,7 +114,7 @@ cd web && npm ci && npm run build && npm run preview     # → http://localhost:
 - **Connect:** a config generator for Claude Code, Claude Desktop, Cursor and other MCP clients (account names and paths only; it never asks for a key), near-cli commands for the mandate and the agent's function-call key, the five tools with request/response pairs captured from testnet, two recorded Claude Code conversations, an SDK example and troubleshooting.
 - **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/TESTNET.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
 
-Built with Vite and TypeScript, no UI framework; fonts IBM Plex Sans and Mono. Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect 100/100/100/100 both; explorer 100/100/100/100 both.
+Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 99/100/100/100 mobile, 100/100/100/100 desktop; connect 91/100/100/100 mobile (layout shift 0.19), 100/100/100/100 desktop; explorer 100/100/100/100 both.
 
 | Home | Connect | Explorer |
 | --- | --- | --- |
@@ -209,7 +209,7 @@ Libraries (exact versions are pinned in `Cargo.lock` / `package-lock.json`):
 - Verifier (Rust): `crypto_box` 0.9.1, `chacha20poly1305` 0.10.1, `jsonschema` 0.59.0, `sha2`, `base64`, `hex`, `serde_json`, `wasi-http-client` 0.2.1 (WASM build only).
 - TypeScript: `near-api-js` 7.3.1, `libsodium-wrappers` 0.8.4 (all encryption), `typescript` 7.0.2, `tsx` 4.23.15.
 - MCP server: `@modelcontextprotocol/sdk` 1.32.2, `zod` 3.25.76.
-- Website: `vite` 8.3.5, `typescript` 7.0.2, `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono` 5.3.0 (SIL OFL fonts); dev only: `playwright` 1.64.1 (screenshots), Lighthouse 13.6.0 via npx (scores).
+- Website: `vite` 8.3.5, `typescript` 7.0.2, `@fontsource/fredoka`, `@fontsource/nunito`, `@fontsource/ibm-plex-mono` and `@fontsource/ibm-plex-sans` 5.3.0 (SIL OFL fonts); dev only: `playwright` 1.64.1 (screenshots), Lighthouse 13.6.0 via npx (scores).
 - Docker image `ubuntu:24.04`, used only to run the local node on hosts with an older glibc.
 
 Templates and borrowed formats:

@@ -11,7 +11,7 @@ NEAR Hackathon, son teslim **14 Kasım 23:59 UTC**. Kurallar `HACKATHON.md`; REA
 ## Kesin kurallar (açık onay olmadan asla)
 
 - Mainnet deploy, mainnet işlem imzalama, token harcama
-- Başvuru gönderme (önce tam JSON'u göster), push/force-push, repoyu açma, X'te paylaşım
+- Başvuru gönderme (önce tam JSON'u göster), force-push, repoyu açma, X'te paylaşım (normal push serbest: kural 11)
 - Anahtar, kurtarma kelimesi, `.env` repoya girmez; kurtarma kelimesi istenmez
 - Testnet varsayılan: admin `horkos.testnet`, kontrat `escrow.horkos.testnet`, token `tusdc.horkos.testnet` (anahtarlar `~/.near-credentials/testnet/`)
 
@@ -42,3 +42,5 @@ WSL Ubuntu-22.04; `~/horkos` = `C:\Users\a\horkos`. `CARGO_TARGET_DIR=~/.cache/h
 7. Rapor ≤ 8 satır: yapılan, çalışan, çalışmayan, kullanıcıdan beklenen. Tablo/kod alıntısı yok; ayrıntı dosyaya.
 8. Uzun işler arka planda; beklerken tekrar tekrar kontrol etme.
 9. Belirsiz bir şeyde 30 dakikadan fazla deneme yok; dur ve sor.
+10. `core.fileMode` false: yeni `.sh` dosyaları git'e çalıştırılabilir kaydedilmez. Her yeni betik için `git update-index --chmod=+x <dosya>`, sonra temiz klonda doğrula.
+11. Her büyük adımdan sonra commit + `git push` (repo private; force-push yok, repoyu açmak onay ister).

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/logo-1000.png" width="120" alt="Horkos logo: a smiling gold seal on a lilac disc"></p>
+
 # Horkos
 
 Horkos is an escrow contract on NEAR for purchases made by AI agents: each order locks its price in the contract as an NFT receipt, and the seller is paid only if the owner's spending mandate allows the order and a verifier confirms the delivery meets a machine-checkable condition; otherwise the money returns after the deadline.
@@ -114,13 +116,13 @@ cd web && npm ci && npm run build && npm run preview     # → http://localhost:
 - **Connect:** a config generator for Claude Code, Claude Desktop, Cursor and other MCP clients (account names and paths only; it never asks for a key), near-cli commands for the mandate and the agent's function-call key, the five tools with request/response pairs captured from testnet, two recorded Claude Code conversations, an SDK example and troubleshooting.
 - **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/TESTNET.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
 
-Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 96/97/100/100 mobile, 100/97/100/100 desktop (axe reports low contrast on the hero sticker, though its computed text is dark on coral); connect 91/100/100/100 mobile (layout shift 0.19), 100/100/100/100 desktop; explorer 100/100/100/100 both.
+Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect, explorer and market 100/100/100/100 on both.
 
 | Home | Connect | Explorer |
 | --- | --- | --- |
 | ![Home, desktop](docs/screenshots/index-1440-light.png) | ![Connect, desktop](docs/screenshots/connect-1440-light.png) | ![Explorer, desktop](docs/screenshots/explorer-order-history-1440-light.png) |
 
-More (390 px, dark theme, each explorer tab): `docs/screenshots/`.
+More (market page, 390 px, dark theme, each explorer tab): `docs/screenshots/`.
 
 ## OutLayer on testnet: failed runs
 

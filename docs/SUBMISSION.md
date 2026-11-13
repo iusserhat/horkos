@@ -1,57 +1,51 @@
-# Başvuru taslağı
+# Submission draft
 
-Başvuru tek sefer gönderilir ve düzenlenemez. 14 Kasım sabahı, repo herkese açık ve X paylaşımı yayındayken gönder. Göndermeden önce her iddiayı demo ve README ile karşılaştır; çalışmayanı çıkar.
+Send only after the owner's explicit approval. Planned: 14 Nov 2026, 20:00 TSİ (deadline 14 Nov 23:59 UTC = 15 Nov 02:59 TSİ). The local copy of the rules says a submission cannot be edited; the live site's FAQ points to a "Request changes" page reviewed by hand. Treat it as final.
 
-| Alan | Değer |
-| --- | --- |
-| Project name | Horkos |
-| Team lead | (kullanıcı) |
-| Email | (kullanıcı) |
-| Team size | (kullanıcı) |
-| Tracks | NFTs That Do Something, Agent Economy, Real-World Money, AI Security & Defense (`nfts`, `agents`, `realworld`, `security`) |
-| NEAR wallet | `horkos.near` (açıldıktan sonra doğrula) |
-| Repository | (herkese açık GitHub linki) |
-| Demo post | (X paylaşımı linki) |
-| Website | **BOŞ BIRAK** (spam tuzağı) |
-| Onay | İşaretle |
+Before sending: repo public, X post live, every claim below checked against the README and `docs/TESTNET.md`.
 
-## What did you build? (güncellenmiş taslak, < 2.000 karakter)
+## Fields (API: `POST https://nearhackathon.com/api/applications`)
 
-```
-Horkos is a programmable escrow protocol for AI agents. Every purchase an agent makes becomes an NFT receipt backed by escrowed funds that are released only when on-chain spending policies and machine-verifiable delivery conditions are met.
+| Field | Value | Limit |
+| --- | --- | --- |
+| requestId | generate once (`uuidgen | tr A-Z a-z`), reuse on retries | UUID |
+| projectName | Horkos | 2–80; 6 |
+| leadName | (owner fills in) | 2–80 |
+| email | (owner fills in) | max 160, unique |
+| size | (owner picks: `1`, `2 - 4`, ...) | exact value |
+| tracks | `["nfts", "agents", "realworld", "security"]` = NFTs That Do Something (main), Agent Economy, Real-World Money, AI Security & Defense | each once |
+| nearAddress | `horkos.near` (owner creates it on mainnet; verify it exists before sending) | 2–64, lowercase |
+| projectUrl | https://github.com/iusserhat/horkos | max 300; 35 |
+| demoUrl | (link to the owner's X post with the video) | max 300 |
+| idea | text below | 20–2000; 1814 |
+| consent | `true` only after the owner agrees to: "I agree that the organizers may use these details to review our submission and contact us about this hackathon." | boolean |
+| website | **do not send this field** (spam trap; any value rejects the submission) | — |
 
-Problem: agents can pay, but they can't get refunds. Stablecoin payments settle instantly and can't be reversed. There is no chargeback, no standard refund path, and when an agent spends beyond what its user allowed, nobody can prove who is liable.
-
-How it works: the user deposits a budget and sets a mandate (spending limits, allowed sellers, expiry). The agent's function-call key can only create orders; the contract rejects anything outside the mandate. Each order is an NFT receipt backed by its own escrowed balance. The seller delivers encrypted data; a verifier running in a TEE on NEAR OutLayer checks it against conditions the seller published (a JSON schema or a test suite). If it passes, the contract's callback credits the seller and releases the decryption key to the buyer in one step. If not, the order refunds itself at the deadline. We don't resolve disputes; we prevent them.
-
-How NEAR fits:
-- NFT receipts (NEP-171) that carry the order, its mandate and its status
-- Mandates enforced on-chain: the agent's function-call key can only create orders, and the contract rejects anything outside the user's budget and seller list
-- Delivery verification runs in a TEE via NEAR OutLayer; the contract accepts the result from OutLayer's callback (it does not verify the attestation on-chain), and the TEE attestation can be checked off-chain afterwards
-- Agents connect through a TypeScript SDK or an MCP server
-
-Demo: an agent buys data from 3 sellers. One delivers and gets paid. One returns bad data and is refunded. One prompt-injected, out-of-mandate purchase is rejected and the order is never created.
-
-Try it: the README has step-by-step "do X, see Y" instructions.
-```
-
-Yetişmezse metinden çıkar: OutLayer/TEE satırı (yedek doğrulayıcıyı yaz), MCP, "encrypted" teslimat.
-
-**İddia sınırı:** hiçbir yerde "attestation verified on-chain" / "trustless verification" yazılmaz. Kontrat OutLayer operatörüne güvenir; attestation zincir dışında doğrulanır.
-
-## X paylaşımı taslağı
-
-Zorunlu: paylaşımda **@NEARProtocol** etiketi ve **#NEARHackathon** hashtag'i olmalı; video şart (ekran görüntüsü yetmez).
+## What did you build? (`idea`)
 
 ```
-AI agents can pay. They can't get refunds.
+Horkos is an escrow contract on NEAR for purchases made by AI agents. We don't resolve disputes; we prevent them.
 
-We built Horkos at NEAR HACKATHON: every agent purchase becomes an NFT receipt with escrowed funds, released only when the user's spending policy and a machine-verifiable delivery check both pass.
+Problem: an agent's payment can't be reversed. If it overspends, follows a prompt injection, or pays for data that never arrives or is garbage, the money is gone. Letting the buyer approve deliveries fails too: a buyer who has the data can claim it was bad.
 
-We don't resolve disputes. We prevent them.
+How it works: the owner deposits a tUSDC budget and sets a mandate in the contract (total and per-order caps, allowed sellers, expiry). The agent signs with a function-call key that can only call create_order and cancel_order, and the contract rejects any order outside the mandate. Each order locks its price and is an NEP-171 NFT receipt whose metadata tracks its status. The seller uploads encrypted data and calls submit_delivery; the contract asks NEAR OutLayer to run our verifier (WASM pinned by sha256, version fixed per order) in its TEE. The verifier checks the data against the listing's JSON Schema and re-seals the key to the buyer. Valid: the seller is paid and the buyer gets the key in the same callback. Invalid or no result: the seller can resubmit; after the deadline anyone can call refund_expired.
 
-Demo 👇
-[video]
-Repo: github.com/...
-@NEARProtocol #NEARHackathon
+Working on testnet, with tx ids in the README: a good delivery settled through OutLayer; a bad delivery refunded; a prompt-injected 500 tUSDC order rejected by the contract. An MCP server (5 tools) lets Claude search, buy within the mandate, check and open orders. We rotated the agent key and deleted its full-access key, and a gitleaks scan of the git history found no secrets. npm run sandbox shows all three demos locally with no keys.
+
+Limits: testnet only; the contract trusts OutLayer's operator and does not verify the TEE attestation on chain; conditions are JSON Schema only; receipts are not transferable yet.
 ```
+
+_1814 characters_ (limit 20–2000).
+
+## Claim check
+
+Every sentence in `idea` maps to something on testnet or in the repo:
+- Settled through OutLayer: orders 0 and 5 (`docs/TESTNET.md`, README Quick start b).
+- Bad delivery refunded: order 2.
+- Prompt-injected 500 tUSDC order rejected: tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`.
+- MCP server: `mcp/`, orders 3 (cancelled) and 4 (settled).
+- Agent key rotation and full-access key deletion: txs in README Security model.
+- gitleaks: `docs/SECRET_SCAN.md`.
+- Not claimed: on-chain attestation verification, mainnet, transferable receipts, conditions other than JSON Schema.
+
+X post texts: `docs/X_POST.md`.

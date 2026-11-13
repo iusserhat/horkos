@@ -966,6 +966,15 @@
   background: var(--gold);
   border: 2px solid var(--ink);
 }
+.use-src {
+  margin-top: var(--s3);
+  padding: var(--s3) var(--s5);
+  border-left: 4px solid var(--ink);
+  font-size: var(--fs-small);
+}
+.use-src p + p {
+  margin-top: var(--s1);
+}
 .page-home .band > .wrap > p.use-disclaimer {
   margin-top: var(--s6);
   font-size: var(--fs-caption);

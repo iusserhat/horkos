@@ -17,6 +17,8 @@ interface UseCase {
   examples: Example[];
   /** Honest fit on mainnet with these providers. */
   mainnet: { fit: "Good fit" | "Partial fit" | "Later"; note: string };
+  /** Where the testnet demo's data comes from, when it is real. */
+  demoSource?: string[];
 }
 
 // From docs/DESIGN.md §8. Today the verifier checks JSON Schema only.
@@ -36,6 +38,11 @@ const CASES: UseCase[] = [
       fit: "Partial fit",
       note: "Worth it for bundles such as a 90-day history export. A single $0.005 price call costs less than one verification, so it should stay on plain x402. A schema can't tell a wrong price from a right one: the verifier would have to compare against a second source.",
     },
+    demoSource: [
+      "In the testnet demo, seller A fulfils orders with live NEAR/USD prices from CoinGecko's free public API. Price data by CoinGecko.",
+      "Horkos does not pay CoinGecko and CoinGecko is not a Horkos seller; it is seller A's data source. We do not use x402 in this demo.",
+      "Reselling a provider's data commercially would need that provider's permission.",
+    ],
   },
   {
     title: "Web search and extraction",
@@ -132,6 +139,7 @@ export function useCases() {
                 ...c.examples.map((e) => h("li", {}, h("a", { href: e.url, rel: "noopener", target: "_blank" }, e.name), " ", e.what, ".")),
               ),
             ),
+            c.demoSource ? h("div", { class: "use-src" }, h("p", { class: "use-ex-title" }, "Where the demo's data comes from"), ...c.demoSource.map((t) => h("p", {}, t))) : null,
           ),
         ),
       ),

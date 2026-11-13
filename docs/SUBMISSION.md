@@ -17,7 +17,7 @@ Before sending: repo public, X post live, every claim below checked against the 
 | nearAddress | `horkos.near` (owner creates it on mainnet; verify it exists before sending) | 2–64, lowercase |
 | projectUrl | https://github.com/iusserhat/horkos | max 300; 35 |
 | demoUrl | (link to the owner's X post with the video) | max 300 |
-| idea | text below | 20–2000; 1814 |
+| idea | text below | 20–2000; 1984 |
 | consent | `true` only after the owner agrees to: "I agree that the organizers may use these details to review our submission and contact us about this hackathon." | boolean |
 | website | **do not send this field** (spam trap; any value rejects the submission) | — |
 
@@ -26,21 +26,24 @@ Before sending: repo public, X post live, every claim below checked against the 
 ```
 Horkos is an escrow contract on NEAR for purchases made by AI agents. We don't resolve disputes; we prevent them.
 
-Problem: an agent's payment can't be reversed. If it overspends, follows a prompt injection, or pays for data that never arrives or is garbage, the money is gone. Letting the buyer approve deliveries fails too: a buyer who has the data can claim it was bad.
+Problem: an agent's payment can't be reversed. If it overspends, follows a prompt injection, or pays for missing or garbage data, the money is gone. Buyer approval fails too: a buyer holding the data can claim it was bad.
 
-How it works: the owner deposits a tUSDC budget and sets a mandate in the contract (total and per-order caps, allowed sellers, expiry). The agent signs with a function-call key that can only call create_order and cancel_order, and the contract rejects any order outside the mandate. Each order locks its price and is an NEP-171 NFT receipt whose metadata tracks its status. The seller uploads encrypted data and calls submit_delivery; the contract asks NEAR OutLayer to run our verifier (WASM pinned by sha256, version fixed per order) in its TEE. The verifier checks the data against the listing's JSON Schema and re-seals the key to the buyer. Valid: the seller is paid and the buyer gets the key in the same callback. Invalid or no result: the seller can resubmit; after the deadline anyone can call refund_expired.
+How it works: the owner deposits a tUSDC budget and sets an on-chain mandate (total and per-order caps, allowed sellers, expiry). The agent signs with a function-call key that can only call create_order and cancel_order, and the contract rejects any order outside the mandate. Each order locks its price and is an NEP-171 NFT receipt whose metadata tracks its status. The seller uploads encrypted data and calls submit_delivery; the contract asks NEAR OutLayer to run our verifier (WASM pinned by sha256, version fixed per order) in its TEE. The verifier checks the data against the listing's JSON Schema and re-seals the key to the buyer. Valid: the seller is paid and the buyer gets the key in the same callback. Invalid or no result: the seller can resubmit; after the deadline anyone can call refund_expired.
 
-Working on testnet, with tx ids in the README: a good delivery settled through OutLayer; a bad delivery refunded; a prompt-injected 500 tUSDC order rejected by the contract. An MCP server (5 tools) lets Claude search, buy within the mandate, check and open orders. We rotated the agent key and deleted its full-access key, and a gitleaks scan of the git history found no secrets. npm run sandbox shows all three demos locally with no keys.
+On testnet (tx ids in the README): a good delivery settled through OutLayer (seller A delivers live NEAR/USD prices from CoinGecko's free public API; price data by CoinGecko); a bad delivery refunded; a prompt-injected 500 tUSDC order rejected on chain. An MCP server (5 tools) lets Claude buy within the mandate. Agent key rotated, full-access key deleted; gitleaks found no secrets. npm run sandbox runs all three demos locally, no keys.
+
+Horkos does not pay CoinGecko and CoinGecko is not a Horkos seller; it is seller A's data source. We do not use x402 in this demo. Reselling a provider's data commercially would need that provider's permission.
 
 Limits: testnet only; the contract trusts OutLayer's operator and does not verify the TEE attestation on chain; conditions are JSON Schema only; receipts are not transferable yet.
 ```
 
-_1814 characters_ (limit 20–2000).
+_1984 characters_ (limit 20–2000).
 
 ## Claim check
 
 Every sentence in `idea` maps to something on testnet or in the repo:
-- Settled through OutLayer: orders 0 and 5 (`docs/TESTNET.md`, README Quick start b).
+- Settled through OutLayer: orders 0, 5 and 8 (`docs/TESTNET.md`, README Quick start b); order 8 with live CoinGecko prices.
+- CoinGecko: seller A's data source only (`demo/sellers/coingecko.ts`); no payment to CoinGecko, no x402, no partnership or integration claimed.
 - Bad delivery refunded: order 2.
 - Prompt-injected 500 tUSDC order rejected: tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`.
 - MCP server: `mcp/`, orders 3 (cancelled) and 4 (settled).

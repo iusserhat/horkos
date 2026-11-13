@@ -30,7 +30,7 @@ Created with the testnet faucet (10 NEAR each). Keys are in the deployer's `~/.n
 | Account | Role |
 | --- | --- |
 | `horkos-owner.testnet` | Mandate owner: budget 50 tUSDC, max 10 tUSDC per order, allowed sellers A and B, expires 30 Nov 2026 |
-| `horkos-agent.testnet` | Agent. Function-call key `ed25519:3Py9s8PuWvcSbrrCpw14T6RVbF6WqBxikNBSva1skmpK`: only `create_order` / `cancel_order` on `escrow.horkos.testnet`, allowance 1 NEAR (tx `B6QLp54u2FJFYune1hFYekBjn2Epd4ahTCZAPKv9USpV`). Its full-access key is still present (pending deletion, owner's decision). |
+| `horkos-agent.testnet` | Agent. Only key: function-call key `ed25519:8x19MCUbWj24HTVxqn2J8EkpvK5Lf8KMZA2iHsjAUStJ`, `create_order` / `cancel_order` on `escrow.horkos.testnet`, allowance 5 NEAR. No full-access key (rotation 13 Nov, below). |
 | `horkos-seller-a.testnet` | Listing 0: 5 tUSDC, 10 min window; delivers data matching the schema |
 | `horkos-seller-b.testnet` | Listing 1: 5 tUSDC, 3 min window; delivers data that fails the schema |
 | `horkos-seller-c.testnet` | Listing 2: 500 tUSDC; not on the owner's allowed list |
@@ -59,3 +59,12 @@ Demo 3 ran on 1 Nov 2026: the agent's function-call key sent `create_order` for 
 - First demo 2 attempt (order 1, tx `B5cbpbtps5PRi62cofxVGR28R3iUKSCGfdEC7VjJxxpx`) stopped in the script: the RPC node did not yet see the new order ("order 1 not found"), so the seller never delivered. Refunded after its deadline, tx `LY8cJkjSGVMifUVzGZmmsNGFj1kRQMoS6LZ2hGrFSGG`. Fixed in the SDK (`waitForSettlement` keeps polling while the order is not visible).
 - Owner budget afterwards: balance 45 tUSDC, spent 5 tUSDC (only the settled order).
 - Re-check after recovery: pubkey call tx `57W9pyBzYoeFMa2KD3q55KCnt2JmEZTJBLjSKFM8r5Zv` returned the same public key; v0 unchanged.
+
+## Agent key rotation (13 Nov 2026, ~17:00 TSİ)
+
+1. New function-call key `ed25519:8x19MCUbWj24HTVxqn2J8EkpvK5Lf8KMZA2iHsjAUStJ` (escrow only, `create_order` + `cancel_order`, 5 NEAR allowance): tx `CAAqVKNCBhdDUG3dk8Pir72nUiH6ZXQgVgGJAQPD2Xqd`.
+2. Old function-call key `ed25519:3Py9s8PuWvcSbrrCpw14T6RVbF6WqBxikNBSva1skmpK` deleted: tx `DDXYxnKkkLwdAwmbjtu6YMMcuc5PswzWDHhsg2g3Q7ET`.
+3. Demo 3 with the new key: `create_order` for seller C rejected ("Seller not allowed by mandate"), tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`; budget 45 → 45 tUSDC, open orders 0 → 0.
+4. Full-access key `ed25519:6UMTADMRKpKErS2guxcYEEHEgX3ozWSR8JfHi1fiPsZR` deleted: tx `AHSj5g6T8hf8un6j3PdeVhHn3SjAWgcu13AD6uVqxMjc`. Its local keychain files were removed too. The agent account can no longer add keys, move NEAR or call anything but the two escrow methods.
+
+Check: `near account list-keys horkos-agent.testnet network-config testnet now` → one row, `only do ["create_order", "cancel_order"] function calls on escrow.horkos.testnet with an allowance of 4.99… NEAR`.

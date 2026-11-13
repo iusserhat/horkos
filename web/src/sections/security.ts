@@ -6,18 +6,18 @@ const tx = (hash: string, label: string) => h("a", { href: txUrl(hash), title: `
 export function security() {
   return h(
     "section",
-    { class: "section", "aria-labelledby": "sec-title" },
+    { class: "section band band-paper", "aria-labelledby": "sec-title" },
     h(
       "div",
       { class: "wrap" },
-      h("p", { class: "eyebrow" }, "Security model and limits"),
+      h("p", { class: "eyebrow eb-mint" }, "Security model and limits"),
       h("h2", { id: "sec-title" }, "What the contract enforces, and what it trusts."),
       h(
         "div",
         { class: "sec-grid" },
         h(
           "div",
-          {},
+          { class: "sec-card panel" },
           h("h3", {}, "Enforced on chain"),
           h(
             "ul",
@@ -31,7 +31,7 @@ export function security() {
         ),
         h(
           "div",
-          {},
+          { class: "sec-card sec-limits panel" },
           h("h3", {}, "Known limitations"),
           h(
             "ul",

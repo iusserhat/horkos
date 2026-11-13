@@ -11,15 +11,15 @@ const ROWS: [string, string][] = [
 export function builtOnNear() {
   return h(
     "section",
-    { class: "section", "aria-labelledby": "near-title" },
+    { class: "section band band-butter", "aria-labelledby": "near-title" },
     h(
       "div",
       { class: "wrap" },
-      h("p", { class: "eyebrow" }, "Built on NEAR"),
+      h("p", { class: "eyebrow eb-white" }, "Built on NEAR"),
       h("h2", { id: "near-title" }, "Which NEAR feature does what."),
       h(
         "table",
-        { class: "near-table" },
+        { class: "near-table panel" },
         h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Feature"), h("th", { scope: "col" }, "What it gives Horkos"))),
         h("tbody", {}, ...ROWS.map(([f, d]) => h("tr", {}, h("th", { scope: "row" }, f), h("td", {}, d)))),
       ),

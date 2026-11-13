@@ -38,7 +38,7 @@
 .data-table td {
   text-align: left;
   padding: var(--s3) var(--s4) var(--s3) 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px dashed var(--hair);
   vertical-align: middle;
 }
 .data-table thead th {
@@ -57,7 +57,7 @@
   font: 500 var(--fs-small) var(--font-mono);
   color: var(--accent);
   background: none;
-  border: 1px solid var(--border);
+  border: 2px dashed var(--hair);
   border-radius: var(--radius-control);
   min-height: 36px;
   min-width: 52px;
@@ -74,7 +74,7 @@ tr.is-open > * {
 }
 .order-detail {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px dashed var(--hair);
   border-radius: var(--radius-panel);
   padding: var(--s4);
 }
@@ -147,7 +147,7 @@ ul.plain {
 }
 .rejected li {
   padding: var(--s2) 0;
-  border-top: 1px solid var(--border);
+  border-top: 2px dashed var(--hair);
 }
 
 /* receipts */
@@ -177,7 +177,7 @@ ul.plain {
   min-width: 0;
   min-height: 44px;
   padding: 0 var(--s3);
-  border: 1px solid var(--border);
+  border: 2px dashed var(--hair);
   border-radius: var(--radius-control);
   background: var(--bg);
   color: var(--text);
@@ -222,7 +222,7 @@ ul.plain {
   height: 8px;
   border-radius: 4px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px dashed var(--hair);
   overflow: hidden;
 }
 .progress span {
@@ -270,7 +270,7 @@ ul.plain {
     grid-template-columns: max-content minmax(0, 1fr);
     gap: var(--s1) var(--s4);
     padding: var(--s3) 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px dashed var(--hair);
   }
   .data-table th,
   .data-table td {

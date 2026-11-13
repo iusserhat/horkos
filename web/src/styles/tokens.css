@@ -1,32 +1,53 @@
-/* Design tokens: docs/DESIGN_BRIEF.md §3–5. All text pairs are WCAG AA on --bg and --surface. */
+/* Design tokens. Playful "sticker" style: thick ink outlines, hard offset shadows, pastel bands.
+   Text pairs are WCAG AA on --bg, --card and every band colour. */
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --surface: #f6f7f8;
-  --border: #e3e5e8;
-  --text: #0e1116;
-  --muted: #5a616c;
-  --accent: #0b7363;
+  --ink: #1d2140;            /* outlines, shadows, primary text */
+  --bg: #f5f3ff;
+  --card: #ffffff;
+  --surface: #eeebff;        /* inset areas inside cards */
+  --border: #1d2140;
+  --hair: #d6d2f0;           /* thin dividers inside cards */
+  --text: #1d2140;
+  --muted: #4a4f6e;
+  --accent: #3b3fb5;         /* links */
   --on-accent: #ffffff;
-  --st-open: #0e1116;
-  --st-verify: #0b7363;
-  --st-deliv: #9a4a06;
-  --st-settle: #167a3a;
-  --st-refund: #4a5668;
-  --st-cancel: #5a616c;
-  --danger: #b42318;
-  --code-bg: #f6f7f8;
 
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gold: #ffd873;
+  --gold-deep: #f2b92b;
+  --mint: #aeebd3;
+  --coral: #ffb4a0;
+  --sky: #d9e3ff;
+  --lilac: #d8ccff;
+  --on-pastel: #1d2140;      /* text on any pastel fill, both themes */
+
+  --band-sky: #e6ecff;
+  --band-butter: #fff3cc;
+  --band-mint: #e3f8ef;
+  --band-paper: #f5f3ff;
+  --band-coral: #ffece6;
+
+  --st-open: #1d2140;
+  --st-verify: #5b3fc4;
+  --st-deliv: #9a4a06;
+  --st-settle: #13703a;
+  --st-refund: #4a5668;
+  --st-cancel: #5a5f7a;
+  --danger: #b42318;
+  --code-bg: #1d2140;
+  --code-text: #eef0ff;
+
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --fs-caption: 0.8125rem;
   --fs-small: 0.9375rem;
-  --fs-body: 1rem;
-  --fs-h4: 1.25rem;
-  --fs-h3: 1.5rem;
-  --fs-h2: 2rem;
-  --fs-h1: clamp(2rem, 1.2rem + 3vw, 2.75rem);
+  --fs-body: 1.0625rem;
+  --fs-h4: 1.3rem;
+  --fs-h3: 1.6rem;
+  --fs-h2: clamp(2rem, 1.3rem + 2.6vw, 3.25rem);
+  --fs-h1: clamp(2.4rem, 1.4rem + 3.6vw, 4rem);
 
   --s1: 4px;
   --s2: 8px;
@@ -38,56 +59,78 @@
   --s8: 64px;
   --s9: 96px;
 
-  --radius-control: 6px;
-  --radius-panel: 8px;
-  --content: 1120px;
+  --line-w: 3px;
+  --line: var(--line-w) solid var(--ink);
+  --pop: 0 6px 0 0 var(--ink);
+  --pop-sm: 0 3px 0 0 var(--ink);
+  --radius-control: 999px;
+  --radius-panel: 26px;
+  --radius-inner: 16px;
+  --content: 1160px;
   --gutter: 24px;
-  --section-gap: var(--s9);
+  --section-gap: 88px;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b0d10;
-  --surface: #14171b;
-  --border: #262b31;
-  --text: #e8eaed;
-  --muted: #9aa3ae;
-  --accent: #45bba8;
-  --on-accent: #0b0d10;
-  --st-open: #e8eaed;
-  --st-verify: #45bba8;
-  --st-deliv: #e2a64e;
-  --st-settle: #5cc47f;
-  --st-refund: #a7b4c4;
-  --st-cancel: #9aa3ae;
-  --danger: #f27d6f;
-  --code-bg: #14171b;
+  --ink: #05060f;
+  --bg: #171b38;
+  --card: #222852;
+  --surface: #1b2047;
+  --border: #05060f;
+  --hair: #353c70;
+  --text: #eef0ff;
+  --muted: #b3b8dc;
+  --accent: #b7bcff;
+  --on-accent: #171b38;
+  --band-sky: #1c2350;
+  --band-butter: #262447;
+  --band-mint: #15303a;
+  --band-paper: #171b38;
+  --band-coral: #2b2143;
+  --st-open: #eef0ff;
+  --st-verify: #c4b5ff;
+  --st-deliv: #ffc27a;
+  --st-settle: #7ee2a8;
+  --st-refund: #c3cbe0;
+  --st-cancel: #b3b8dc;
+  --danger: #ff9c8c;
+  --code-bg: #0e1128;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0b0d10;
-    --surface: #14171b;
-    --border: #262b31;
-    --text: #e8eaed;
-    --muted: #9aa3ae;
-    --accent: #45bba8;
-    --on-accent: #0b0d10;
-    --st-open: #e8eaed;
-    --st-verify: #45bba8;
-    --st-deliv: #e2a64e;
-    --st-settle: #5cc47f;
-    --st-refund: #a7b4c4;
-    --st-cancel: #9aa3ae;
-    --danger: #f27d6f;
-    --code-bg: #14171b;
+    --ink: #05060f;
+    --bg: #171b38;
+    --card: #222852;
+    --surface: #1b2047;
+    --border: #05060f;
+    --hair: #353c70;
+    --text: #eef0ff;
+    --muted: #b3b8dc;
+    --accent: #b7bcff;
+    --on-accent: #171b38;
+    --band-sky: #1c2350;
+    --band-butter: #262447;
+    --band-mint: #15303a;
+    --band-paper: #171b38;
+    --band-coral: #2b2143;
+    --st-open: #eef0ff;
+    --st-verify: #c4b5ff;
+    --st-deliv: #ffc27a;
+    --st-settle: #7ee2a8;
+    --st-refund: #c3cbe0;
+    --st-cancel: #b3b8dc;
+    --danger: #ff9c8c;
+    --code-bg: #0e1128;
   }
 }
 
 @media (max-width: 480px) {
   :root {
     --gutter: 16px;
-    --section-gap: var(--s8);
+    --section-gap: 64px;
+    --pop: 0 5px 0 0 var(--ink);
   }
 }

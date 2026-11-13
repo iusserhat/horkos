@@ -1,6 +1,3 @@
-import "@fontsource/ibm-plex-sans/latin-400.css";
-import "@fontsource/ibm-plex-sans/latin-500.css";
-import "@fontsource/ibm-plex-sans/latin-600.css";
 import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 import "../styles/tokens.css";
@@ -18,7 +15,10 @@ import { security } from "../sections/security";
 import { receipts } from "../sections/receipts";
 import { connectPreview } from "../sections/connect-preview";
 import { builtOnNear } from "../sections/near";
+import { steps } from "../sections/steps";
+import { cta } from "../sections/cta";
 
 mount(qs("#header"), header("home"));
-mount(qs("#main"), hero(), problem(), flow(), receipts(), useCases(), builtOnNear(), connectPreview(), security());
+document.body.classList.add("page-home");
+mount(qs("#main"), hero(), problem(), steps(), receipts(), flow(), useCases(), connectPreview(), builtOnNear(), security(), cta());
 mount(qs("#footer"), footer());

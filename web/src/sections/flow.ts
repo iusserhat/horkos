@@ -331,12 +331,12 @@ export function flow() {
 
   return h(
     "section",
-    { class: "section", id: "how", "aria-labelledby": "how-title" },
+    { class: "section band band-mint", id: "how", "aria-labelledby": "how-title" },
     h(
       "div",
       { class: "wrap stack" },
-      h("p", { class: "eyebrow" }, "How it works"),
-      h("h2", { id: "how-title" }, "One order, step by step."),
+      h("p", { class: "eyebrow eb-white" }, "Inside the contract"),
+      h("h2", { id: "how-title" }, "Every call, step by step."),
       h("p", { class: "muted" }, "Each step names what escrow.horkos.testnet does at that point; the verification step runs off chain in OutLayer."),
       tabList,
       panel,

@@ -2,6 +2,7 @@ import { h } from "../lib/dom";
 import { CONTRACT, fmtUsdc } from "../lib/config";
 import { view } from "../lib/rpc";
 import { badge, type Status } from "../lib/status";
+import { doodles, mascot } from "../lib/brand";
 
 interface Token {
   token_id: string;
@@ -41,7 +42,7 @@ function pick(tokens: Token[]) {
 /** Orders straight from chain: every order mints one NFT receipt whose metadata mirrors the order. */
 function livePanel() {
   const list = h("ul", { class: "live-list", "aria-live": "polite" }, h("li", { class: "muted" }, "Reading escrow.horkos.testnet…"));
-  const foot = h("p", { class: "live-foot mono" }, `${CONTRACT} · read from testnet RPC`);
+  const foot = h("p", { class: "live-foot" }, `Read from ${CONTRACT} on testnet just now.`);
   (async () => {
     try {
       const total = Number(await view<string>("nft_total_supply"));
@@ -58,14 +59,14 @@ function livePanel() {
             h(
               "span",
               { class: "live-what" },
-              h("span", { title: o.seller }, `${fmtUsdc(o.amount)} · ${o.seller.replace(/^horkos-|\.testnet$/g, "")}`),
-              h("time", { class: "live-time mono", datetime: new Date(when).toISOString(), title: new Date(when).toISOString() }, ago(when)),
+              h("span", { title: o.seller }, `${fmtUsdc(o.amount)} to ${o.seller.replace(/^horkos-|\.testnet$/g, "")}`),
+              h("time", { class: "live-time", datetime: new Date(when).toISOString(), title: new Date(when).toISOString() }, ago(when)),
             ),
             badge(o.status),
           );
         }),
       );
-      foot.textContent = `${total} orders on ${CONTRACT} · time = last status change · read from testnet RPC`;
+      foot.textContent = `${total} orders on ${CONTRACT}. Times show the last status change.`;
     } catch {
       list.replaceChildren(h("li", { class: "muted" }, "Testnet RPC did not answer. The explorer retries every 10 s."));
     }
@@ -73,10 +74,9 @@ function livePanel() {
   return h(
     "aside",
     { class: "live-panel panel", "aria-labelledby": "live-title" },
-    h("h2", { id: "live-title" }, "Orders on testnet"),
+    h("div", { class: "live-head" }, h("h2", { id: "live-title" }, h("span", { class: "pulse", "aria-hidden": "true" }), "Orders on testnet right now"), h("a", { class: "btn btn-mint", href: "./explorer.html" }, "Open the explorer")),
     list,
     foot,
-    h("p", { class: "live-foot" }, h("a", { href: "./explorer.html" }, "Open the explorer →")),
   );
 }
 
@@ -84,25 +84,24 @@ export function hero() {
   return h(
     "section",
     { class: "hero", "aria-labelledby": "hero-title" },
+    h("div", { class: "doodles" }, ...doodles()),
     h(
       "div",
-      { class: "wrap hero-grid" },
+      { class: "wrap hero-inner" },
+      mascot(),
+      h("p", { class: "hero-badge" }, "Built for NEAR Hackathon 2026, live on testnet"),
+      h("h1", { id: "hero-title", class: "wordmark" }, "hork", h("span", { class: "o" }, "o"), "s", h("span", { class: "visually-hidden" }, ": escrow for purchases made by AI agents")),
+      h("p", { class: "tagline" }, "Your AI agent pays only when the delivery checks out."),
+      h(
+        "p",
+        { class: "lead" },
+        "Each order locks its price in a NEAR contract as an NFT receipt. The seller is paid only when your mandate allows the order and a verifier accepts the delivery. Otherwise the money goes back to your budget.",
+      ),
       h(
         "div",
-        {},
-        h("h1", { id: "hero-title" }, "Escrow for purchases made by AI agents."),
-        h(
-          "p",
-          { class: "lead" },
-          "Each order locks its price in a NEAR contract as an NFT receipt. The seller is paid only when the owner's mandate allows the order and a verifier accepts the delivery. Otherwise the money returns to the owner's budget.",
-        ),
-        h("p", { class: "principle" }, "We don't resolve disputes. We prevent them."),
-        h(
-          "div",
-          { class: "hero-actions" },
-          h("a", { class: "btn btn-primary", href: "./connect.html" }, "Connect your agent"),
-          h("a", { class: "btn", href: "./explorer.html" }, "See it live →"),
-        ),
+        { class: "hero-actions" },
+        h("a", { class: "btn btn-gold btn-lg", href: "#receipts" }, "Watch an order settle"),
+        h("a", { class: "btn btn-mint btn-lg", href: "./connect.html" }, "Connect your agent"),
       ),
       livePanel(),
     ),

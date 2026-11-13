@@ -100,6 +100,26 @@ For deliveries to happen, run a seller in another terminal (`cd demo && npm run 
 
 Without an MCP client, `cd mcp && npx tsx smoke.ts inject` drives the same server over stdio (`buy`, `cancel` and `open N` spend or move testnet tUSDC).
 
+## Website (`web/`)
+
+A static site that explains Horkos, guides agent setup and shows the contract's live state. It is not hosted yet (a GitHub Pages workflow is in `.github/workflows/pages.yml`, manual trigger only). Run it locally:
+
+```bash
+cd web && npm ci && npm run build && npm run preview     # → http://localhost:4173
+```
+
+- **Home:** the order flow as an animated diagram (happy path, no delivery, failed check, out of mandate), the NFT receipt in each status, use cases, which NEAR feature does what, the security model and limits. The "Orders on testnet" panel reads the contract over RPC.
+- **Connect:** a config generator for Claude Code, Claude Desktop, Cursor and other MCP clients (account names and paths only; it never asks for a key), near-cli commands for the mandate and the agent's function-call key, the five tools with request/response pairs captured from testnet, two recorded Claude Code conversations, an SDK example and troubleshooting.
+- **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/TESTNET.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
+
+Built with Vite and TypeScript, no UI framework; fonts IBM Plex Sans and Mono. Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect 100/100/100/100 both; explorer 100/100/100/100 both.
+
+| Home | Connect | Explorer |
+| --- | --- | --- |
+| ![Home, desktop](docs/screenshots/index-1440-light.png) | ![Connect, desktop](docs/screenshots/connect-1440-light.png) | ![Explorer, desktop](docs/screenshots/explorer-order-history-1440-light.png) |
+
+More (390 px, dark theme, each explorer tab): `docs/screenshots/`.
+
 ## OutLayer on testnet: failed runs
 
 OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
@@ -166,6 +186,7 @@ contracts/scripts/           build, sandbox test runner, Docker wrapper for the 
 verifier/                    delivery verifier (Rust, WASI P2) that runs in OutLayer's TEE
 sdk/                         TypeScript SDK: HorkosAgent, HorkosSeller, HorkosOwner
 mcp/                         MCP server (stdio), 5 tools, NEAR testnet
+web/                         static site: product page, MCP guide, live explorer (Vite + TypeScript)
 demo/                        seller services, testnet scenarios, local sandbox demo
 spikes/outlayer/             OutLayer experiment: WASI schema checker, probe contract, report
 docs/                        design, decisions, testnet deployment, secret scan
@@ -186,6 +207,7 @@ Libraries (exact versions are pinned in `Cargo.lock` / `package-lock.json`):
 - Verifier (Rust): `crypto_box` 0.9.1, `chacha20poly1305` 0.10.1, `jsonschema` 0.59.0, `sha2`, `base64`, `hex`, `serde_json`, `wasi-http-client` 0.2.1 (WASM build only).
 - TypeScript: `near-api-js` 7.3.1, `libsodium-wrappers` 0.8.4 (all encryption), `typescript` 7.0.2, `tsx` 4.23.15.
 - MCP server: `@modelcontextprotocol/sdk` 1.32.2, `zod` 3.25.76.
+- Website: `vite` 8.3.5, `typescript` 7.0.2, `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono` 5.3.0 (SIL OFL fonts); dev only: `playwright` 1.64.1 (screenshots), Lighthouse 13.6.0 via npx (scores).
 - Docker image `ubuntu:24.04`, used only to run the local node on hosts with an older glibc.
 
 Templates and borrowed formats:

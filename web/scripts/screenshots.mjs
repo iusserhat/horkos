@@ -30,6 +30,17 @@ for (const page of pages) {
       const file = resolve(OUT, `${page}-${width}-${theme}.png`);
       await p.screenshot({ path: file, fullPage: true });
       console.log(file);
+      // Explorer: the other tabs and one expanded order, desktop light only.
+      if (page === "explorer" && width === 1440 && theme === "light") {
+        await p.getByRole("button", { name: /^Order 4:/ }).click();
+        await p.waitForSelector("#order-4-detail .tl-step", { timeout: 15000 });
+        await p.screenshot({ path: resolve(OUT, "explorer-order-history-1440-light.png"), fullPage: true });
+        for (const tab of ["Receipts", "Mandates", "Verifiers", "Listings"]) {
+          await p.getByRole("tab", { name: tab }).click();
+          await p.waitForTimeout(300);
+          await p.screenshot({ path: resolve(OUT, `explorer-${tab.toLowerCase()}-1440-light.png`), fullPage: true });
+        }
+      }
       await ctx.close();
     }
   }

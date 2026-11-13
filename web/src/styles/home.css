@@ -374,6 +374,8 @@
   list-style: none;
   margin: var(--s4) 0 0;
   padding: 0;
+  /* room for 5 rows before the data arrives (CLS) */
+  min-height: 350px;
 }
 .live-list li {
   display: grid;

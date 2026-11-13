@@ -148,6 +148,24 @@
           "Settled"
         ]
       }
+    ],
+    "7": [
+      {
+        "t": 1794583145,
+        "method": "create_order",
+        "tx": "BVDyJeF1dws99Nr8FwLeVDGwBekZLQ1XrDsW6E7XgugA",
+        "to": [
+          "Open"
+        ]
+      },
+      {
+        "t": 1794583146,
+        "method": "cancel_order",
+        "tx": "uBAB6yqf379K92nCErC4YVQzJ4gPg5KUDHDjthEddYx",
+        "to": [
+          "Cancelled"
+        ]
+      }
     ]
   },
   "rejected": [
@@ -164,6 +182,13 @@
       "tx": "xhqFnp6dAckKrCwuztwy2XWmzoMu7iJzBswM3Bi2k3N",
       "reason": "Seller not allowed by mandate",
       "note": "MCP smoke test, listing 2"
+    },
+    {
+      "t": 1794583148,
+      "method": "create_order",
+      "tx": "6rtGYkYcon8F7FwGLkU791ES44VdLw8eCzzJFsrYbt2P",
+      "reason": "Seller not allowed by mandate",
+      "note": "MCP example capture, listing 2"
     }
   ]
 }

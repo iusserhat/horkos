@@ -13,7 +13,15 @@ export function startSeller(key: "a" | "b" | "c", log: (m: string) => void = con
   log(`[seller ${key}] ${profile.title}; listing ${state.listingId}; waiting for orders`);
   return seller.onOrder(async (order) => {
     log(`[seller ${key}] order ${order.id} received; delivering`);
-    const after = await seller.submitDelivery({ orderId: order.id, data: profile.data(), conditionUrl: state.conditionUrl });
+    let data: unknown;
+    try {
+      data = await profile.data();
+    } catch (e) {
+      log(`[seller ${key}] order ${order.id} NOT delivered: ${(e as Error).message}`);
+      return;
+    }
+    if (key === "a") log(`[seller ${key}] order ${order.id} data from CoinGecko: ${JSON.stringify(data)}`);
+    const after = await seller.submitDelivery({ orderId: order.id, data, conditionUrl: state.conditionUrl });
     log(`[seller ${key}] order ${order.id} after verification: ${after.status}`);
   }, { intervalMs: 3_000 });
 }

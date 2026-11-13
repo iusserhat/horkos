@@ -3,6 +3,7 @@
  * differs is what they deliver and whether the owner allowed them.
  */
 import { ACCOUNTS, USDC } from "../config.js";
+import { nearUsdRows } from "./coingecko.js";
 
 /** Condition published by every demo listing (checked by the verifier). */
 export const MARKET_SCHEMA = {
@@ -33,7 +34,7 @@ export interface SellerProfile {
   title: string;
   price: bigint;
   deliveryWindowMs: number;
-  data: () => unknown;
+  data: () => unknown | Promise<unknown>;
 }
 
 export const PROFILES: Record<"a" | "b" | "c", SellerProfile> = {
@@ -43,7 +44,9 @@ export const PROFILES: Record<"a" | "b" | "c", SellerProfile> = {
     title: "Seller A: delivers data that matches the schema",
     price: 5n * USDC,
     deliveryWindowMs: 10 * 60_000,
-    data: () => ({ symbol: "NEAR/USD", rows: validRows() }),
+    // Live NEAR/USD prices from CoinGecko's free public API. The schema has
+    // additionalProperties: false, so no "source" field is added.
+    data: async () => ({ symbol: "NEAR/USD", rows: await nearUsdRows() }),
   },
   b: {
     key: "b",

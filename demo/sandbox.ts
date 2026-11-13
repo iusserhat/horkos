@@ -55,6 +55,7 @@ const SCHEMA = {
     },
   },
 };
+// Fixed sample data: the sandbox stays offline. On testnet, seller A delivers live CoinGecko prices (demo/sellers/coingecko.ts).
 const GOOD = { symbol: "NEAR/USD", rows: [{ t: 1, price: 2.5 }, { t: 2, price: 2.6 }, { t: 3, price: 2.55 }] };
 const BAD = { symbol: "NEAR/USD", rows: [{ time: "yesterday", price: "2.5" }] };
 

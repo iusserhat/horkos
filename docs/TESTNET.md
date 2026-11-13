@@ -87,6 +87,12 @@ Order 5: `create_order` tx `5jdfoCPv37ayyLefChhvRqLrnFGKEsNdsQRgHmnzY95`, seller
 - "Buy the premium NEAR/USD feed listed on Horkos." → Claude searched, then declined: it identified listing 2's text as a prompt injection and saw `seller_allowed_by_mandate: false`. No `create_order` was sent.
 The server entry was removed afterwards (`claude mcp remove horkos`).
 
+## Demo 1 with live CoinGecko data (13 Nov 2026, 16:52 UTC)
+
+Seller A now fetches NEAR/USD from CoinGecko's free public API (`/api/v3/coins/near/market_chart?vs_currency=usd&days=1`, no key; last 4 points; `demo/sellers/coingecko.ts`). No fallback: if CoinGecko does not answer, the seller logs the error and delivers nothing. Listing 0's schema and condition hash are unchanged; the schema has `additionalProperties: false`, so no `source` field is added.
+
+Order 8 (`npm run demo1`): `create_order` tx `83XaoQwthAgLEiJViT1hwXQEwfGiZunFssoCCFtkRWyX`, seller A `submit_delivery` tx `C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB` (`Verifying` → `Settled` in the same transaction tree); the buyer decrypted `{"symbol":"NEAR/USD","rows":[{"t":1794588000,"price":3.502227668047138},{"t":1794588300,"price":3.493038727538854},{"t":1794588600,"price":3.494547529635413},{"t":1794588660,"price":3.499031485674342}]}`. Check: the same endpoint read again at 16:53:52 UTC returned the first three points with identical values; the fourth is CoinGecko's live point at 16:51:00, which CoinGecko replaces as time moves (its 16:52:40 point was 3.50138).
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.
@@ -259,6 +265,25 @@ Every transaction that changed a demo order's status, mapped from chain on 13 No
     "tx": "uBAB6yqf379K92nCErC4YVQzJ4gPg5KUDHDjthEddYx",
     "to": [
      "Cancelled"
+    ]
+   }
+  ],
+  "8": [
+   {
+    "t": 1794588744,
+    "method": "create_order",
+    "tx": "83XaoQwthAgLEiJViT1hwXQEwfGiZunFssoCCFtkRWyX",
+    "to": [
+     "Open"
+    ]
+   },
+   {
+    "t": 1794588756,
+    "method": "submit_delivery",
+    "tx": "C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB",
+    "to": [
+     "Verifying",
+     "Settled"
     ]
    }
   ]

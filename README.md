@@ -200,7 +200,7 @@ docs/                        design, decisions, testnet deployment, secret scan
 - Cross-chain payment and refund through NEAR Intents.
 - Richer conditions: test suites and recomputable outputs, not only JSON Schema.
 - Transferable receipts.
-- A web page where the owner sets up the mandate with a NEAR wallet (today: SDK or near-cli).
+- Browser wallet: roadmap. A web page where the owner sets up the mandate and buys with a NEAR wallet (today: SDK, MCP or near-cli). `web/src/lib/wallet.ts` (NEAR Wallet Selector 10.1.4, Meteor and MyNearWallet, testnet) is in the repo but no page uses it: on 13 Nov a real connect-and-sign flow could not be checked (MyNearWallet has stopped new app connections and approvals since 1 Nov; Meteor's web wallet blocks automated browsers), and nothing unchecked is claimed.
 - On-chain verification of the verifier's TEE attestation, once OutLayer exposes it to contracts.
 
 ## Libraries, templates and AI use

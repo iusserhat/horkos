@@ -1,13 +1,10 @@
-# Progress (updated 13 Nov 2026, ~16:15 TSİ)
+# Progress (updated 13 Nov 2026, ~16:10 TSİ)
 
-Deadline: 14 Nov 23:59 UTC. Decision point 20:00 TSİ today: if OutLayer testnet still fails, the video uses the sandbox demo and README says so (already worded in the Status table).
+Deadline: 14 Nov 23:59 UTC. The 20:00 fallback is no longer needed: OutLayer testnet recovered at 15:49 TSİ.
 
-Done: contract + token on testnet, SDK, demo 3 on testnet. Verifier v0 on a public gist (sha256 `61370b57…`), secret `PROTECTED_VERIFIER_SK` created by the owner (WasmHash + build lock). OutLayer testnet outage since ~12:00 UTC (`docs/TESTNET.md`). Sandbox fallback works: `cd demo && npm run sandbox` runs demos 1–3 with mock-outlayer `Worker` mode + native verifier. README status/step 6 and `docs/DEMO_CHECKLIST.md` written.
-
-Running: retry script (scratchpad `retry.sh`), pubkey call every 30 min, 4 tries from 15:14.
-Verified 15:46: README Try it steps 1, 2, 3, 6 pass in a fresh clone (after fixing script exec bits).
+Done: contract + token on testnet; verifier v0 on a public gist, secret generated in OutLayer, `set_verifier` v0 published; **demos 1, 2, 3 ran on testnet** (tx ids in `docs/TESTNET.md`). Sandbox demo (`cd demo && npm run sandbox`) as a keyless alternative. README status + steps verified in a fresh clone (steps 1, 2, 3, 6). `docs/DEMO_CHECKLIST.md` written.
 
 Next:
-1. If a retry succeeds: `set_verifier` v0 (values in `docs/VERIFIER_SETUP.md`), demos 1–2 on testnet, tx ids → `docs/TESTNET.md`, README status.
-2. Re-check step 4 (testnet views) output wording; final README pass after the 20:00 decision.
-3. Agent key rotation (owner approves), record video. MCP only after owner approval.
+1. Owner: approve agent key rotation (and whether to delete the agent's full-access key), then record the video on testnet per `docs/DEMO_CHECKLIST.md`.
+2. Final README pass (step 4 in a fresh shell), make the repo public and post on X — owner's approval each.
+3. MCP server only if the owner approves.

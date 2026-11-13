@@ -51,3 +51,10 @@ Demo 3 ran on 1 Nov 2026: the agent's function-call key sent `create_order` for 
 ## Verifier v0 published (13 Nov 2026)
 
 `set_verifier` by `horkos.testnet`, tx `5AmP9nyCvwPN13XLJojKurnjD7tfRtF4395atmWLizmU`, returned version `0`. Config: outlayer `outlayer.testnet`, WASM URL and sha256 as in `docs/VERIFIER_SETUP.md`, `build_target` `wasm32-wasip2`, `encryption_pubkey` above, secrets `verifier` / `horkos.testnet`, `min_fee` 0.01 NEAR, `max_fee` 0.05 NEAR. Check: `near contract call-function as-read-only escrow.horkos.testnet get_verifier json-args '{}' network-config testnet now`.
+
+## Demos 1 and 2 on testnet (13 Nov 2026, real OutLayer, verifier v0)
+
+- **Demo 1 (Settled):** `create_order` order 0, tx `92QVpcmFUQbxpYYV32sqR9CKdnxnN1n9H6VtH6KbLmzA`; seller A `submit_delivery` tx `DgGzhbkGBEMHGG9duhFSQHgTKsXpxi9NgngEMb1BLAoD` → OutLayer ran the verifier in the TEE, `on_verified` settled the order in the same transaction; the buyer decrypted the JSON (`{"symbol":"NEAR/USD","rows":[...]}`). Receipt NFT #0 status `Settled`.
+- **Demo 2 (Refunded):** `create_order` order 2, tx `4zL12Bg9TNRgVtXyyh7KfBrCRcQsa4bbuap2b3jd6rL6`; seller B `submit_delivery` tx `HgPppJUNPThmUDfEpDxhtTnFeZZDVktzggR4thvhE2yj` → verification failed, order `Delivered`, no buyer key on chain; after the 3 min deadline `refund_expired` tx `7PkEjmE3LJfQeH3Ko5KvNXT4Xm9EFzF3Qpg84xXssfC5` → `Refunded`.
+- First demo 2 attempt (order 1, tx `B5cbpbtps5PRi62cofxVGR28R3iUKSCGfdEC7VjJxxpx`) stopped in the script: the RPC node did not yet see the new order ("order 1 not found"), so the seller never delivered. Refunded after its deadline, tx `LY8cJkjSGVMifUVzGZmmsNGFj1kRQMoS6LZ2hGrFSGG`. Fixed in the SDK (`waitForSettlement` keeps polling while the order is not visible).
+- Owner budget afterwards: balance 45 tUSDC, spent 5 tUSDC (only the settled order).

@@ -27,11 +27,11 @@ Fallback (sandbox, stated in README and on screen): `contracts/scripts/build.sh`
 | Time | Screen | Voice / caption |
 | --- | --- | --- |
 | 0–8 s | Title: "Horkos — escrow for AI agent purchases on NEAR" | "AI agents can pay. They can't get refunds." |
-| 8–18 s | Mandate line (agent, 10 tUSDC/order, sellers A and B, 50 tUSDC budget) | "The owner sets limits in the contract, not in the agent." |
-| 18–40 s | Demo 1: `Open` → worker `valid=true` → `Settled` → decrypted JSON | "5 tUSDC locked, receipt minted. The data passes the schema check, the seller is paid, the buyer gets the key." |
-| 40–65 s | Demo 2: `valid=false, reason: schema…` → `Delivered` → "nothing to open" → `Refunded`, budget back | "Bad data fails verification. The buyer never sees it, the seller is never paid, and the deadline refunds the money." |
+| 8–18 s | Mandate (`get_mandate`: agent, 10 tUSDC/order, sellers A and B, budget — 45 tUSDC after today's runs; top up with `owner.deposit` if you want 50) | "The owner sets limits in the contract, not in the agent." |
+| 18–40 s | Demo 1: order created → seller delivers → `status: Settled` → decrypted JSON → receipt NFT | "5 tUSDC locked, receipt minted. The data passes the schema check, the seller is paid, the buyer gets the key." |
+| 40–65 s | Demo 2: `Delivered; buyer key on chain: none` → (cut the 3 min wait, caption "+3 min") → `Refunded` | "Bad data fails verification. The buyer never sees it, the seller is never paid, and the deadline refunds the money." |
 | 65–80 s | Demo 3: prompt-injection text → `create_order rejected: Seller not allowed by mandate` | "A hijacked agent tries to pay 500 tUSDC to an unknown seller. The contract refuses." |
-| 80–90 s | README status table + repo URL | "We don't resolve disputes. We prevent them." If sandbox: caption "Run locally: OutLayer testnet was down on 13 Nov." |
+| 80–90 s | README status table + repo URL | "We don't resolve disputes. We prevent them." |
 
 ## After recording
 

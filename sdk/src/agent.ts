@@ -102,10 +102,11 @@ export class HorkosAgent extends HorkosClient {
     const deadline = Date.now() + (opts.timeoutMs ?? 120_000);
     const stop = opts.until ?? FINAL_STATUSES;
     for (;;) {
+      // A just-created order can be missing on an RPC node that lags behind; keep polling.
       const order = await this.getOrder(orderId);
-      if (!order) throw new Error(`order ${orderId} not found`);
-      if (stop.includes(order.status)) return order;
-      if (Date.now() > deadline) throw new Error(`order ${orderId} still ${order.status} after timeout`);
+      if (order && stop.includes(order.status)) return order;
+      if (!order && Date.now() > deadline) throw new Error(`order ${orderId} not found`);
+      if (order && Date.now() > deadline) throw new Error(`order ${orderId} still ${order.status} after timeout`);
       await new Promise((r) => setTimeout(r, opts.intervalMs ?? 2_000));
     }
   }

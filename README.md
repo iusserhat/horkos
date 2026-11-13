@@ -9,12 +9,12 @@ Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). License: MIT
 | Part | State |
 | --- | --- |
 | Contract: mandate, budget deposit, orders, limits, escrow, NFT receipts, cancel, timeout refund, withdraw | Done. Unit and sandbox tests. Deployed on testnet. |
-| Contract: delivery and verification through NEAR OutLayer (`submit_delivery` → `on_verified`) | Done. Tested in the sandbox against a mock OutLayer. Not yet run end to end on testnet (see below). |
+| Contract: delivery and verification through NEAR OutLayer (`submit_delivery` → `on_verified`) | Done. Sandbox tests against a mock OutLayer; ran end to end on testnet with real OutLayer (demos 1 and 2). |
 | Verifier program for OutLayer's TEE (`verifier/`: decrypt, check the JSON Schema, re-seal the data key to the buyer) | Done. Unit tests and an end-to-end test with SDK-built deliveries. WASM v0 hosted publicly, sha256 pinned; OutLayer testnet downloaded and ran it (tx `6dnGVTiB1e8sDyEYrv7MoSdKGsLnPqUDFe7oCyNKo8wv`). Its secret key was generated inside OutLayer (`PROTECTED_VERIFIER_SK`, locked to that build). |
-| Verifier published on the testnet contract (`set_verifier`) | **Not yet.** It needs the verifier's public key, which comes from a run on OutLayer. Since 13 Nov ~12:00 UTC every OutLayer testnet execution fails with an infrastructure error ("Execution request not found" when the result is written on chain), ours included. Details: `docs/TESTNET.md`. |
+| Verifier published on the testnet contract (`set_verifier`) | Done: version 0, tx `5AmP9nyCvwPN13XLJojKurnjD7tfRtF4395atmWLizmU`. Its public key was printed by the verifier inside OutLayer (tx `5iWyLC1TVjd7v4CKSDU4yggATB4x4g42TJs4xJAZRtRH`); the contract does not check that the key came from the TEE (see Trust model). |
 | TypeScript SDK (agent, seller, owner) | Done. Tests on a local sandbox. |
 | Demo 3 (out-of-mandate purchase rejected) | Ran on testnet. |
-| Demos 1 and 2 (successful purchase; bad delivery refunded) | Run locally: sandbox with the real contracts, a mock OutLayer and the real verifier code (Try it, step 6). Not yet on testnet. |
+| Demos 1 and 2 (successful purchase; bad delivery refunded) | Ran on testnet on 13 Nov with real OutLayer (tx ids in Try it, step 5). Also runnable locally without keys (step 6). |
 | MCP server | Not started. |
 
 ## Problem
@@ -95,7 +95,9 @@ You should see a mandate that allows only `horkos-seller-a.testnet` and `horkos-
 The scripts sign with the demo accounts' keys, which only the team has, so judges cannot run them as-is. They are in `demo/` (`npm run setup`, `npm run demo1|demo2|demo3`).
 
 - **Demo 3** ran on 1 Nov 2026. The agent, signing with its function-call key, sent `create_order` for 500 tUSDC from seller C. The contract rejected it with `Seller not allowed by mandate`, and the budget (50 tUSDC) and open-order count did not change.
-- **Demos 1 and 2** need a verifier published on the contract, which is blocked by the OutLayer testnet outage (Status). Step 6 runs them locally.
+- **Demo 1** ran on 13 Nov 2026: order 0 (`create_order` tx `92QVpcmFUQbxpYYV32sqR9CKdnxnN1n9H6VtH6KbLmzA`), seller A's `submit_delivery` (tx `DgGzhbkGBEMHGG9duhFSQHgTKsXpxi9NgngEMb1BLAoD`) ran the verifier on OutLayer and settled the order in the callback; the buyer decrypted the JSON.
+- **Demo 2** ran on 13 Nov 2026: order 2 (`create_order` tx `4zL12Bg9TNRgVtXyyh7KfBrCRcQsa4bbuap2b3jd6rL6`), seller B's delivery failed the schema (tx `HgPppJUNPThmUDfEpDxhtTnFeZZDVktzggR4thvhE2yj`), no key for the buyer, then `refund_expired` after the deadline (tx `7PkEjmE3LJfQeH3Ko5KvNXT4Xm9EFzF3Qpg84xXssfC5`) → `Refunded`.
+- Check any order: `near contract call-function as-read-only escrow.horkos.testnet get_order json-args '{"order_id":"0"}' network-config testnet now` (orders 0 `Settled`, 2 `Refunded`). All tx ids: `docs/TESTNET.md`.
 
 ### 6. Demos 1–3 locally (sandbox, mock OutLayer, real verifier code)
 
@@ -137,7 +139,6 @@ Costs and other limits:
 
 ## Roadmap
 
-- When OutLayer testnet works again: read the verifier's public key, `set_verifier` v0, run demos 1 and 2 on testnet.
 - Delete the contract accounts' full-access keys, or put upgrades behind a DAO or timelock.
 - MCP server (`horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`).
 - Later: cross-chain payment and refund via NEAR Intents, transferable receipts, x402 compatibility.

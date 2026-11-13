@@ -19,7 +19,7 @@ Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). License: MIT
 
 OutLayer runs end to end on testnet: verifier v0 is published and demos 1 and 2 settled and refunded through it. The local sandbox demo (Try it, step 6) stays as a fallback that needs no keys.
 
-**Outage note.** On 13 Nov 2026, from about 12:00 to 12:49 UTC, every OutLayer testnet execution failed with an infrastructure error (the worker ran, but its result was not accepted on chain: "Execution request not found"). In that case OutLayer's callback carries no result. The contract does not leave an order stuck: a missing or invalid result moves the order from `Verifying` back to `Delivered`, the seller may resubmit before the deadline, and after the deadline `refund_expired` returns the funds. This path is covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`; no Horkos order was in flight during the outage. Details: `docs/TESTNET.md`.
+**Outage note.** On 13 Nov 2026, from about 12:00 UTC (still failing at 12:16, working again by 12:49), every OutLayer testnet execution failed with an infrastructure error (the worker ran, but its result was not accepted on chain: "Execution request not found"). In that case OutLayer's callback carries no result. The contract does not leave an order stuck: a missing or invalid result moves the order from `Verifying` back to `Delivered`, the seller may resubmit before the deadline, and after the deadline `refund_expired` returns the funds. This path is covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`; no Horkos order was in flight during the outage. Details: `docs/TESTNET.md`.
 
 ## Problem
 

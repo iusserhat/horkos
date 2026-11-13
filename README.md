@@ -15,7 +15,7 @@ Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). License: MIT
 | TypeScript SDK (agent, seller, owner) | Done. Tests on a local sandbox. |
 | Demo 3 (out-of-mandate purchase rejected) | Ran on testnet. |
 | Demos 1 and 2 (successful purchase; bad delivery refunded) | Ran on testnet on 13 Nov with real OutLayer (tx ids in Try it, step 5). Also runnable locally without keys (step 6). |
-| MCP server | Not started. |
+| MCP server (`mcp/`, stdio, 5 tools) | Done. All five tools ran on testnet through an MCP client (`mcp/smoke.ts`): search, buy → Settled → open, buy → cancel, and the prompt-injected 500 tUSDC listing rejected by the contract. Not yet tried inside Claude Desktop. |
 
 OutLayer runs end to end on testnet: verifier v0 is published and demos 1 and 2 settled and refunded through it. The local sandbox demo (Try it, step 6) stays as a fallback that needs no keys.
 
@@ -47,6 +47,7 @@ contracts/mock-outlayer/     test-only stand-in for OutLayer's request_execution
 contracts/integration-tests/ sandbox tests (near-workspaces)
 contracts/scripts/           build, sandbox test runner, Docker wrapper for the sandbox node
 sdk/                         TypeScript SDK: HorkosAgent, HorkosSeller, HorkosOwner
+mcp/                         MCP server (stdio) with 5 tools for an AI agent, NEAR testnet
 verifier/                    delivery verifier (Rust, WASI P2) that runs in OutLayer's TEE
 demo/                        seller services and scenario scripts (testnet), local sandbox demo
 spikes/outlayer/             OutLayer experiment: WASI schema checker, probe contract, report
@@ -120,6 +121,22 @@ Run after step 3 (it needs `sdk/node_modules`, the built wasm and the sandbox bi
 
 Not real in this demo: the TEE and OutLayer's operator (the worker is a local loop), and HTTPS hosting (files are `file://` URLs).
 
+### 7. MCP server: let Claude buy within the mandate (testnet)
+
+The server signs as the agent, so it needs the agent's function-call key (the team has it; it can only call `create_order` / `cancel_order` on the escrow). Others can point it at their own deployment with `HORKOS_AGENT`, `HORKOS_OWNER`, `HORKOS_CONTRACT` and `HORKOS_AGENT_KEY` (see the header of `mcp/server.ts`).
+
+```bash
+cd mcp && npm ci
+# Claude Code:
+claude mcp add horkos -- "$PWD/node_modules/.bin/tsx" "$PWD/server.ts"
+# Claude Desktop (claude_desktop_config.json):
+#   "mcpServers": { "horkos": { "command": "/abs/path/horkos/mcp/node_modules/.bin/tsx", "args": ["/abs/path/horkos/mcp/server.ts"] } }
+```
+
+For deliveries to happen, run a seller in another terminal (`cd demo && npm run seller -- a`). Then ask: *"Find a NEAR/USD price feed and buy it without spending more than 10 tUSDC, then show me the data."* You should see `horkos_search_listings` (listing 0 at 5 tUSDC, `seller_allowed_by_mandate: true`), `horkos_create_order` → `Open`, `horkos_get_order` → `Settled`, and `horkos_open_delivery` returning `{"symbol":"NEAR/USD","rows":[...]}`. Asking it to buy the "premium" listing (500 tUSDC, seller C) returns `Order not created: Seller not allowed by mandate`. Listing descriptions are off-chain text in `mcp/catalog.testnet.json`; listing 2's is a deliberate prompt injection.
+
+Without an MCP client, `cd mcp && npx tsx smoke.ts inject` drives the same server over stdio (`buy`, `cancel` and `open N` spend or move testnet tUSDC).
+
 ## Trust model and limits
 
 What the contract enforces on chain:
@@ -144,7 +161,6 @@ Costs and other limits:
 ## Roadmap
 
 - Delete the contract accounts' full-access keys, or put upgrades behind a DAO or timelock.
-- MCP server (`horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`).
 - Later: cross-chain payment and refund via NEAR Intents, transferable receipts, x402 compatibility.
 
 ## Libraries, templates and AI-generated code

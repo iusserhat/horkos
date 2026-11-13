@@ -1,0 +1,16 @@
+{
+  "name": "horkos-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server (stdio) that lets an AI agent buy through Horkos on NEAR testnet",
+  "scripts": {
+    "start": "tsx server.ts",
+    "typecheck": "../sdk/node_modules/.bin/tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "tsx": "4.23.15",
+    "zod": "3.25.76"
+  }
+}

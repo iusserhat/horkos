@@ -68,3 +68,10 @@ Demo 3 ran on 1 Nov 2026: the agent's function-call key sent `create_order` for 
 4. Full-access key `ed25519:6UMTADMRKpKErS2guxcYEEHEgX3ozWSR8JfHi1fiPsZR` deleted: tx `AHSj5g6T8hf8un6j3PdeVhHn3SjAWgcu13AD6uVqxMjc`. Its local keychain files were removed too. The agent account can no longer add keys, move NEAR or call anything but the two escrow methods.
 
 Check: `near account list-keys horkos-agent.testnet network-config testnet now` → one row, `only do ["create_order", "cancel_order"] function calls on escrow.horkos.testnet with an allowance of 4.99… NEAR`.
+
+## MCP server on testnet (13 Nov 2026, ~17:05 TSİ)
+
+Driven by `mcp/smoke.ts` (official MCP SDK client over stdio):
+- `horkos_create_order` listing 2 (500 tUSDC, seller C) → `Order not created: Seller not allowed by mandate`.
+- Order 3: `horkos_create_order` listing 0 → `Open`, `horkos_cancel_order` → `Cancelled`.
+- Order 4: `horkos_create_order` listing 0 → seller A delivered (tx `JEGNjxrQbVSbfLSYio1v7DsPgS9PRH9HRbRtutLAYfKx`), but OutLayer request 38907 ended "Execution promise failed" with no result, so the contract moved the order back to `Delivered` (as designed). A pubkey probe right after worked (tx `295DUEG27RrHV2H3C3jHNqrG7QV44DEybt5rvbYadhbR`). Seller A resubmitted (attempt 2) → `Settled`; `horkos_open_delivery` returned the JSON. So OutLayer testnet still fails some runs intermittently; the resubmit path covers it.

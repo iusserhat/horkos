@@ -1,0 +1,219 @@
+.guide {
+  padding-top: var(--s8);
+  padding-bottom: var(--s9);
+}
+.guide-head h1 {
+  max-width: 22ch;
+  margin-top: var(--s2);
+}
+.guide-head .lead {
+  margin-top: var(--s4);
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--s7);
+  margin-top: var(--s7);
+  align-items: start;
+}
+.toc {
+  position: sticky;
+  top: var(--s5);
+  font-size: var(--fs-small);
+}
+.toc summary {
+  font: 500 var(--fs-caption) var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 32px;
+}
+.toc ol {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+}
+.toc a {
+  display: block;
+  padding: 6px 0 6px var(--s3);
+  color: var(--muted);
+  text-decoration: none;
+  border-left: 1px solid var(--border);
+}
+.toc a:hover {
+  color: var(--text);
+  border-left-color: var(--accent);
+}
+.guide-section {
+  padding-bottom: var(--s8);
+  scroll-margin-top: var(--s5);
+}
+.guide-section > * + * {
+  margin-top: var(--s4);
+}
+.guide-section h2 {
+  font-size: var(--fs-h3);
+}
+.guide-section h3 {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  margin-top: var(--s5);
+}
+
+/* generator */
+.gen-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: var(--s6);
+  padding-top: var(--s5);
+}
+.gen-form {
+  display: grid;
+  gap: var(--s4);
+  align-content: start;
+}
+.field label {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  margin-bottom: var(--s1);
+}
+.field input,
+.field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--text);
+  font: var(--fs-small) var(--font-mono);
+}
+.field input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.field-hint {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  margin-top: var(--s1);
+}
+.field-err {
+  font-size: var(--fs-caption);
+  color: var(--danger);
+}
+.field-err:empty {
+  display: none;
+}
+.gen-where {
+  font-size: var(--fs-small);
+  color: var(--muted);
+  margin-bottom: var(--s3);
+}
+
+/* tools */
+.tool {
+  border-top: 1px solid var(--border);
+  padding-top: var(--s5);
+  margin-top: var(--s5);
+}
+.tool > * + * {
+  margin-top: var(--s3);
+}
+.tool h3 {
+  margin-top: 0;
+  font-size: var(--fs-body);
+}
+.params {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.params th,
+.params td {
+  text-align: left;
+  padding: var(--s2) var(--s3) var(--s2) 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.params th {
+  font: 500 var(--fs-caption) var(--font-mono);
+  color: var(--muted);
+}
+.tool-ex-label {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  margin-top: var(--s4);
+  margin-bottom: var(--s2);
+}
+.tool-ex .code pre {
+  max-height: 360px;
+  overflow: auto;
+}
+
+/* conversations */
+.convo {
+  margin: var(--s4) 0 0;
+  padding: var(--s4);
+  font-size: var(--fs-small);
+}
+.convo > * + * {
+  margin-top: var(--s3);
+}
+.convo-tools {
+  font-size: var(--fs-caption);
+  color: var(--accent);
+  margin: var(--s3) 0 0;
+  padding-left: 1.4em;
+  overflow-wrap: anywhere;
+}
+.convo-reply {
+  margin: 0;
+  white-space: pre-wrap;
+  font: var(--fs-small) / 1.6 var(--font-sans);
+}
+
+/* troubleshooting */
+.ts-list dt {
+  font-size: var(--fs-small);
+  font-weight: 500;
+  margin-top: var(--s5);
+  overflow-wrap: anywhere;
+}
+.ts-list dd {
+  margin: var(--s2) 0 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+  max-width: 72ch;
+}
+
+@media (max-width: 900px) {
+  .guide-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s5);
+  }
+  .toc {
+    position: static;
+  }
+  .gen-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.md > * + * {
+  margin-top: var(--s3);
+}
+.md ul {
+  padding-left: 1.2em;
+  margin-bottom: 0;
+}
+.md-table {
+  border-collapse: collapse;
+  font: var(--fs-caption) var(--font-mono);
+}
+.md-table th,
+.md-table td {
+  text-align: left;
+  padding: 4px var(--s4) 4px 0;
+  border-bottom: 1px solid var(--border);
+}

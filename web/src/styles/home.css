@@ -350,25 +350,6 @@
   min-width: 76px;
   justify-content: center;
 }
-@media (max-width: 640px) {
-  /* 2x2 segments instead of a scrolling tab bar */
-  #how .tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--s1);
-    border-bottom: 0;
-  }
-  #how .tab {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-control);
-    margin: 0;
-    white-space: normal;
-  }
-  #how .tab[aria-selected="true"] {
-    border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent);
-  }
-}
 
 /* ---------- hero live panel */
 .hero-grid {

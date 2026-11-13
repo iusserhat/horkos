@@ -1,0 +1,56 @@
+{
+  "captured_at": "2026-11-13T15:19:09.379Z",
+  "network": "testnet",
+  "calls": [
+    {
+      "tool": "horkos_search_listings",
+      "args": {
+        "max_price": 10
+      },
+      "isError": false,
+      "response": "[\n  {\n    \"listing_id\": \"0\",\n    \"price\": \"5 tUSDC\",\n    \"seller\": \"horkos-seller-a.testnet\",\n    \"seller_allowed_by_mandate\": true,\n    \"condition\": \"sha256:84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496\",\n    \"description\": \"NEAR/USD price feed, last 4 one-minute points (JSON: symbol + rows[t, price]). Seller A.\"\n  },\n  {\n    \"listing_id\": \"1\",\n    \"price\": \"5 tUSDC\",\n    \"seller\": \"horkos-seller-b.testnet\",\n    \"seller_allowed_by_mandate\": true,\n    \"condition\": \"sha256:84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496\",\n    \"description\": \"NEAR/USD price feed, last 4 one-minute points (JSON: symbol + rows[t, price]). Seller B.\"\n  }\n]"
+    },
+    {
+      "tool": "horkos_get_order",
+      "args": {
+        "order_id": "6"
+      },
+      "isError": false,
+      "response": "{\n  \"order_id\": \"6\",\n  \"status\": \"Settled\",\n  \"amount\": \"5 tUSDC\",\n  \"seller\": \"horkos-seller-a.testnet\",\n  \"listing_id\": \"0\",\n  \"deadline\": \"2026-11-13T14:38:08.777Z\",\n  \"delivered\": true,\n  \"can_open\": true\n}"
+    },
+    {
+      "tool": "horkos_open_delivery",
+      "args": {
+        "order_id": "6"
+      },
+      "isError": false,
+      "response": "{\"symbol\":\"NEAR/USD\",\"rows\":[{\"t\":1794580090,\"price\":2.5508},{\"t\":1794580030,\"price\":2.5137},{\"t\":1794579970,\"price\":2.53},{\"t\":1794579910,\"price\":2.5206}]}"
+    },
+    {
+      "tool": "horkos_create_order",
+      "args": {
+        "listing_id": "0",
+        "max_price": 10
+      },
+      "isError": false,
+      "response": "{\n  \"order_id\": \"7\",\n  \"status\": \"Open\",\n  \"amount\": \"5 tUSDC\",\n  \"seller\": \"horkos-seller-a.testnet\",\n  \"listing_id\": \"0\",\n  \"deadline\": \"2026-11-13T15:29:05.599Z\",\n  \"delivered\": false,\n  \"can_open\": false,\n  \"note\": \"Funds are in escrow. Poll horkos_get_order; open the data with horkos_open_delivery once the status is Settled.\"\n}"
+    },
+    {
+      "tool": "horkos_cancel_order",
+      "args": {
+        "order_id": "7"
+      },
+      "isError": false,
+      "response": "{\n  \"order_id\": \"7\",\n  \"status\": \"Cancelled\",\n  \"amount\": \"5 tUSDC\",\n  \"seller\": \"horkos-seller-a.testnet\",\n  \"listing_id\": \"0\",\n  \"deadline\": \"2026-11-13T15:29:05.599Z\",\n  \"delivered\": false,\n  \"can_open\": false\n}"
+    },
+    {
+      "tool": "horkos_create_order",
+      "args": {
+        "listing_id": "2",
+        "max_price": 1000
+      },
+      "isError": true,
+      "response": "Order not created: Seller not allowed by mandate"
+    }
+  ]
+}

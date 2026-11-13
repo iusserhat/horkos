@@ -5,8 +5,9 @@ Deadline: 14 Nov 23:59 UTC. Decision point 20:00 TSİ today: if OutLayer testnet
 Done: contract + token on testnet, SDK, demo 3 on testnet. Verifier v0 on a public gist (sha256 `61370b57…`), secret `PROTECTED_VERIFIER_SK` created by the owner (WasmHash + build lock). OutLayer testnet outage since ~12:00 UTC (`docs/TESTNET.md`). Sandbox fallback works: `cd demo && npm run sandbox` runs demos 1–3 with mock-outlayer `Worker` mode + native verifier. README status/step 6 and `docs/DEMO_CHECKLIST.md` written.
 
 Running: retry script (scratchpad `retry.sh`), pubkey call every 30 min, 4 tries from 15:14.
+Verified 15:46: README Try it steps 1, 2, 3, 6 pass in a fresh clone (after fixing script exec bits).
 
 Next:
 1. If a retry succeeds: `set_verifier` v0 (values in `docs/VERIFIER_SETUP.md`), demos 1–2 on testnet, tx ids → `docs/TESTNET.md`, README status.
-2. Verify README "Try it" from a fresh clone (needs a local commit first).
+2. Re-check step 4 (testnet views) output wording; final README pass after the 20:00 decision.
 3. Agent key rotation (owner approves), record video. MCP only after owner approval.

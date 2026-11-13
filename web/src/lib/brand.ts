@@ -2,13 +2,24 @@ import { s } from "./dom";
 
 const INK = "#1d2140";
 
-/** The Horkos mark: a gold seal with a check. `ring` is the outline colour (white on the dark footer). */
+/** The Horkos mark: the smiling seal on a lilac disc. `ring` is the disc outline (white on the dark footer). */
 export function logo(ring = INK) {
   return s(
     "svg",
-    { viewBox: "0 0 40 40", "aria-hidden": "true" },
-    s("circle", { cx: 20, cy: 20, r: 17, fill: "#ffd873", stroke: ring, "stroke-width": 3 }),
-    s("path", { d: "M13 20.5l5 5 9-10", fill: "none", stroke: INK, "stroke-width": 3.2, "stroke-linecap": "round", "stroke-linejoin": "round" }),
+    { viewBox: "0 0 120 120", "aria-hidden": "true" },
+    s("circle", { cx: 60, cy: 60, r: 52, fill: "#d8ccff", stroke: ring, "stroke-width": 6 }),
+    s("path", {
+      d: "M60 22l8 6 10-2 4 9 9 4-2 10 6 8-6 8 2 10-9 4-4 9-10-2-8 6-8-6-10 2-4-9-9-4 2-10-6-8 6-8-2-10 9-4 4-9 10 2z",
+      fill: "#ffd873",
+      stroke: INK,
+      "stroke-width": 4.5,
+      "stroke-linejoin": "round",
+    }),
+    s("circle", { cx: 50, cy: 56, r: 4.5, fill: INK }),
+    s("circle", { cx: 70, cy: 56, r: 4.5, fill: INK }),
+    s("path", { d: "M50 68q10 9 20 0", fill: "none", stroke: INK, "stroke-width": 4.5, "stroke-linecap": "round" }),
+    s("circle", { cx: 42, cy: 66, r: 4.5, fill: "#ffb4a0" }),
+    s("circle", { cx: 78, cy: 66, r: 4.5, fill: "#ffb4a0" }),
   );
 }
 

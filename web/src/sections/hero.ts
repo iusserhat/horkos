@@ -80,6 +80,26 @@ function livePanel() {
   );
 }
 
+/** Palette the wordmark letters cycle through (sticker colours from the design tokens). */
+const LETTER_COLORS = ["#ffb4a0", "#ffd873", "#aeebd3", "#a9c1ff", "#d8ccff", "#ffffff"];
+
+/** "horkos" with one sticker colour per letter; each hover moves a letter on to the next colour. */
+function wordmark() {
+  const letters = [..."horkos"].map((ch, i) => {
+    let c = i % LETTER_COLORS.length;
+    const span = h("span", { class: "wm-l", "aria-hidden": "true", style: `--c:${LETTER_COLORS[c]}` }, ch);
+    span.addEventListener("pointerenter", () => {
+      c = (c + 1 + Math.floor(Math.random() * (LETTER_COLORS.length - 1))) % LETTER_COLORS.length;
+      span.style.setProperty("--c", LETTER_COLORS[c]);
+      span.classList.remove("hop");
+      void span.offsetWidth;
+      span.classList.add("hop");
+    });
+    return span;
+  });
+  return h("h1", { id: "hero-title", class: "wordmark", "aria-label": "horkos: escrow for purchases made by AI agents" }, ...letters);
+}
+
 export function hero() {
   return h(
     "section",
@@ -90,7 +110,7 @@ export function hero() {
       { class: "wrap hero-inner" },
       mascot(),
       h("p", { class: "hero-badge" }, "Built for NEAR Hackathon 2026, live on testnet"),
-      h("h1", { id: "hero-title", class: "wordmark" }, "hork", h("span", { class: "o" }, "o"), "s", h("span", { class: "visually-hidden" }, ": escrow for purchases made by AI agents")),
+      wordmark(),
       h("p", { class: "tagline" }, "Your AI agent pays only when the delivery checks out."),
       h("p", { class: "motto" }, h("span", {}, "We don't resolve disputes."), " ", h("span", {}, "We prevent them.")),
       h(

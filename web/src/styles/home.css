@@ -1100,3 +1100,21 @@
 @media (max-width: 768px) {
   .uc-market { grid-template-columns: 1fr; transform: none; }
 }
+
+/* wordmark: one colour per letter, a hover hops the letter to a new colour */
+.wordmark .wm-l {
+  display: inline-block;
+  color: var(--c);
+  transition: color 0.25s ease-out;
+  cursor: default;
+}
+.wordmark .wm-l.hop {
+  animation: hop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes hop {
+  40% { transform: translateY(-14px) rotate(-6deg); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark .wm-l.hop { animation: none; }
+}

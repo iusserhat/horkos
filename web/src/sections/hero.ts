@@ -92,6 +92,7 @@ export function hero() {
       h("p", { class: "hero-badge" }, "Built for NEAR Hackathon 2026, live on testnet"),
       h("h1", { id: "hero-title", class: "wordmark" }, "hork", h("span", { class: "o" }, "o"), "s", h("span", { class: "visually-hidden" }, ": escrow for purchases made by AI agents")),
       h("p", { class: "tagline" }, "Your AI agent pays only when the delivery checks out."),
+      h("p", { class: "motto" }, h("span", {}, "We don't resolve disputes."), " ", h("span", {}, "We prevent them.")),
       h(
         "p",
         { class: "lead" },

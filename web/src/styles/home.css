@@ -1036,3 +1036,24 @@
   .gaps { padding: var(--s5); }
   .gaps ul { grid-template-columns: 1fr; }
 }
+
+/* the principle, as a stamped sticker under the tagline */
+.motto {
+  margin-top: var(--s6);
+  padding: 14px 28px 16px;
+  background: var(--coral);
+  color: #1d2140;
+  border: var(--line);
+  border-radius: 20px;
+  box-shadow: var(--pop);
+  transform: rotate(-1.5deg);
+  font: 700 clamp(1.35rem, 1rem + 1.6vw, 2.1rem) / 1.2 var(--font-display);
+  max-width: none;
+}
+.motto span {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .motto span { white-space: normal; }
+}
+.motto + .lead { margin-top: var(--s6); }

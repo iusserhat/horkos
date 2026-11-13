@@ -1,8 +1,7 @@
 import { h } from "../lib/dom";
 import { repoFile, txUrl } from "../lib/config";
-import { shorten } from "../lib/dom";
 
-const tx = (hash: string, label: string) => h("a", { class: "tx", href: txUrl(hash), title: hash }, `${label} ${shorten(hash)} ↗`);
+const tx = (hash: string, label: string) => h("a", { href: txUrl(hash), title: `Transaction ${hash}` }, `${label} ↗`);
 
 export function security() {
   return h(
@@ -23,7 +22,7 @@ export function security() {
           h(
             "ul",
             { class: "sec-list" },
-            h("li", {}, "The agent's only key is a function-call key for ", h("code", {}, "create_order"), " and ", h("code", {}, "cancel_order"), ". ", tx("CAAqVKNCBhdDUG3dk8Pir72nUiH6ZXQgVgGJAQPD2Xqd", "added"), " ", tx("AHSj5g6T8hf8un6j3PdeVhHn3SjAWgcu13AD6uVqxMjc", "full-access key deleted")),
+            h("li", {}, "The agent's only key is a function-call key for ", h("code", {}, "create_order"), " and ", h("code", {}, "cancel_order"), ". ", h("span", { class: "muted" }, "(tx: "), tx("CAAqVKNCBhdDUG3dk8Pir72nUiH6ZXQgVgGJAQPD2Xqd", "key added"), h("span", { class: "muted" }, " · "), tx("AHSj5g6T8hf8un6j3PdeVhHn3SjAWgcu13AD6uVqxMjc", "full-access key deleted"), h("span", { class: "muted" }, ")")),
             h("li", {}, "Mandate caps, allowed sellers and expiry are checked by the contract on every order, so a leaked agent key can only buy within them."),
             h("li", {}, "Each order keeps the verifier version (WASM sha256) it was created with; a new version cannot change open orders."),
             h("li", {}, "Open-order cap per mandate (default 50) and per-order storage paid from the owner's deposit."),

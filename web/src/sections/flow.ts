@@ -1,5 +1,5 @@
 import { h, reducedMotion, s, tabs } from "../lib/dom";
-import { badge } from "../lib/status";
+import { badge, statusIcon, type Status } from "../lib/status";
 import { EDGE_LABEL, NODES, SCENARIOS, type EdgeId, type NodeId, type Scenario } from "./flow-data";
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -167,7 +167,9 @@ export function flow() {
   const narrowMq = window.matchMedia("(max-width: 640px)");
   let built = buildSvg(narrowMq.matches ? NARROW : WIDE);
 
-  const figure = h("div", { class: "flow-figure panel" }, built.svg);
+  const STRIP: Status[] = ["Open", "Verifying", "Delivered", "Settled", "Refunded", "Cancelled"];
+  const strip = h("ol", { class: "status-strip", "aria-label": "Order status" }, ...STRIP.map((st) => h("li", { "data-st": st }, statusIcon(st), st)));
+  const figure = h("div", { class: "flow-figure panel" }, built.svg, strip);
   const stepCount = h("p", { class: "flow-count mono" });
   const stepTitle = h("h3", { class: "flow-title" });
   const contractLine = h("p", { class: "flow-contract" });
@@ -208,6 +210,13 @@ export function flow() {
       n.setAttribute("class", cls.filter(Boolean).join(" "));
     }
     built.token.setAttribute("class", `flow-token${step.rejected ? " is-rejected" : ""}`);
+    strip.querySelectorAll("li").forEach((li) => {
+      const on = li.dataset.st === step.status;
+      li.className = on ? `is-current st-${step.status}` : "";
+      if (on) li.setAttribute("aria-current", "step");
+      else li.removeAttribute("aria-current");
+    });
+    strip.dataset.note = step.status === "Rejected" ? "No order was created" : step.status === null ? "No order yet" : "";
     if (first) moveToken(first.from, first.to);
     else built.token.setAttribute("opacity", "0");
     stepCount.textContent = `${scenario.label} · step ${index + 1} of ${scenario.steps.length}`;
@@ -303,7 +312,7 @@ export function flow() {
   }, { threshold: 0.3 }).observe(figure);
   narrowMq.addEventListener("change", () => {
     built = buildSvg(narrowMq.matches ? NARROW : WIDE);
-    figure.replaceChildren(built.svg);
+    figure.replaceChildren(built.svg, strip);
     render();
   });
   window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (e) => {
@@ -328,7 +337,7 @@ export function flow() {
       { class: "wrap stack" },
       h("p", { class: "eyebrow" }, "How it works"),
       h("h2", { id: "how-title" }, "One order, step by step."),
-      h("p", { class: "muted" }, "Each step names what escrow.horkos.testnet does at that point; the verification step runs off chain in OutLayer. Use Prev, Next or the dots; autoplay pauses while you hover or focus the diagram."),
+      h("p", { class: "muted" }, "Each step names what escrow.horkos.testnet does at that point; the verification step runs off chain in OutLayer."),
       tabList,
       panel,
     ),

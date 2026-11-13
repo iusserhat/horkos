@@ -15,7 +15,10 @@ import { problem } from "../sections/problem";
 import { flow } from "../sections/flow";
 import { useCases } from "../sections/usecases";
 import { security } from "../sections/security";
+import { receipts } from "../sections/receipts";
+import { connectPreview } from "../sections/connect-preview";
+import { builtOnNear } from "../sections/near";
 
 mount(qs("#header"), header("home"));
-mount(qs("#main"), hero(), problem(), flow(), useCases(), security());
+mount(qs("#main"), hero(), problem(), flow(), receipts(), useCases(), builtOnNear(), connectPreview(), security());
 mount(qs("#footer"), footer());

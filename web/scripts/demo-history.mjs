@@ -12,3 +12,8 @@ const data = JSON.parse(m[1]);
 mkdirSync(resolve(root, "src/data"), { recursive: true });
 writeFileSync(resolve(root, "src/data/demo-history.json"), JSON.stringify(data, null, 2) + "\n");
 console.log(`demo-history.json: ${Object.keys(data.orders).length} orders, ${data.rejected.length} rejected calls`);
+
+// The market page shows the off-chain listing descriptions the MCP server uses.
+const catalog = JSON.parse(readFileSync(resolve(root, "../mcp/catalog.testnet.json"), "utf8"));
+writeFileSync(resolve(root, "src/data/catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
+console.log(`catalog.json: ${Object.keys(catalog).filter((k) => !k.startsWith("_")).length} listing descriptions`);

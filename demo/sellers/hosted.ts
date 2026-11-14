@@ -25,7 +25,7 @@ import { compileCondition, type Check } from "../../gateway/src/validate.js";
 import { sha256, toHex } from "../../sdk/src/index.js";
 import { PROFILES } from "./profiles.js";
 
-const VERSION = "hosted-seller 0.2.0";
+const VERSION = "hosted-seller 0.2.1";
 const env = process.env;
 const NETWORK = env.NETWORK ?? "testnet";
 const CONTRACT = env.CONTRACT ?? "escrow.horkos.testnet";
@@ -61,9 +61,18 @@ const PORT = Number(env.PORT ?? 8080);
 const ONE_NEAR = 10n ** 24n;
 const STALE_MS = 120_000;
 
+/** Problems shown on /health (no secrets: URLs, order ids and error texts only). */
+const PROBLEMS = new Set(["retry", "not_delivered", "verification_failed", "delivery_failed", "poll_failed", "startup_failed"]);
+const counts: Record<string, number> = {};
+let lastProblem: Record<string, unknown> | null = null;
+
 /** One JSON line per event; values are never secrets. */
-const log = (event: string, fields: Record<string, unknown> = {}) =>
-  console.log(JSON.stringify({ t: new Date().toISOString(), event, ...fields }));
+const log = (event: string, fields: Record<string, unknown> = {}) => {
+  const line = { t: new Date().toISOString(), event, ...fields };
+  counts[event] = (counts[event] ?? 0) + 1;
+  if (PROBLEMS.has(event)) lastProblem = line;
+  console.log(JSON.stringify(line));
+};
 
 if (NETWORK !== "testnet") throw new Error("NETWORK must be testnet");
 if (!SELLER) throw new Error("SELLER_ACCOUNT_ID is not set");
@@ -238,7 +247,7 @@ createServer((req, res) => {
   const path = (req.url ?? "/").split("?")[0];
   if (path === "/health") {
     health.ok = Date.now() - lastPollMs < STALE_MS && balanceYocto >= ONE_NEAR;
-    res.writeHead(health.ok ? 200 : 503, { "content-type": "application/json", "cache-control": "no-store" }).end(JSON.stringify(health));
+    res.writeHead(health.ok ? 200 : 503, { "content-type": "application/json", "cache-control": "no-store" }).end(JSON.stringify({ ...health, events: counts, last_problem: lastProblem }));
     return;
   }
   if (path === "/") {

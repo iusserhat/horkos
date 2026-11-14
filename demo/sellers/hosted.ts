@@ -25,7 +25,7 @@ import { compileCondition, type Check } from "../../gateway/src/validate.js";
 import { sha256, toHex } from "../../sdk/src/index.js";
 import { PROFILES } from "./profiles.js";
 
-const VERSION = "hosted-seller 0.2.3";
+const VERSION = "hosted-seller 0.3.0";
 const env = process.env;
 const NETWORK = env.NETWORK ?? "testnet";
 const CONTRACT = env.CONTRACT ?? "escrow.horkos.testnet";
@@ -97,28 +97,33 @@ async function coinbaseSpot(): Promise<{ usd: number; last_updated_at: number }>
   return { usd: Number(t.price), last_updated_at: Math.floor(Date.parse(t.time) / 1000) };
 }
 
+async function coingeckoSpot(): Promise<unknown> {
+  const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_last_updated_at=true", {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
+  return ((await res.json()) as { near: unknown }).near;
+}
+
 /** Listings seller A can serve: where the condition lives and how the data is made. */
+const rowsData = cached("NEAR/USD rows", firstOf("NEAR/USD rows", [["coingecko", async () => PROFILES.a.data()], ["coinbase", coinbaseRows]]));
+const spotData = cached("NEAR/USD spot", firstOf("NEAR/USD spot", [["coingecko", coingeckoSpot], ["coinbase", coinbaseSpot]]));
+const ROWS_CONDITION = `${FASTFS}/84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496.json`;
+const SPOT_CONDITION = `${FASTFS}/2abb3e2b80f1f421eb7937b1463d277aafdc817a89b12f84b25564bd1d3aca50.json`;
 const CATALOG: Record<string, { conditionUrl: string; data: () => Promise<unknown> }> = {
-  // Demo listing: last 4 NEAR/USD points from CoinGecko's market_chart.
-  "0": { conditionUrl: `${FASTFS}/84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496.json`, data: cached("NEAR/USD rows", firstOf("NEAR/USD rows", [["coingecko", async () => PROFILES.a.data()], ["coinbase", coinbaseRows]])) },
-  // Gateway listing: CoinGecko simple/price for NEAR (gateway/examples/coingecko.json).
-  "3": {
-    conditionUrl: `${FASTFS}/2abb3e2b80f1f421eb7937b1463d277aafdc817a89b12f84b25564bd1d3aca50.json`,
-    data: cached("NEAR/USD spot", firstOf("NEAR/USD spot", [["coingecko", async () => {
-      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_last_updated_at=true", {
-        headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
-      return ((await res.json()) as { near: unknown }).near;
-    }], ["coinbase", coinbaseSpot]])),
-  },
+  // Last 4 NEAR/USD points: listing 0 (10-min window), listing 4 (30-min window).
+  "0": { conditionUrl: ROWS_CONDITION, data: rowsData },
+  "4": { conditionUrl: ROWS_CONDITION, data: rowsData },
+  // NEAR/USD spot price: listing 3 (gateway example, 10 min), listing 5 (30 min).
+  "3": { conditionUrl: SPOT_CONDITION, data: spotData },
+  "5": { conditionUrl: SPOT_CONDITION, data: spotData },
 };
-const LISTINGS = (env.LISTINGS ?? env.LISTING_ID ?? "0,3").split(",").map((s) => s.trim()).filter(Boolean);
+const LISTINGS = (env.LISTINGS ?? env.LISTING_ID ?? "0,3,4,5").split(",").map((s) => s.trim()).filter(Boolean);
 const RPC_URLS = (env.RPC_URLS ?? "https://rpc.testnet.fastnear.com,https://rpc.testnet.near.org").split(",").map((s) => s.trim()).filter(Boolean);
 const POLL_MS = Number(env.POLL_MS ?? 15_000);
 /** Do not start a verification with less window than this: OutLayer took up to ~110 s on testnet. */
-const MIN_REMAINING_MS = Number(env.MIN_REMAINING_MS ?? 150_000);
+const MIN_REMAINING_MS = Number(env.MIN_REMAINING_MS ?? 180_000);
 const BACKOFF_MS = [15_000, 30_000, 60_000, 120_000];
 const WITHDRAW = env.WITHDRAW === "1";
 const PORT = Number(env.PORT ?? 8080);
@@ -129,12 +134,18 @@ const STALE_MS = 120_000;
 const PROBLEMS = new Set(["source_error", "retry", "not_delivered", "verification_failed", "delivery_failed", "poll_failed", "startup_failed"]);
 const counts: Record<string, number> = {};
 let lastProblem: Record<string, unknown> | null = null;
+/** Last 20 delivery attempts (order, attempt, outcome, OutLayer request id, seconds), newest last. */
+const attempts: Record<string, unknown>[] = [];
 
 /** One JSON line per event; values are never secrets. */
 const log = (event: string, fields: Record<string, unknown> = {}) => {
   const line = { t: new Date().toISOString(), event, ...fields };
   counts[event] = (counts[event] ?? 0) + 1;
   if (PROBLEMS.has(event)) lastProblem = line;
+  if (event === "attempt") {
+    attempts.push(line);
+    if (attempts.length > 20) attempts.shift();
+  }
   console.log(JSON.stringify(line));
 };
 
@@ -225,8 +236,23 @@ async function deliver(o: Order): Promise<void> {
       return;
     }
     log("delivering", { order: o.id, listing: o.listing_id, status: o.status, attempts: o.attempts, buyer: o.buyer });
-    const after = await withRetry(`submit_delivery ${o.id}`, (c) => c.seller.submitDelivery({ orderId: o.id, data, conditionUrl: cond.url }));
+    let used: (typeof clients)[number] = clients[current];
+    const after = await withRetry(`submit_delivery ${o.id}`, (c) => {
+      used = c;
+      return c.seller.submitDelivery({ orderId: o.id, data, conditionUrl: cond.url });
+    });
     health.last_delivery_at = new Date().toISOString();
+    const tr = used.seller.lastDelivery;
+    log("attempt", {
+      order: o.id,
+      listing: o.listing_id,
+      attempt: after.attempts,
+      outcome: after.status,
+      tx: tr?.txHash,
+      outlayer_request: tr?.requestId,
+      outlayer: tr?.outlayerLogs,
+      seconds: tr ? Math.round(tr.ms / 1000) : null,
+    });
     if (after.status === "Delivered") {
       const wait = BACKOFF_MS[Math.min(after.attempts - 1, BACKOFF_MS.length - 1)];
       nextTry.set(o.id, Date.now() + wait);
@@ -313,7 +339,7 @@ createServer((req, res) => {
   const path = (req.url ?? "/").split("?")[0];
   if (path === "/health") {
     health.ok = Date.now() - lastPollMs < STALE_MS && balanceYocto >= ONE_NEAR;
-    res.writeHead(health.ok ? 200 : 503, { "content-type": "application/json", "cache-control": "no-store" }).end(JSON.stringify({ ...health, events: counts, last_problem: lastProblem }));
+    res.writeHead(health.ok ? 200 : 503, { "content-type": "application/json", "cache-control": "no-store" }).end(JSON.stringify({ ...health, events: counts, last_problem: lastProblem, attempts }));
     return;
   }
   if (path === "/") {

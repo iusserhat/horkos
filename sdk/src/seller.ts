@@ -8,6 +8,17 @@ export interface SellerOptions extends ClientOptions {
   store: BlobStore;
 }
 
+/** What the last `submitDelivery` transaction showed about the OutLayer run. */
+export interface DeliveryTrace {
+  txHash: string;
+  /** OutLayer request id from its `execution_requested` event, if seen. */
+  requestId: number | null;
+  /** OutLayer's own log lines about the run (charge, "Execution promise failed", ...). */
+  outlayerLogs: string[];
+  /** Wall time of the submit transaction until final, ms. */
+  ms: number;
+}
+
 export interface RegisteredListing {
   listingId: string;
   /** `sha256:<hex>` of the condition bytes, stored on chain. */
@@ -41,6 +52,8 @@ export async function prepareDelivery(args: {
 /** Seller side: list, watch for orders, deliver, withdraw. */
 export class HorkosSeller extends HorkosClient {
   private readonly store: BlobStore;
+  /** Set by each `submitDelivery`; useful for logs. */
+  lastDelivery: DeliveryTrace | null = null;
 
   constructor(opts: SellerOptions) {
     super(opts);
@@ -135,7 +148,8 @@ export class HorkosSeller extends HorkosClient {
       store: this.store,
     });
 
-    await this.account.callFunction({
+    const started = Date.now();
+    const res = await this.account.callFunctionRaw({
       contractId: this.contractId,
       methodName: "submit_delivery",
       args: { order_id: order.id, delivery_ref: deliveryRef, sealed_key: sealedKey },
@@ -143,6 +157,15 @@ export class HorkosSeller extends HorkosClient {
       gas: 300n * TGAS,
       waitUntil: "FINAL",
     });
+    const logs = (res.receipts_outcome ?? []).flatMap((o) => o.outcome.logs);
+    const requested = logs.find((l) => l.includes('"execution_requested"'));
+    const id = requested?.match(/request_id\\?":(\d+)/)?.[1];
+    this.lastDelivery = {
+      txHash: res.transaction.hash,
+      requestId: id ? Number(id) : null,
+      outlayerLogs: logs.filter((l) => l.startsWith("[[") || /promise failed|execution_completed/.test(l)).map((l) => l.slice(0, 160)),
+      ms: Date.now() - started,
+    };
     return (await this.getOrder(order.id))!;
   }
 

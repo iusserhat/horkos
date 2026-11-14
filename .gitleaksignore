@@ -1,0 +1,11 @@
+# gitleaks false positives (see docs/security.md, 'Secret scans'):
+# sealed_key / buyer_sealed_key are ciphertexts sealed to the verifier's or the buyer's
+# X25519 public key; the same bytes are public in the testnet transactions.
+68b1b4bbc9342d741e9050d90f0d218886708906:evidence/attestation/order-18-outlayer-verify.txt:generic-api-key:81
+68b1b4bbc9342d741e9050d90f0d218886708906:evidence/attestation/order-15-outlayer-verify.txt:generic-api-key:81
+68b1b4bbc9342d741e9050d90f0d218886708906:evidence/attestation/order-15-outlayer-verify.txt:generic-api-key:90
+68b1b4bbc9342d741e9050d90f0d218886708906:evidence/attestation/order-9-outlayer-verify.txt:generic-api-key:81
+evidence/attestation/order-18-outlayer-verify.txt:generic-api-key:81
+evidence/attestation/order-15-outlayer-verify.txt:generic-api-key:81
+evidence/attestation/order-15-outlayer-verify.txt:generic-api-key:90
+evidence/attestation/order-9-outlayer-verify.txt:generic-api-key:81

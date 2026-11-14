@@ -2,7 +2,7 @@
 
 # Horkos
 
-[![CI](https://github.com/iusserhat/horkos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iusserhat/horkos/actions/workflows/ci.yml)
+[![CI](https://github.com/iusserhat/horkos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iusserhat/horkos/actions/workflows/ci.yml) · 8 attack scenarios refused on v1 and v2 on every push ([tests](contracts/horkos-v2/tests/attacks.rs)) · invariants held over 10,000 random sequences per version ([docs/security.md](docs/security.md))
 
 <p align="center"><em>Verify-then-pay for AI agents, native to NEAR.</em></p>
 

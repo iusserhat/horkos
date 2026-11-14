@@ -1,0 +1,91 @@
+# Tests on every push and pull request. No keys, no network accounts:
+# contract unit tests, the verifier, TypeScript type checks and unit tests,
+# and the local-sandbox tests and demo (near-sandbox, mock OutLayer).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.99.1"
+  CARGO_NEAR_VERSION: "0.22.0"
+
+jobs:
+  verifier:
+    name: Verifier (unit tests + reproducible WASM hash)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-wasip2
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: verifier
+      - run: cargo test -q
+        working-directory: verifier
+
+  node:
+    name: TypeScript (typecheck + unit tests)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: sdk
+      - run: npm run typecheck
+        working-directory: sdk
+      - run: npm ci && npm run typecheck
+        working-directory: mcp
+      - run: npm ci && npm run typecheck
+        working-directory: demo
+      - run: npm ci && npm run typecheck && npm test
+        working-directory: gateway
+
+  contracts:
+    name: Contracts (unit + sandbox tests, SDK, sandbox demo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            contracts
+            verifier
+      - name: Install cargo-near ${{ env.CARGO_NEAR_VERSION }}
+        run: curl --proto '=https' --tlsv1.2 -LsSf "https://github.com/near/cargo-near/releases/download/cargo-near-v${CARGO_NEAR_VERSION}/cargo-near-installer.sh" | sh
+      - name: Contract unit tests
+        run: cargo test -q --workspace --exclude integration-tests
+        working-directory: contracts
+      - name: Build contracts + sandbox integration tests
+        run: contracts/scripts/test-sandbox.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: SDK tests on a local node
+        run: npm ci && npm test && npm run test:verifier
+        working-directory: sdk
+      - name: Gateway tests on a local node
+        run: npm ci && npm run test:sandbox
+        working-directory: gateway
+      - name: Sandbox demo (demos 1-3, mock OutLayer, real verifier)
+        run: npm ci && npm run sandbox
+        working-directory: demo

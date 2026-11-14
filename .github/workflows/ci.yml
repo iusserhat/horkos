@@ -80,7 +80,9 @@ jobs:
             verifier
       - name: Install cargo-near ${{ env.CARGO_NEAR_VERSION }}
         run: curl --proto '=https' --tlsv1.2 -LsSf "https://github.com/near/cargo-near/releases/download/cargo-near-v${CARGO_NEAR_VERSION}/cargo-near-installer.sh" | sh
-      - name: Contract unit tests
+      - name: Contract unit, attack and invariant tests
+        env:
+          INVARIANT_RUNS: "100"   # 10,000 sequences run locally; see README "Run the tests"
         run: cargo test -q --workspace --exclude integration-tests
         working-directory: contracts
       - name: Build contracts + sandbox integration tests

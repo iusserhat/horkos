@@ -234,6 +234,9 @@ What Horkos does differently, concretely: the spending mandate and the escrow ar
 
 ```bash
 cd contracts && cargo test -p horkos -p horkos-v2 -p test-token -p faucet   # 101 + 122 + 4 + 11 unit tests
+                                                        # plus, per escrow version, 8 attack tests (tests/attacks.rs)
+                                                        # and random-sequence invariants (tests/invariants.rs, 300 runs by default;
+                                                        # INVARIANT_RUNS=10000 cargo test --release -p horkos-v2 --test invariants)
 cd .. && contracts/scripts/test-sandbox.sh              # 1 faucet + 7 escrow (v1) + 2 v2 integration tests on a local node
 (cd sdk && npm ci && npm test)                          # 6 SDK tests (after test-sandbox.sh)
 (cd verifier && cargo test)                             # 15 verifier tests

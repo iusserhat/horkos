@@ -23,7 +23,7 @@ services:
       - key: LISTINGS
         value: "0,3,4,5"
       - key: RPC_URLS
-        value: https://rpc.testnet.fastnear.com,https://rpc.testnet.near.org
+        value: https://rpc.testnet.fastnear.com,https://near-testnet.drpc.org,https://test.rpc.fastnear.com
       - key: POLL_MS
         value: "15000"
       - key: WITHDRAW

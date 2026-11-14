@@ -25,7 +25,7 @@ import { compileCondition, type Check } from "../../gateway/src/validate.js";
 import { sha256, toHex } from "../../sdk/src/index.js";
 import { PROFILES } from "./profiles.js";
 
-const VERSION = "hosted-seller 0.3.1";
+const VERSION = "hosted-seller 0.3.2";
 const env = process.env;
 const NETWORK = env.NETWORK ?? "testnet";
 const CONTRACT = env.CONTRACT ?? "escrow.horkos.testnet";
@@ -120,7 +120,7 @@ const CATALOG: Record<string, { conditionUrl: string; data: () => Promise<unknow
   "5": { conditionUrl: SPOT_CONDITION, data: spotData },
 };
 const LISTINGS = (env.LISTINGS ?? env.LISTING_ID ?? "0,3,4,5").split(",").map((s) => s.trim()).filter(Boolean);
-const RPC_URLS = (env.RPC_URLS ?? "https://rpc.testnet.fastnear.com,https://rpc.testnet.near.org").split(",").map((s) => s.trim()).filter(Boolean);
+const RPC_URLS = (env.RPC_URLS ?? "https://rpc.testnet.fastnear.com,https://near-testnet.drpc.org,https://test.rpc.fastnear.com").split(",").map((s) => s.trim()).filter(Boolean);
 const POLL_MS = Number(env.POLL_MS ?? 15_000);
 /** Do not start a verification with less window than this: OutLayer took up to ~110 s on testnet. */
 const MIN_REMAINING_MS = Number(env.MIN_REMAINING_MS ?? 180_000);

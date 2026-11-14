@@ -62,6 +62,7 @@ export function steps() {
       h("h3", {}, st.title),
       h("p", {}, st.body),
       h("a", { class: "lq-proof", href: st.proof[0], ...(st.proof[0].startsWith("./") ? {} : { target: "_blank", rel: "noopener" }) }, "see it on testnet", h("span", { class: "visually-hidden" }, `: ${st.proof[1]}`), " ↗"),
+      st.tag === "Security" ? h("a", { class: "lq-proof lq-more", href: `${REPO}docs/threat-model.md`, target: "_blank", rel: "noopener" }, "threat model ↗") : null,
       i === 3 ? seal() : null,
     ),
   );

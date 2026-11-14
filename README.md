@@ -10,7 +10,7 @@
 
 **Why.** An agent's payment cannot be reversed: if it overspends, follows a prompt injection, or pays a seller who delivers nothing or garbage, the money is gone. Letting the buyer approve deliveries does not work either, because a buyer who already has the data can claim it was bad.
 
-**How to verify.** [JUDGES.md](JUDGES.md): five checks with expected output · [Verify it yourself in 5 minutes](#verify-it-yourself-in-5-minutes) · [TEE attestations](evidence/attestation/README.md) · [testnet transactions](docs/testnet.md) · [live site](https://horkos-escrow.netlify.app) and [Try page](https://horkos-escrow.netlify.app/try.html) · AI agents: [AGENTS.md](AGENTS.md).
+**How to verify.** [JUDGES.md](JUDGES.md): checks with expected output · [Verify it yourself in 5 minutes](#verify-it-yourself-in-5-minutes) · [TEE attestations](evidence/attestation/README.md) · [testnet transactions](docs/testnet.md) · [live site](https://horkos-escrow.netlify.app) and [Try page](https://horkos-escrow.netlify.app/try.html) · AI agents: [AGENTS.md](AGENTS.md).
 
 **We don't resolve disputes. We prevent them.** Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). Runs on NEAR testnet. License: MIT.
 
@@ -117,6 +117,17 @@ A second contract, `escrow-v2.horkos.testnet` (`contracts/horkos-v2`), makes the
 - The mandate still governs only who may create orders and for how much. Reasons and edge cases: ADR-036 in `docs/decisions.md`; methods: `docs/contract-api.md`.
 
 On testnet (14 Nov): the buyer [transferred receipt #0](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w) to another account, the buyer's agent's cancel [failed](https://testnet.nearblocks.io/txns/2UnvtpQUeiUFTSnMTaKQXjNF5QsZn3iJaAs5B1MBqc2B), and after the deadline [`refund_expired` paid the 5 tUSDC to the new holder](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti), who [withdrew it](https://testnet.nearblocks.io/txns/Az6pUNWs842yT5jqssVuskLNATFPnpjwpct9s6M9LAns). All steps: `docs/testnet.md`. Settlement after a transfer, on testnet (14 Nov, 16:02 UTC): the buyer [transferred receipt #1](https://testnet.nearblocks.io/txns/9DxmwUQEtLBacJTPCEEKjhpyGztESDimHwshLptrSf3J), the new holder [set its own key](https://testnet.nearblocks.io/txns/FoUpv6R7ZXAY7PMrG4ZYZUomUuEJHDUr8iqmys6aHCL6), the seller's delivery was verified in the TEE and the order [settled](https://testnet.nearblocks.io/txns/C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS), and the new holder opened the data while the buyer's original key could not (`demo/v2-transfer.ts`; v2 verifier build `4919f8e2…`, attestation in `evidence/attestation/`).
+
+## Sentinel: stop a suspicious order before delivery
+
+`sentinel/` is an optional, owner-run watcher (no contract change). It flags orders priced far from comparable listings, lookalike or new sellers, bursts and orders close to the mandate's limits, and, if the owner opts in, cancels a flagged order while it is still `Open` with the agent's own `cancel_order` permission. On testnet it [cancelled order 28](https://testnet.nearblocks.io/txns/6AX2QHqLLjwuJ8iMcWdktw9VPFyVo7f7TXmQ4ArQH4rj) (9 tUSDC for a feed listed at 5) 6 seconds after the agent [created it](https://testnet.nearblocks.io/txns/47QfpY1gGPUQKTDwwQER3n9XVVSK9fX1mNJUE1PKVxBv). Check it yourself, no keys:
+
+```bash
+cd sentinel && npm ci && npm test && npm run sentinel -- --config examples/readonly.json --once --from 28
+# Expected: 14 tests pass, then "order 28 (hk-judge-1114.testnet → horkos-seller-b.testnet, 9 tUSDC): BLOCK price_deviation: … +80% vs 5 tUSDC …"
+```
+
+What each threat is stopped by, and what is on-chain versus off-chain: [docs/threat-model.md](docs/threat-model.md).
 
 ## OutLayer on testnet: failed runs
 

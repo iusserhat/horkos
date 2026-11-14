@@ -1389,3 +1389,4 @@
   .ad-table td:first-child::before { content: "Without: "; font-weight: 700; }
   .ad-table td:last-child::before { content: "With: "; }
 }
+.lq-more { margin-left: var(--s3); }

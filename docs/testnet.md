@@ -300,6 +300,10 @@ A fresh seller account (`hk-friend-1114.testnet`) ran `gateway/` with `"contract
 
 The buyer key on this order was a placeholder, so nobody opens this delivery; the new holder opening the data is shown with order 1 above.
 
+### Sentinel cancels a suspicious order (14 Nov 2026, 16:37 to 16:38 UTC)
+
+Listing 6 by seller B: the NEAR/USD feed with listing 4's schema hash at 9 tUSDC ([`FAzAABet…`](https://testnet.nearblocks.io/txns/FAzAABetHuNKTxNL13fFCAads5BFKwA9b2ghw3NmjDQG)). `hk-judge-1114.testnet` added seller B to its mandate ([`DG9JLLxL…`](https://testnet.nearblocks.io/txns/DG9JLLxLGMDPps1KnyumSLMeeT2XUoVHoaMuDE9YixtG)). Sentinel (`sentinel/examples/testnet-demo.json`, auto-cancel) was watching. The agent created order 28 at 16:38:20 ([`47QfpY1g…`](https://testnet.nearblocks.io/txns/47QfpY1gGPUQKTDwwQER3n9XVVSK9fX1mNJUE1PKVxBv)); Sentinel logged `BLOCK price_deviation: order 28: 9 tUSDC is +80% vs 5 tUSDC (the median of 3 comparable listing(s))`, `WARN new_seller`, `WARN near_limit`, and cancelled it with the agent's function-call key at 16:38:26 ([`6AX2QHqL…`](https://testnet.nearblocks.io/txns/6AX2QHqLLjwuJ8iMcWdktw9VPFyVo7f7TXmQ4ArQH4rj)); the mandate balance went back to 20 tUSDC.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

@@ -16,6 +16,7 @@ Horkos: escrow for purchases made by AI agents on NEAR (testnet). An order locks
 | `contracts/mock-outlayer`, `contracts/integration-tests` | Test-only OutLayer stand-in; near-workspaces sandbox tests |
 | `verifier/` | Verifier (Rust, wasm32-wasip2) that runs in OutLayer's TEE |
 | `sdk/`, `mcp/`, `gateway/`, `demo/` | TypeScript SDK, MCP server (5 tools), seller gateway, demo sellers and scenarios |
+| `sentinel/` | Owner-side watcher: alerts on suspicious orders, opt-in cancel of `Open` ones (threat model: `docs/threat-model.md`) |
 | `web/` | Website (https://horkos-escrow.netlify.app) |
 | `docs/` | Architecture, contract API, decisions (ADRs), security, testnet evidence |
 | `evidence/attestation/` | `outlayer-verify` output and offline bundles for settled orders 9, 15, 18, 26 (v1) and order 1 (v2) |
@@ -29,6 +30,7 @@ cd .. && contracts/scripts/test-sandbox.sh                                  # sa
 (cd sdk && npm ci && npm test && npm run test:verifier)
 (cd verifier && cargo test)
 (cd gateway && npm ci && npm test && npm run test:sandbox)
+(cd sentinel && npm ci && npm test)
 (cd demo && npm ci && npm run sandbox)                                      # demos 1-3 on a local node, mock OutLayer, real verifier
 scripts/reproduce-verifier.sh --match-paths                                 # rebuild the verifier, compare with the on-chain hash
 ```

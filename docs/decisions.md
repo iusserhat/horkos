@@ -112,10 +112,11 @@ English version of [tr/DECISIONS.md](tr/DECISIONS.md), in ADR form (context / de
 - **Decision:** Exact version pin.
 - **Consequences:** Fall back to 5.29.1 only if unit-test mocks break, with a note here.
 
-### ADR-023: Receipts are non-transferable
+### ADR-023: Receipts are non-transferable (v1)
+- **Status:** Superseded for v2 by ADR-036; still in force for v1 (`escrow.horkos.testnet`).
 - **Context:** The receipt owner is the escrow's buyer and the target of the sealed key; transfers would require redesigning refunds and key flow.
 - **Decision:** `nft_transfer` and `nft_transfer_call` panic with "Receipts are non-transferable in this version".
-- **Consequences:** Transferable receipts on the roadmap.
+- **Consequences:** Transferable receipts came in v2, a separate contract (ADR-036).
 
 ### ADR-024: Verification through OutLayer from `submit_delivery`
 - **Context:** OutLayer returns its result to the calling contract's callback; an external verifier account calling `settle` would be an extra trust point.

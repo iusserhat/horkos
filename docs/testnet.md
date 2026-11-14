@@ -181,10 +181,26 @@ The Try page agent track was repeated with three fresh accounts (`hk-try1/2/3-12
 | 19 | 0.2.3 | Not settled: 3 OutLayer timeouts; refunded | — | `A89AnwCQ8zc7LvrBwL4YypwbGgFPb9xho2WyszXLtuUV`, `3bRD5PpqB1xgEdRbVFduiSy9omSivy9Y7N3eeDiSa4gD`, `Gz8aE3UZhUtU96MXtWKnS2e4vikD8aToWYNZ3eavgfz`, `MWy6dLdbakRFwnkjtouQ5E46ep9yXjsUYqHS7qy7BhK`, `EyLLrg62mZG87LiU8B4hV3YxSHRcx5n86NA3f4auGKP6` |
 | 20 | 0.2.3 | Not settled: 3 OutLayer timeouts; refunded | — | `91uWS8DamZJZsoaaAh22y1DXRNRqaoArG2hMiVur48V8`, `D4iXLnsvjF7AUnKenQ7wEC8FY88NjHBuKJPyYi6Vfb2G`, `DAN827NEiQ98415Dazo8fyuim6k3T8FfWQ19cNGqhLMu`, `AmSivFBkPncAV4a7cdJTeddyEgbTidqmctgSU89Fvp9r`, `D1cuRmrBDzJDioGYKXnqRHwHg1kpgq4Kn9zHp9XnC7Ji` |
 
-2 of 7 settled; no buyer lost money (every other order was refunded in full to its mandate budget). Two causes, both measured:
+2 of 7 settled in this first series; no buyer lost money (every other order was refunded in full to its mandate budget). Two causes, both measured:
 
 1. **CoinGecko rate-limits Render's shared IP** (HTTP 429, seen in `/health` `last_problem`). Fixed in 0.2.2 / 0.2.3: one call per minute, last good answer reused for up to 10 minutes, fallback to Coinbase's public NEAR-USD API in the same data shape (checked against both listing schemas).
 2. **OutLayer did not resolve the verification within NEAR's yield limit.** Every failed run (orders 13, 14, 17, 19, 20) ended exactly 201 blocks (~106 to 121 s) after `request_execution`, with OutLayer's log "Execution promise failed: Failed" and a 0.001 NEAR charge; `on_verified` then moved the order to `Delivered`. Successful runs took 25 to 70 s. A direct `{"cmd":"pubkey"}` run of the same verifier succeeded in 45 blocks (tx `DzCN2kgbQ9Yv8oVaJU4Px8hUWDqVHWEXVe2SQNE64i22`), and other projects' OutLayer runs succeeded at the same time, so the WASM, its hash and the secret are fine; the slow part is OutLayer resolving our runs, which fetch three files from FastFS. The hosted seller retries with backoff until 150 s before the deadline (0.2.0+), which fits about three attempts in a 10-minute window.
+
+### 30-minute listings (14 Nov 2026, 11:39 to 12:12 UTC)
+
+Listings 4 and 5 copy listings 0 and 3 (same seller, price, condition hash and verifier) with a 30-minute delivery window: `register_listing` txs `tz5aBtGp8eJyq1AFxFMQAAxyjXDeiRn6fafNUeMaH9B` (listing 4) and `9DwXCNNiRgzTntiZtTKSGEB3XayXEqNZZQUx79Eok4eM` (listing 5). The hosted seller (0.3.x) retries a failed verification with backoff until 3 minutes before the deadline and logs each attempt's OutLayer request id, outcome and duration on `/health`.
+
+Five orders on listing 4 through the MCP server, against the Render-hosted seller, placed 20 s apart:
+
+| Order | Owner | Attempts | Result | `refund_expired` tx |
+| --- | --- | --- | --- | --- |
+| 21 | `hk-try1-1252.testnet` | 9 | Not settled, refunded | `2An5ALXnbBDHfR8EPNiLvUQYYTCxvtrkyVG7HG3oHh5n` |
+| 22 | `hk-try2-1252.testnet` | 9 | Not settled, refunded | `GrcL9FgEDn9F9J1yGR4m2i2REThRVN6rLEaK28wvsFKT` |
+| 23 | `hk-try3-1252.testnet` | 10 | Not settled, refunded | `9AaM8X56HndgbfHSUqF7vCwh7kCR8iUMR2JKCQ9tzDvJ` |
+| 24 | `hk-try1-1252.testnet` | 11 | Not settled, refunded | `AQF4mtwQuitt7ZzYeUvG9VEcoeWp59eVkayVhqeS4oi` |
+| 25 | `hk-try2-1252.testnet` | 10 | Not settled, refunded | `4HvUhQduw1WUTJwkQ9oLzHdYd9rFx5HuHzKdoGF1DXxC` |
+
+0 of 5 settled: all 49 verification attempts ended at OutLayer's 201-block limit (each `submit_delivery` took 123 to 127 s to final; OutLayer request ids 44806 to 44865 and later). The verifier itself is not the bottleneck: OutLayer's `execution_completed` event for the successful runs reports about 35 M instructions and 4.9 to 6.4 s (`time_ms`), against our limits of 10^10 instructions, 128 MB and 60 s. The verifier is referenced as a pre-built `wasm32-wasip2` WASM by URL and sha256 (`WasmUrl`), not compiled from source per run. Open question: the verifier's HTTP fetches (FastFS manifest, condition, ciphertext) have no timeout; if a fetch hangs inside OutLayer's worker the run never completes. A draft question to the OutLayer team is in `docs/internal/outlayer-timeouts.md`.
 
 Order 13 (gateway, 09:10 UTC) had the same OutLayer cause: the gateway was running, `submit_delivery` was sent 11 s after funding (tx `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`), OutLayer request 43883 ended at 201 blocks with "Execution promise failed", `on_verified` ran and set `Delivered`.
 

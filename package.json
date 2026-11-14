@@ -1,0 +1,11 @@
+{
+  "name": "horkos",
+  "private": true,
+  "description": "Horkos: escrow for AI agent purchases on NEAR. Judge commands.",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "judge": "bash scripts/judge.sh",
+    "judge:testnet": "bash scripts/judge-testnet.sh"
+  }
+}

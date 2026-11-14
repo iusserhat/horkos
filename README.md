@@ -10,13 +10,24 @@
 
 **Why.** An agent's payment cannot be reversed: if it overspends, follows a prompt injection, or pays a seller who delivers nothing or garbage, the money is gone. Letting the buyer approve deliveries does not work either, because a buyer who already has the data can claim it was bad.
 
-**How to verify.** [JUDGES.md](JUDGES.md): checks with expected output · [Verify it yourself in 5 minutes](#verify-it-yourself-in-5-minutes) · [TEE attestations](evidence/attestation/README.md) · [testnet transactions](docs/testnet.md) · [live site](https://horkos-escrow.netlify.app) and [Try page](https://horkos-escrow.netlify.app/try.html) · AI agents: [AGENTS.md](AGENTS.md).
+**How to verify.** `npm run judge` · [JUDGES.md](JUDGES.md): checks with expected output · [Verify it yourself in 5 minutes](#verify-it-yourself-in-5-minutes) · [TEE attestations](evidence/attestation/README.md) · [testnet transactions](docs/testnet.md) · [live site](https://horkos-escrow.netlify.app) and [Try page](https://horkos-escrow.netlify.app/try.html) · AI agents: [AGENTS.md](AGENTS.md).
 
 **We don't resolve disputes. We prevent them.** Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). Runs on NEAR testnet. License: MIT.
 
 ## How it works
 
 Horkos puts the owner's limits (budget, per-order cap, allowed sellers, expiry) in the escrow contract itself, so a compromised agent cannot buy outside them. The seller delivers encrypted data, and a verifier running in NEAR OutLayer's TEE checks it against the listing's condition (a JSON Schema) before the buyer gets the key and the seller gets paid. If no valid delivery is verified before the deadline, anyone can trigger the refund.
+
+## One command for judges
+
+```bash
+npm run judge                # contract unit, attack and invariant tests, verifier, Sentinel, gateway, type checks,
+                             # local-node integration tests and the sandbox demo, then a PASS/FAIL table
+JUDGE_SKIP_SANDBOX=1 npm run judge   # without the local-node steps (no cargo-near / near-sandbox needed)
+npm run judge:testnet        # optional, reads testnet: verifier hashes vs chain, Sentinel on order 28, independent buyers
+```
+
+No keys. Network only to download dependencies on the first run. Tested on Ubuntu 22.04 (WSL) with Node 20 (`.nvmrc`), Rust 1.99.1 with the wasm32 targets (`rust-toolchain.toml`, installed by rustup on first use) and cargo-near 0.22.0: 10 of 10 PASS in 6.5 minutes (the local-node steps take about 5 of them; on Linux with glibc older than 2.39 the node runs in Docker).
 
 ## Verify it yourself in 5 minutes
 

@@ -106,6 +106,14 @@ You should see `"status": "Settled"` for order 0, `"status": "Refunded"` for ord
 
 The server (`mcp/`, stdio) gives an agent five tools: `horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`. It signs as the agent, so it needs the agent's function-call key (the team has it; it can only call `create_order` / `cancel_order` on the escrow). You can point it at your own deployment with `HORKOS_AGENT`, `HORKOS_OWNER`, `HORKOS_CONTRACT` and `HORKOS_AGENT_KEY` (see the header of `mcp/server.ts`).
 
+On npm: [`horkos-mcp`](https://www.npmjs.com/package/horkos-mcp), no clone needed:
+
+```bash
+claude mcp add horkos -e HORKOS_AGENT=<your-agent>.testnet -e HORKOS_OWNER=<you>.testnet -- npx -y horkos-mcp
+```
+
+From source (advanced):
+
 ```bash
 cd mcp && npm ci
 # Claude Code:

@@ -7,11 +7,13 @@
 | Track | What to look at |
 | --- | --- |
 | NFTs | Every order is a NEP-171 receipt (`contracts/horkos`). On v2 (`contracts/horkos-v2`, `escrow-v2.horkos.testnet`) the receipt is the claim: it can be transferred while the order is open, and the refund follows the holder (ADR-036 in `docs/decisions.md`). |
-| Agents | An on-chain mandate limits what an agent can buy; an MCP server (`mcp/`) lets Claude or any MCP agent search, order and open deliveries. |
+| Agents | An on-chain mandate limits what an agent can buy; an MCP server ([`npx -y horkos-mcp`](https://www.npmjs.com/package/horkos-mcp), source in `mcp/`) lets Claude or any MCP agent search, order and open deliveries. |
 | Real world | Sellers deliver live data (seller A: NEAR/USD prices from CoinGecko, Coinbase as fallback); the gateway (`gateway/`) turns an existing JSON API into a seller by configuration. |
 | Security | Fair exchange: encrypted delivery, checked in a TEE before payment; limits enforced by the contract; per-order verifier pinning; Sentinel (`sentinel/`) for owner-side alerts and cancels; [threat model](docs/threat-model.md). |
 
 ## Checks: run this → you should see
+
+0. **Everything local in one command.** `npm run judge` → a table with 10 of 10 PASS (about 6.5 minutes; `JUDGE_SKIP_SANDBOX=1` skips the local-node steps).
 
 1. **CI.** Open the badge at the top of the README (Actions → CI).
    → Latest run on `main` green: contract unit and sandbox tests, verifier tests, TypeScript, sandbox demo, verifier hash checks.

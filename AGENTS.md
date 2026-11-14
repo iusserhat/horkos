@@ -15,7 +15,7 @@ Horkos: escrow for purchases made by AI agents on NEAR (testnet). An order locks
 | `contracts/test-token`, `contracts/faucet` | tUSDC (`tusdc.horkos.testnet`) and its faucet (`faucet.horkos.testnet`) |
 | `contracts/mock-outlayer`, `contracts/integration-tests` | Test-only OutLayer stand-in; near-workspaces sandbox tests |
 | `verifier/` | Verifier (Rust, wasm32-wasip2) that runs in OutLayer's TEE |
-| `sdk/`, `mcp/`, `gateway/`, `demo/` | TypeScript SDK, MCP server (5 tools), seller gateway, demo sellers and scenarios |
+| `sdk/`, `mcp/`, `gateway/`, `demo/` | TypeScript SDK, MCP server (5 tools; on npm as `horkos-mcp`, run with `npx -y horkos-mcp`), seller gateway, demo sellers and scenarios |
 | `sentinel/` | Owner-side watcher: alerts on suspicious orders, opt-in cancel of `Open` ones (threat model: `docs/threat-model.md`) |
 | `web/` | Website (https://horkos-escrow.netlify.app) |
 | `docs/` | Architecture, contract API, decisions (ADRs), security, testnet evidence |
@@ -23,6 +23,8 @@ Horkos: escrow for purchases made by AI agents on NEAR (testnet). An order locks
 | `scripts/` | `reproduce-verifier.sh`, `verify-deployed.sh` |
 
 ## Run without keys or accounts
+
+`npm run judge` from the repo root runs the list below and prints a PASS/FAIL table.
 
 ```bash
 cd contracts && cargo test -p horkos -p horkos-v2 -p test-token -p faucet   # unit tests

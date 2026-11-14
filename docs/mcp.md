@@ -62,11 +62,11 @@ Input: `order_id`. Cancels an `Open` order; funds go back to the budget. Otherwi
 
 ## Package and directory listings
 
-`mcp/` is ready to publish as the npm package `horkos-mcp` (bundled with esbuild into `dist/horkos-mcp.mjs`; `npm pack` → 3 files; checked on 14 Nov 2026 by installing the tarball in an empty folder and running `tools/list` and `horkos_search_listings` against testnet). Not published yet: publishing needs the owner's accounts.
+`mcp/` is published on npm as [`horkos-mcp`](https://www.npmjs.com/package/horkos-mcp) 0.1.0 (bundled with esbuild into `dist/horkos-mcp.mjs`, 3 files). Checked on 14 Nov 2026: `npx -y horkos-mcp` in an empty folder answers `tools/list` with the five tools. Official MCP Registry, Smithery, Glama and mcp.so: not submitted yet (they need the owner's logins; steps below).
 
 | Directory | File in this repo | Owner's steps |
 | --- | --- | --- |
-| npm (needed by the official registry and Smithery) | `mcp/package.json` (`bin`, `files`, `mcpName: io.github.iusserhat/horkos`) | `cd mcp && npm ci && npm login && npm publish` (free; builds on `prepack`) |
+| npm | `mcp/package.json` (`bin`, `files`, `mcpName: io.github.iusserhat/horkos`) | Published: `horkos-mcp@0.1.0` |
 | Official MCP Registry | `mcp/server.json` (validated against the 2025-12-11 schema) | Install `mcp-publisher` (see the registry quickstart), then `cd mcp && mcp-publisher login github && mcp-publisher publish` |
 | Smithery | `mcp/smithery.yaml` (stdio, `npx -y horkos-mcp`) | smithery.ai → sign in with GitHub → add server → repository `iusserhat/horkos`, base directory `mcp` (the repository must be public) |
 | Glama | `glama.json` (maintainer `iusserhat`) | glama.ai/mcp/servers → "Add server" → repository URL (public) |

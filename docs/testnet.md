@@ -219,6 +219,8 @@ OutLayer's worker was resolving other accounts' requests within seconds again at
 
 Second check the same afternoon (15:59 UTC, owner `hk-try1-1252.testnet`, same path): order 27 on listing 4, `submit_delivery` → `on_verified` **Settled** in 52 s, 77 s from the agent's order to the opened data; tx `64SNte6pJwu3imJfRd6Y6XveKsTz73Ez1JUM3xvwsc8F`.
 
+Scheduled check at 23:00 TSİ (20:00 UTC, owner `hk-judge-1114.testnet`, listing 4): order 29 ([`2d9iryFB…`](https://testnet.nearblocks.io/txns/2d9iryFBZSBNBGu3jV9UjzVnGu3dmnkF4acPVm7RWDo1)) stayed `Open` for 13 minutes because the hosted seller's data source had nothing newer than 10 minutes (`/health`: "NEAR/USD rows: no data newer than 10 min", after CoinGecko rate limits; the Render service had also restarted on pushes to main). Attempts 1 to 3 returned to `Delivered` without a valid result; attempt 4 ([`5uLsCGQP…`](https://testnet.nearblocks.io/txns/5uLsCGQPbWYE3nyKqKLAyCsqSa5bkq34iHQ7wuJWmP9h)) **settled** at about 20:22 UTC, and the buyer opened the data. 22 minutes from order to data, inside the 30-minute window.
+
 ### OutLayer testnet diagnosis (14 Nov 2026, 12:07 to 12:35 UTC)
 
 - **Other projects:** 39 of 39 `request_execution` runs by other accounts (`tredio-oracle.testnet`, `zyx-dev.testnet`, `enclave.parry.testnet`; request ids 45008 to 45134) ended at exactly 201 blocks (112 to 121 s) with "Execution promise failed".

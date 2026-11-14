@@ -1,16 +1,46 @@
 {
   "name": "horkos-mcp",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "description": "MCP server (stdio) that lets an AI agent buy through Horkos on NEAR testnet",
+  "description": "MCP server (stdio) that lets an AI agent buy data through Horkos escrow on NEAR testnet: the price is locked, a TEE checks the delivery, the seller is paid only if it passes",
   "scripts": {
     "start": "tsx server.ts",
+    "build": "esbuild server.ts --bundle --platform=node --format=esm --packages=external --target=node20 --banner:js='#!/usr/bin/env node' --outfile=dist/horkos-mcp.mjs && cp catalog.testnet.json dist/",
+    "prepack": "npm run build",
     "typecheck": "../sdk/node_modules/.bin/tsc -p tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
-    "tsx": "4.23.15",
+    "libsodium-wrappers": "0.8.4",
+    "near-api-js": "7.3.1",
     "zod": "3.25.76"
+  },
+  "license": "MIT",
+  "mcpName": "io.github.iusserhat/horkos",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iusserhat/horkos.git",
+    "directory": "mcp"
+  },
+  "homepage": "https://horkos-escrow.netlify.app",
+  "keywords": [
+    "mcp",
+    "near",
+    "escrow",
+    "ai-agents",
+    "tee"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "horkos-mcp": "dist/horkos-mcp.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "tsx": "4.23.15"
   }
 }

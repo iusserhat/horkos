@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.iusserhat/horkos",
+  "title": "Horkos",
+  "description": "Escrow for AI agent purchases on NEAR testnet: pay only when a TEE verifies the delivery.",
+  "repository": {
+    "url": "https://github.com/iusserhat/horkos",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "websiteUrl": "https://horkos-escrow.netlify.app",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "horkos-mcp",
+      "version": "0.1.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        { "name": "HORKOS_AGENT", "description": "Agent account with a function-call key for create_order and cancel_order", "isRequired": true, "format": "string" },
+        { "name": "HORKOS_OWNER", "description": "Mandate owner whose budget the agent spends", "isRequired": true, "format": "string" },
+        { "name": "HORKOS_AGENT_KEY", "description": "ed25519 function-call key of the agent; if unset, read from ~/.near-credentials/testnet/<agent>/", "isRequired": false, "isSecret": true, "format": "string" },
+        { "name": "HORKOS_CONTRACT", "description": "Escrow contract (default escrow.horkos.testnet)", "isRequired": false, "format": "string" },
+        { "name": "NEAR_RPC_URL", "description": "NEAR testnet RPC (default https://test.rpc.fastnear.com)", "isRequired": false, "format": "string" }
+      ]
+    }
+  ]
+}

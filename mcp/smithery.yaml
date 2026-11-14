@@ -1,0 +1,29 @@
+# Smithery: local (stdio) server, started with the npm package.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required: [agent, owner]
+    properties:
+      agent:
+        type: string
+        description: Agent account with a function-call key for create_order and cancel_order (NEAR testnet)
+      owner:
+        type: string
+        description: Mandate owner whose budget the agent spends
+      agentKey:
+        type: string
+        description: ed25519 function-call key of the agent (optional; otherwise read from ~/.near-credentials/testnet/<agent>/)
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "horkos-mcp"],
+      env: {
+        HORKOS_AGENT: config.agent,
+        HORKOS_OWNER: config.owner,
+        ...(config.agentKey ? { HORKOS_AGENT_KEY: config.agentKey } : {}),
+      },
+    })
+  exampleConfig:
+    agent: your-name-agent.testnet
+    owner: your-name.testnet

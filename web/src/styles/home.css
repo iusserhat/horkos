@@ -1331,3 +1331,61 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .lq-path { stroke: var(--text); }
 }
+
+/* ===================== what Horkos adds */
+.ad-cards {
+  list-style: none;
+  margin: var(--s6) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s5);
+}
+.ad-card {
+  padding: var(--s5);
+  color: var(--on-pastel);
+}
+.ad-card h3 { font-size: 1.3rem; color: var(--on-pastel); }
+.ad-card ul { margin: var(--s3) 0 0; padding-left: 1.1em; }
+.ad-card li + li { margin-top: var(--s1); }
+.ad-card p, .ad-card li { color: #2c3152; font-size: var(--fs-small); }
+.ad-card p { margin-top: var(--s3); }
+.ad-sky { background: var(--sky); }
+.ad-mint { background: var(--mint); }
+.ad-lilac { background: var(--lilac); }
+.ad-table-wrap {
+  margin-top: var(--s6);
+  padding: var(--s2) var(--s4);
+  overflow-x: auto;
+}
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.ad-table th {
+  text-align: left;
+  padding: var(--s3) var(--s2);
+  font: 700 1rem var(--font-display);
+  border-bottom: 2.5px solid var(--ink);
+}
+.ad-table td {
+  padding: var(--s3) var(--s2);
+  border-bottom: 1.5px solid var(--hair);
+  vertical-align: top;
+  width: 50%;
+}
+.ad-table tr:last-child td { border-bottom: 0; }
+.ad-table td:first-child { color: var(--muted); }
+.ad-table td:last-child { font-weight: 700; }
+@media (max-width: 860px) {
+  .ad-cards { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .ad-table thead { display: none; }
+  .ad-table tr { display: block; padding: var(--s2) 0; border-bottom: 1.5px solid var(--hair); }
+  .ad-table tr:last-child { border-bottom: 0; }
+  .ad-table td { display: block; width: auto; border: 0; padding: 2px var(--s1); }
+  .ad-table td:first-child::before { content: "Without: "; font-weight: 700; }
+  .ad-table td:last-child::before { content: "With: "; }
+}

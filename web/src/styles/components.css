@@ -52,7 +52,9 @@
 .theme-toggle {
   margin-left: var(--s1);
 }
-@media (max-width: 760px) {
+/* Below ~1040px the links, CTA and theme button do not fit on one row: the nav
+   moves to its own row (scrollable on phones). */
+@media (max-width: 1040px) {
   .site-header .wrap {
     flex-wrap: wrap;
     gap: var(--s3);

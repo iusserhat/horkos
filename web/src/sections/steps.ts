@@ -98,35 +98,41 @@ export function steps() {
       const r = li.getBoundingClientRect();
       return { l: r.left - box.left, r: r.right - box.left, t: r.top - box.top, b: r.bottom - box.top };
     });
+    // One continuous wavy path through all four bubbles.
     let d = "";
     if (column) {
-      // Down the left gutter, a gentle wave past each bubble.
       const x = 18;
-      d = `M ${x} ${rects[0].t + 24}`;
+      d = `M ${x} ${rects[0].t + 16}`;
       for (let i = 1; i < rects.length; i++) {
-        const y0 = rects[i - 1].t + 24;
-        const y1 = rects[i].t + 24;
+        const y0 = rects[i - 1].t + 16;
+        const y1 = rects[i].t + 16;
         const amp = i % 2 ? 14 : -14;
         d += ` C ${x + amp} ${y0 + (y1 - y0) / 3}, ${x - amp} ${y0 + (2 * (y1 - y0)) / 3}, ${x} ${y1}`;
       }
-      d += ` L ${x} ${rects[rects.length - 1].t + 60}`;
+      const last = rects[rects.length - 1];
+      d += ` C ${x + 14} ${last.t + 60}, ${x - 14} ${last.b - 60}, ${x} ${last.b - 24}`;
     } else {
-      // From each bubble's side to the next one, looping through the gap.
-      for (let i = 0; i < rects.length - 1; i++) {
-        const a = rects[i];
-        const b = rects[i + 1];
-        const sameRow = b.l > a.l;
-        const ay = (a.t + a.b) / 2;
-        const by = (b.t + b.b) / 2;
-        if (sameRow) {
-          const gap = b.l - a.r;
-          d += `${i ? " " : ""}M ${a.r} ${ay} C ${a.r + gap * 0.9} ${ay}, ${b.l - gap * 0.9} ${by}, ${b.l} ${by}`;
-        } else {
-          // 2×2: from the bottom of bubble 2 back to the top of bubble 3.
-          const ax = (a.l + a.r) / 2;
-          const bx = (b.l + b.r) / 2;
-          d += ` M ${ax} ${a.b} C ${ax} ${a.b + 70}, ${bx} ${b.t - 70}, ${bx} ${b.t}`;
+      const c = rects.map((r) => ({ x: (r.l + r.r) / 2, y: (r.t + r.b) / 2 }));
+      const oneRow = rects.every((r) => r.t < rects[0].b);
+      let pts: { x: number; y: number }[];
+      if (oneRow) {
+        // Weave through the gaps: alternately high and low, so the line is seen crossing each gap.
+        const mid = rects.reduce((m, r) => m + (r.t + r.b) / 2, 0) / rects.length;
+        const swing = Math.min(110, (rects[0].b - rects[0].t) / 2.6);
+        pts = [{ x: rects[0].l - 28, y: mid + swing * 0.6 }];
+        for (let i = 0; i < rects.length - 1; i++) {
+          pts.push({ x: (rects[i].r + rects[i + 1].l) / 2, y: mid + (i % 2 ? swing : -swing) });
         }
+        pts.push({ x: rects[rects.length - 1].r + 28, y: mid - swing * 0.6 });
+      } else {
+        pts = [{ x: rects[0].l - 20, y: c[0].y }, ...c, { x: rects[rects.length - 1].r + 20, y: c[c.length - 1].y }];
+      }
+      d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1];
+        const b = pts[i];
+        const k = (b.x - a.x) / 2;
+        d += oneRow || Math.abs(b.y - a.y) < 40 ? ` C ${a.x + k} ${a.y}, ${b.x - k} ${b.y}, ${b.x} ${b.y}` : ` C ${a.x} ${a.y + 120}, ${b.x} ${b.y - 120}, ${b.x} ${b.y}`;
       }
     }
     path.setAttribute("d", d);

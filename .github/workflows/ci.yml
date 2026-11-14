@@ -83,20 +83,6 @@ jobs:
         working-directory: contracts
       - name: Build contracts + sandbox integration tests
         run: contracts/scripts/test-sandbox.sh
-      - name: Compare built contracts with the code deployed on testnet
-        # Informational: matches on the original machine and in a fresh clone there,
-        # but on GitHub's runner the code sections differ (not only paths); not solved yet.
-        continue-on-error: true
-        # Rebuilds with the original CARGO_HOME path (read from the deployed code),
-        # because rustc embeds dependency source paths in the wasm.
-        run: VERIFY_TARGET_DIR="$RUNNER_TEMP/verify-target" scripts/verify-deployed.sh --match-paths
-      - name: Keep the rebuilt contract wasm for comparison
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: contracts-wasm
-          path: ${{ runner.temp }}/verify-target/near/*/*.wasm
-          if-no-files-found: ignore
       - uses: actions/setup-node@v4
         with:
           node-version: 20

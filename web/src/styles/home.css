@@ -285,7 +285,8 @@
 .lq-flow > li:nth-child(even) { margin-top: var(--s8); }
 .lq-bubble {
   --tint: 217, 227, 255;
-  --glass: 0.45;
+  --glass: 0.3;
+  --tint-a: 0.6;
   position: relative;
   padding: var(--s6) var(--s5) var(--s5);
   border: 2px solid var(--ink);
@@ -293,8 +294,8 @@
   color: var(--on-pastel);
   background-color: rgba(255, 255, 255, var(--glass));
   background-image:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 38%),
-    linear-gradient(rgba(var(--tint), 0.5), rgba(var(--tint), 0.5));
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.18) 32%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(rgba(var(--tint), var(--tint-a)), rgba(var(--tint), var(--tint-a)));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 30px rgba(29, 33, 64, 0.12);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   backdrop-filter: blur(14px) saturate(140%);
@@ -317,6 +318,7 @@
   border-radius: 50%;
   background: var(--ink);
   color: #fff;
+  box-shadow: 0 0 0 2px #f5f3ff;
   font: 700 1rem var(--font-display);
 }
 .lq-tag {
@@ -362,11 +364,11 @@
 @media (prefers-reduced-motion: reduce) {
   .lq-done .lq-seal { transition: none; }
 }
-:root[data-theme="dark"] .lq-bubble { --glass: 0.8; }
-:root[data-theme="dark"] .lq-blob { opacity: 0.35; }
+:root[data-theme="dark"] .lq-bubble { --glass: 0.2; --tint-a: 0.55; }
+:root[data-theme="dark"] .lq-blob { opacity: 0.5; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .lq-bubble { --glass: 0.8; }
-  :root:not([data-theme="light"]) .lq-blob { opacity: 0.35; }
+  :root:not([data-theme="light"]) .lq-bubble { --glass: 0.2; --tint-a: 0.55; }
+  :root:not([data-theme="light"]) .lq-blob { opacity: 0.5; }
 }
 @media (max-width: 1000px) {
   .lq-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }

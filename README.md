@@ -79,7 +79,7 @@ scripts/verify-deployed.sh --match-paths
 # Expected: MATCH for escrow.horkos.testnet, escrow-v2.horkos.testnet, tusdc.horkos.testnet, faucet.horkos.testnet
 ```
 
-CI runs steps 2 and 4 on every push. Step 2 (v1 and v2 verifier) matches on GitHub's runner. Step 4 matches on the machine that deployed and in a fresh clone there, but on GitHub's runner the contracts' code sections differ (not only embedded paths; cause not found yet, likely the toolchain or cargo-near binary), so CI reports it without failing. Orders 15 and 18 and what this does and does not prove: [evidence/attestation/](evidence/attestation/README.md). In short, the contract itself does not check the attestation; it trusts OutLayer's operator, and these checks are after the fact.
+CI runs step 2 (v1 and v2 verifier) on every push. Step 4 is a local check: it matched on the deploying machine and in a fresh clone there; GitHub's runner compiles the contracts to different bytes, so it is not part of CI. Orders 15 and 18 and what this does and does not prove: [evidence/attestation/](evidence/attestation/README.md). In short, the contract itself does not check the attestation; it trusts OutLayer's operator, and these checks are after the fact.
 
 ## Quick start
 

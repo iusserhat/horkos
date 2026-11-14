@@ -33,4 +33,4 @@ Start with JUDGES.md and CLAIMS.md. Run `npm run judge` in the repository (no ke
 - [Architecture](https://github.com/iusserhat/horkos/blob/main/docs/architecture.md)
 - [Contract API](https://github.com/iusserhat/horkos/blob/main/docs/contract-api.md)
 - [Decisions (ADRs)](https://github.com/iusserhat/horkos/blob/main/docs/decisions.md)
-- [MCP server on npm](https://www.npmjs.com/package/horkos-mcp)
+- [MCP server on npm](https://www.npmjs.com/package/horkos-mcp), [MCP Registry entry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.iusserhat/horkos)

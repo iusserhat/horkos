@@ -42,7 +42,7 @@ export function adds() {
           h("tbody", {}, ...ROWS.map(([a, b]) => h("tr", {}, h("td", {}, a), h("td", {}, b)))),
         ),
       ),
-      h("p", { class: "ad-npm" }, "MCP server on npm: ", h("code", {}, "npx -y horkos-mcp"), " · ", h("a", { href: "https://www.npmjs.com/package/horkos-mcp", target: "_blank", rel: "noopener" }, "horkos-mcp on npm ↗")),
+      h("p", { class: "ad-npm" }, "MCP server on npm: ", h("code", {}, "npx -y horkos-mcp"), " · ", h("a", { href: "https://www.npmjs.com/package/horkos-mcp", target: "_blank", rel: "noopener" }, "horkos-mcp on npm ↗"), " · ", h("a", { href: "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.iusserhat/horkos", target: "_blank", rel: "noopener" }, "MCP Registry ↗")),
     ),
   );
 }

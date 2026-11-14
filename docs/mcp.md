@@ -62,12 +62,12 @@ Input: `order_id`. Cancels an `Open` order; funds go back to the budget. Otherwi
 
 ## Package and directory listings
 
-`mcp/` is published on npm as [`horkos-mcp`](https://www.npmjs.com/package/horkos-mcp) 0.1.0 (bundled with esbuild into `dist/horkos-mcp.mjs`, 3 files). Checked on 14 Nov 2026: `npx -y horkos-mcp` in an empty folder answers `tools/list` with the five tools. Official MCP Registry, Smithery, Glama and mcp.so: not submitted yet (they need the owner's logins; steps below).
+`mcp/` is published on npm as [`horkos-mcp`](https://www.npmjs.com/package/horkos-mcp) 0.1.0 (bundled with esbuild into `dist/horkos-mcp.mjs`, 3 files). Checked on 14 Nov 2026: `npx -y horkos-mcp` in an empty folder answers `tools/list` with the five tools. Official MCP Registry: published as `io.github.iusserhat/horkos` 0.1.0, status active ([registry entry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.iusserhat/horkos)). Smithery, Glama and mcp.so: not submitted yet (they need the owner's logins; steps below).
 
 | Directory | File in this repo | Owner's steps |
 | --- | --- | --- |
 | npm | `mcp/package.json` (`bin`, `files`, `mcpName: io.github.iusserhat/horkos`) | Published: `horkos-mcp@0.1.0` |
-| Official MCP Registry | `mcp/server.json` (validated against the 2025-12-11 schema) | Install `mcp-publisher` (see the registry quickstart), then `cd mcp && mcp-publisher login github && mcp-publisher publish` |
+| Official MCP Registry | `mcp/server.json` (validated against the 2025-12-11 schema) | Published 14 Nov 2026, 20:18 UTC: [`io.github.iusserhat/horkos`](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.iusserhat/horkos) |
 | Smithery | `mcp/smithery.yaml` (stdio, `npx -y horkos-mcp`) | smithery.ai → sign in with GitHub → add server → repository `iusserhat/horkos`, base directory `mcp` (the repository must be public) |
 | Glama | `glama.json` (maintainer `iusserhat`) | glama.ai/mcp/servers → "Add server" → repository URL (public) |
 | mcp.so | none | mcp.so → "Submit" → repository URL |

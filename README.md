@@ -4,6 +4,8 @@
 
 [![CI](https://github.com/iusserhat/horkos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iusserhat/horkos/actions/workflows/ci.yml)
 
+**Judges:** start at [JUDGES.md](JUDGES.md) (tracks and five checks with expected output).
+
 <p align="center"><em>Verify-then-pay for AI agents, native to NEAR.</em></p>
 
 Horkos is an escrow contract on NEAR for purchases made by AI agents: each order locks its price in the contract as an NFT receipt, and the seller is paid only if the owner's spending mandate allows the order and a verifier confirms the delivery meets a machine-checkable condition; otherwise the money returns after the deadline.

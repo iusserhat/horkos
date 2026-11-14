@@ -25,7 +25,9 @@ import { mandatesView } from "../sections/explorer/mandates";
 import { verifiersView } from "../sections/explorer/verifiers";
 import { listingsView } from "../sections/explorer/listings";
 
-const REFRESH_MS = 10_000;
+const REFRESH_MS = 30_000;
+/** Set from the static snapshot (web/public/snapshot-v1|v2.json) until live data arrives. */
+let snapshotAt = 0;
 let tokens: ReceiptToken[] = [];
 let orders: Order[] = [];
 let verifiers: (VerifierConfig & { version: number })[] = [];
@@ -117,20 +119,51 @@ function renderAll() {
   lv.render(listings, mandates.get(DEMO_OWNER)?.allowed_sellers ?? []);
 }
 
+const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+
 function tickStatus() {
-  if (!lastOk) return;
+  if (!lastOk) {
+    if (snapshotAt) status.textContent = `${CONTRACT} · ${orders.length} orders · snapshot from ${hhmm(snapshotAt)} UTC · ${errorBox.hidden ? "reading live data…" : "live data unavailable, retrying"}`;
+    return;
+  }
   const s = Math.round((Date.now() - lastOk) / 1000);
-  status.textContent = `${CONTRACT} · ${orders.length} orders · updated ${s}s ago · ${paused ? "updates paused" : "refreshes every 10 s"}`;
+  status.textContent = `${CONTRACT} · ${orders.length} orders · live, updated ${s}s ago · ${paused ? "updates paused" : "refreshes every 30 s"}`;
+}
+
+/** Shows the build-time snapshot at once, so the page is never empty. */
+async function loadSnapshot() {
+  try {
+    const res = await fetch(`./snapshot-${IS_V2 ? "v2" : "v1"}.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const snap = await res.json();
+    if (lastOk) return; // live data won the race
+    tokens = snap.tokens;
+    orders = snap.orders;
+    listings = snap.listings;
+    verifiers = snap.verifiers;
+    transfers = new Map(Object.entries(snap.transfers ?? {}) as [string, ReceiptTransfer[]][]);
+    for (const [owner, m] of Object.entries(snap.mandates ?? {})) mandates.set(owner, m as Mandate | null);
+    snapshotAt = snap.takenAt;
+    renderAll();
+    if (!IS_V2 && !rejected.isConnected) ordersPanel.append(rejected);
+    tickStatus();
+  } catch {
+    /* live data only */
+  }
 }
 
 async function refresh() {
   try {
-    tokens = await loadTokens();
-    orders = await loadOrders(tokens);
-    if (!verifiers.length || Date.now() - listingsAt > 60_000) {
-      [verifiers, listings] = await Promise.all([loadVerifiers(), loadListings()]);
+    const t = await loadTokens();
+    const o = await loadOrders(t);
+    if (!listingsAt || Date.now() - listingsAt > 60_000) {
+      const [v, l] = await Promise.all([loadVerifiers(), loadListings()]);
+      verifiers = v;
+      listings = l;
       listingsAt = Date.now();
     }
+    tokens = t;
+    orders = o;
     if (IS_V2 && Date.now() - transfersAt > 60_000) {
       try {
         transfers = await loadTransfers();
@@ -146,7 +179,11 @@ async function refresh() {
     if (!IS_V2 && !rejected.isConnected) ordersPanel.append(rejected);
   } catch {
     errorBox.hidden = false;
-    errorBox.textContent = lastOk ? "Testnet RPC did not answer; showing the last data read. Retrying in 10 s." : "Testnet RPC did not answer. Retrying in 10 s.";
+    errorBox.textContent = lastOk
+      ? "Testnet RPC did not answer; showing the last data read. Retrying in 30 s."
+      : snapshotAt
+        ? `Testnet RPC did not answer; showing the snapshot from ${hhmm(snapshotAt)} UTC. Retrying in 30 s.`
+        : "Testnet RPC did not answer. Retrying in 30 s.";
   }
   tickStatus();
   schedule();
@@ -190,4 +227,4 @@ mount(
   ),
 );
 mount(qs("#footer"), footer());
-refresh();
+loadSnapshot().then(refresh);

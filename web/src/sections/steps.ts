@@ -39,8 +39,8 @@ const STEPS: Step[] = [
     tag: "NFTs",
     tint: "lilac",
     title: "Closed on an NFT receipt",
-    body: "Every order is a receipt that carries the claim. Pass it on, and the refund goes with it.",
-    proof: [`${TX}4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti`, "Receipt passed on, refund paid to the new holder"],
+    body: "Every order is a receipt that carries the claim. Pass it on, and the data or the refund goes with it.",
+    proof: [`${TX}C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS`, "Receipt passed on, order settled, the new holder opened the data"],
   },
 ];
 

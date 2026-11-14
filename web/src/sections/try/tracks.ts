@@ -66,7 +66,7 @@ const WATCH: Step[] = [
   {
     title: "Look at a receipt NFT",
     body: () => [p("Every order is an NEP-171 token whose status mirrors the escrow."), h("a", { class: "btn", href: "./explorer.html#receipts", target: "_blank" }, "Receipts in the explorer"), " ", h("a", { class: "btn", href: "./#receipts" }, "How receipts work")],
-    expect: () => ["Receipt #9 says Settled; it can't be transferred in this version (", code("nft_transfer"), " panics)."],
+    expect: () => ["Receipt #9 says Settled. On the main contract receipts stay with the buyer; on v2 (", code("escrow-v2.horkos.testnet"), ") they can be passed on: ", tx("9DxmwUQEtLBacJTPCEEKjhpyGztESDimHwshLptrSf3J", "receipt #1 transferred ↗"), ", then ", tx("C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS", "settled ↗"), " and opened by the new holder."],
   },
 ];
 
@@ -150,6 +150,39 @@ const AGENT: Step[] = [
       h("ol", {}, h("li", {}, "It calls ", code("horkos_search_listings"), " and ", code("horkos_create_order"), "."), h("li", {}, "It polls ", code("horkos_get_order"), " until ", h("b", {}, "Settled"), " (within about a minute when OutLayer testnet is healthy; up to 30 minutes if the verification is retried, then a full refund if it never passes)."), h("li", {}, "It opens the data: four NEAR/USD prices (from CoinGecko, or Coinbase when CoinGecko rate-limits the hosted seller).")),
       p("If the order is not Settled when its 30-minute window ends (seller offline, or OutLayer gave no valid result: the order shows ", h("b", {}, "Delivered"), "), nobody is paid. Anyone can then call ", code("refund_expired"), " (nothing calls it automatically) and the 5 tUSDC goes back to your mandate budget:"),
       codeBlock(`near contract call-function as-transaction ${CONTRACT} refund_expired json-args '{"order_id":"<id>"}' prepaid-gas '50 Tgas' attached-deposit '0 NEAR' ${sign(who.owner)}`),
+    ],
+  },
+  {
+    title: "Optional: pass a receipt on (v2)",
+    body: () => {
+      const V2 = "escrow-v2.horkos.testnet";
+      const friend = "your-friend.testnet";
+      const expires = (BigInt(Date.now() + 7 * 86_400_000) * 1_000_000n).toString();
+      const mandate = JSON.stringify({ agent: who.agent, max_total: "5000000", max_per_order: "5000000", allowed_sellers: ["horkos-seller-b.testnet"], expires_at: expires, max_open_orders: null });
+      return [
+        p("On the v2 contract the receipt carries the claim. Listing 0 there has a 4-minute window and no seller serving it, so the order will expire and you can watch the refund go to whoever holds the receipt. Uses 5 of your tUSDC (moved out of your v1 budget first) and a second account you create."),
+        codeBlock(`# a second account to receive the receipt (if the faucet service answers 429, fund it yourself:
+#   near account create-account fund-myself ${friend} '1 NEAR' autogenerate-new-keypair save-to-legacy-keychain ${sign(who.owner)})
+near account create-account sponsor-by-faucet-service ${friend} autogenerate-new-keypair save-to-legacy-keychain network-config testnet create
+near contract call-function as-transaction ${TOKEN} storage_deposit json-args '{"account_id":"${friend}"}' prepaid-gas '30 Tgas' attached-deposit '0.0125 NEAR' ${sign(friend)}
+
+# move 5 tUSDC from your v1 budget to a v2 mandate
+near contract call-function as-transaction ${CONTRACT} withdraw json-args '{"from":"Budget","amount":"5000000"}' prepaid-gas '50 Tgas' attached-deposit '1 yoctoNEAR' ${sign(who.owner)}
+near contract call-function as-transaction ${V2} set_mandate json-args '${mandate}' prepaid-gas '50 Tgas' attached-deposit '0.5 NEAR' ${sign(who.owner)}
+near contract call-function as-transaction ${TOKEN} ft_transfer_call json-args '{"receiver_id":"${V2}","amount":"5000000","msg":""}' prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' ${sign(who.owner)}
+
+# your agent orders listing 0; you pass the receipt on (use the order id it returns)
+near contract call-function as-transaction ${V2} create_order json-args '{"owner":"${who.owner}","listing_id":"0","buyer_pubkey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","verifier_version":1}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' ${sign(who.agent)}
+near contract call-function as-transaction ${V2} nft_transfer json-args '{"receiver_id":"${friend}","token_id":"<id>"}' prepaid-gas '30 Tgas' attached-deposit '1 yoctoNEAR' ${sign(who.owner)}
+
+# after 4 minutes: anyone refunds; the money goes to the holder
+near contract call-function as-transaction ${V2} refund_expired json-args '{"order_id":"<id>"}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' ${sign(friend)}
+near contract call-function as-read-only ${V2} balance_of json-args '{"account_id":"${friend}"}' network-config testnet now`),
+      ];
+    },
+    expect: () => [
+      code("get_receipt_holder"), " returns ", code("your-friend.testnet"), " after the transfer; your agent's ", code("cancel_order"), " now fails with ", code("Only the agent or owner can cancel"),
+      "; after the deadline ", code("balance_of"), " shows ", code('"5000000"'), " for your friend (withdraw it with ", code('withdraw {"from":"Earnings"}'), "), not your budget. Our own run, including a settlement after a transfer: ", ex("https://github.com/iusserhat/horkos/blob/main/docs/testnet.md", "docs/testnet.md ↗"), ".",
     ],
   },
   {

@@ -269,6 +269,20 @@ A verifier build for v2 (caller `escrow-v2.horkos.testnet`, sha256 `4919f8e244c6
 | **New holder opens the data** with its key: `{"symbol":"NEAR/USD","rows":[4 points]}`; the buyer's original key fails to open it | data opened by the holder only | `demo/v2-transfer.ts` output |
 | `outlayer-verify` on the delivery tx | 5 × PASS, wasm `4919f8e2…` | `evidence/attestation/v2-order-1-outlayer-verify.txt` |
 
+### Try page, optional v2 step, run as written (14 Nov 2026, 16:03 to 16:09 UTC)
+
+Owner `hk-try2-1252.testnet`, agent `hk-try2-1252-agent.testnet`, second account `hk-friend-1114.testnet`. The faucet service answered 429 for the second account, so it was created with `fund-myself` (the alternative now shown on the page).
+
+| Step | Result | Tx |
+| --- | --- | --- |
+| `withdraw` 5 tUSDC from the v1 budget | done | [`BbPHNriY…`](https://testnet.nearblocks.io/txns/BbPHNriYwvfEYwFGXgcrQjJ3GpezgqTKZDAKXgD1DNkR) |
+| v2 `set_mandate` (seller B only) and `ft_transfer_call` 5 tUSDC | done | [`5ycGhsgB…`](https://testnet.nearblocks.io/txns/5ycGhsgBo2VdQnfjgwxNxK4hv6dHS1rcRFw5GwzVzJZf), [`CfCVxqWc…`](https://testnet.nearblocks.io/txns/CfCVxqWcHTc1V3uDvcLy9Tukbs3514eMpsmE8em5PgTE) |
+| Agent `create_order` listing 0 (4-minute window) | order 2 `Open` | [`FZh1mCuu…`](https://testnet.nearblocks.io/txns/FZh1mCuuZJ9P4hnV9XG4UPvCQr87ABgcB5L3CuocRXC2) |
+| Second account created and registered on tUSDC | done | [`Hw7jg1d3…`](https://testnet.nearblocks.io/txns/Hw7jg1d3p2xf8cfjasn9cW1yWXx3zRa6HeyXbb4v4zuK), [`893CuNDd…`](https://testnet.nearblocks.io/txns/893CuNDdF8d5u2ztchb595swJgm9vBffPAd1DCnVF68G) |
+| Owner `nft_transfer` receipt #2 to the second account | `get_receipt_holder` → `"hk-friend-1114.testnet"` | [`5rbqNt3o…`](https://testnet.nearblocks.io/txns/5rbqNt3ohCgsvVxGZDqhGiV85XPxUz7RJmaj9JuXgrK5) |
+| Agent `cancel_order` | fails: "Only the agent or owner can cancel" | |
+| `refund_expired` after the deadline | `balance_of(hk-friend-1114.testnet)` → `"5000000"` | [`JAK8Usdp…`](https://testnet.nearblocks.io/txns/JAK8UsdpYUjMFS8KtvKMwhuf9buHDCWjdxz6YvfRkdEP) |
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

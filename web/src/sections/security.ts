@@ -40,7 +40,7 @@ export function security() {
             h("li", {}, "OutLayer's TEE attestation is not verified on chain; the contract trusts OutLayer's operator for the result."),
             h("li", {}, "OutLayer testnet sometimes fails a run without a reason; the order returns to Delivered and the seller resubmits."),
             h("li", {}, "Conditions are JSON Schema only; Horkos checks shape, not quality."),
-            h("li", {}, "Receipt NFTs are transferable only on the v2 contract (escrow-v2.horkos.testnet), which has no verifier build of its own yet, so v2 orders cannot settle through OutLayer."),
+            h("li", {}, "Receipt NFTs are transferable only on the v2 contract (escrow-v2.horkos.testnet), a separate contract with its own verifier; the hosted seller serves v1 only."),
             h("li", {}, "The contract accounts still have full-access keys held by the team, which could redeploy the code."),
           ),
         ),

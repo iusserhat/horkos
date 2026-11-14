@@ -8,7 +8,7 @@ services:
     region: frankfurt
     branch: main
     autoDeploy: true
-    buildCommand: cd sdk && npm ci && cd ../demo && npm ci
+    buildCommand: cd sdk && npm ci && cd ../gateway && npm ci && cd ../demo && npm ci
     startCommand: cd demo && npm run hosted
     healthCheckPath: /health
     envVars:
@@ -20,8 +20,8 @@ services:
         value: escrow.horkos.testnet
       - key: TOKEN
         value: tusdc.horkos.testnet
-      - key: LISTING_ID
-        value: "0"
+      - key: LISTINGS
+        value: "0,3"
       - key: RPC_URLS
         value: https://rpc.testnet.fastnear.com,https://rpc.testnet.near.org
       - key: POLL_MS

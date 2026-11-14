@@ -106,7 +106,9 @@ Without an MCP client, `cd mcp && npx tsx smoke.ts inject` drives the same serve
 
 ## Website (`web/`)
 
-A static site that explains Horkos, guides agent setup and shows the contract's live state. It is not hosted yet (a GitHub Pages workflow is in `.github/workflows/pages.yml`, manual trigger only). Run it locally:
+Live site: https://horkos-escrow.netlify.app (Netlify, deployed by hand from `web/dist`; no git-triggered deploys).
+
+A static site that explains Horkos, guides agent setup and shows the contract's live state. Run it locally:
 
 ```bash
 cd web && npm ci && npm run build && npm run preview     # → http://localhost:4173
@@ -116,7 +118,7 @@ cd web && npm ci && npm run build && npm run preview     # → http://localhost:
 - **Connect:** a config generator for Claude Code, Claude Desktop, Cursor and other MCP clients (account names and paths only; it never asks for a key), near-cli commands for the mandate and the agent's function-call key, the five tools with request/response pairs captured from testnet, two recorded Claude Code conversations, an SDK example and troubleshooting.
 - **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/TESTNET.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
 
-Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect, explorer and market 100/100/100/100 on both.
+Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect, explorer and market 100/100/100/100 on both. Live home page on Netlify (14 Nov 2026): 95/100/100/100 mobile, 100/100/100/100 desktop.
 
 | Home | Connect | Explorer |
 | --- | --- | --- |

@@ -17,7 +17,7 @@ Before sending: repo public, X post live, every claim below checked against the 
 | nearAddress | `horkos.near` (owner creates it on mainnet; verify it exists before sending) | 2–64, lowercase |
 | projectUrl | https://github.com/iusserhat/horkos | max 300; 35 |
 | demoUrl | (link to the owner's X post with the video) | max 300 |
-| idea | text below | 20–2000; 1984 |
+| idea | text below | 20–2000; 1996 |
 | consent | `true` only after the owner agrees to: "I agree that the organizers may use these details to review our submission and contact us about this hackathon." | boolean |
 | website | **do not send this field** (spam trap; any value rejects the submission) | — |
 
@@ -32,17 +32,20 @@ How it works: the owner deposits a tUSDC budget and sets an on-chain mandate (to
 
 On testnet (tx ids in the README): a good delivery settled through OutLayer (seller A delivers live NEAR/USD prices from CoinGecko's free public API; price data by CoinGecko); a bad delivery refunded; a prompt-injected 500 tUSDC order rejected on chain. An MCP server (5 tools) lets Claude buy within the mandate. Agent key rotated, full-access key deleted; gitleaks found no secrets. npm run sandbox runs all three demos locally, no keys.
 
-Horkos does not pay CoinGecko and CoinGecko is not a Horkos seller; it is seller A's data source. We do not use x402 in this demo. Reselling a provider's data commercially would need that provider's permission.
+CoinGecko is seller A's data source, not a Horkos partner: no payment, no x402. Reselling a provider's data commercially needs its permission.
+
+Site: https://horkos-escrow.netlify.app (Explorer and Market read live state).
 
 Limits: testnet only; the contract trusts OutLayer's operator and does not verify the TEE attestation on chain; conditions are JSON Schema only; receipts are not transferable yet.
 ```
 
-_1984 characters_ (limit 20–2000).
+_1996 characters_ (limit 20–2000).
 
 ## Claim check
 
 Every sentence in `idea` maps to something on testnet or in the repo:
 - Settled through OutLayer: orders 0, 5 and 8 (`docs/TESTNET.md`, README Quick start b); order 8 with live CoinGecko prices.
+- Site: https://horkos-escrow.netlify.app (Netlify; home, Connect, Explorer, Market return 200, live testnet data checked 14 Nov 2026). The `website` form field stays empty.
 - CoinGecko: seller A's data source only (`demo/sellers/coingecko.ts`); no payment to CoinGecko, no x402, no partnership or integration claimed.
 - Bad delivery refunded: order 2.
 - Prompt-injected 500 tUSDC order rejected: tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`.

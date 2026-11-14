@@ -7,14 +7,14 @@ Required: **@NEARProtocol**, **#NEARHackathon**, the repo link, the demo video. 
 ```
 AI agents can pay, but can't get refunds.
 
-Horkos: a NEAR escrow where every agent purchase is an NFT receipt. The seller is paid only if the data passes a check in an OutLayer TEE; otherwise it refunds.
+Horkos: a NEAR escrow where every agent purchase is an NFT receipt. Sellers get paid only if the data passes an OutLayer TEE check; else it refunds.
 
-Demo 👇
-https://github.com/iusserhat/horkos
+https://horkos-escrow.netlify.app
+Demo 👇 https://github.com/iusserhat/horkos
 @NEARProtocol #NEARHackathon
 ```
 
-Raw 276 characters; as X counts it ≈ 265 (link 23, emoji 2). Limit 280.
+Raw 298 characters; as X counts it ≈ 277 (two links at 23 each, emoji 2). Limit 280.
 
 ## Alternative
 
@@ -23,10 +23,11 @@ A hijacked AI agent tried to spend 500 tUSDC. The contract said no.
 
 Horkos puts the owner's limits and the escrow in one NEAR contract: bad data refunds, good data settles.
 
-Video 👇 Code: https://github.com/iusserhat/horkos
-Built at #NEARHackathon @NEARProtocol
+Video 👇 Site: https://horkos-escrow.netlify.app
+Code: https://github.com/iusserhat/horkos
+#NEARHackathon @NEARProtocol
 ```
 
-Raw 262 characters; as X counts it ≈ 251 (link 23, emoji 2). Limit 280.
+Raw 293 characters; as X counts it ≈ 272 (two links at 23 each, emoji 2). Limit 280.
 
 Every claim matches testnet: demo 3 rejection (tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`), settlements through OutLayer (orders 0, 5), refund (order 2).

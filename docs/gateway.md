@@ -7,7 +7,7 @@ Testnet proof (listing 3, order 12 `Settled`, 14 Nov 2026): [TESTNET.md](TESTNET
 ## Five-minute setup (testnet)
 
 1. A testnet account with a key in the near-cli legacy keychain (`~/.near-credentials/testnet/<seller>.json`), or the key in `HORKOS_SELLER_KEY=ed25519:...`. The account needs a little NEAR for gas and the listing's storage deposit (0.1 NEAR).
-2. Install: `cd gateway && npm ci`.
+2. Install (the gateway uses the SDK from the same repository): `(cd sdk && npm ci) && cd gateway && npm ci`.
 3. Copy `examples/coingecko.json` and `examples/coingecko-schema.json`, set `seller` to your account, and point `source` at your API.
 4. Dry run, no chain access: `npm run gateway -- check --config my.json`. It calls the API once per listing and prints `OK` with the data, or `FAIL` with the schema errors. Exit code 1 on failure.
 5. Create the listing: `npm run gateway -- register --config my.json`. It publishes the schema to FastFS, calls `register_listing`, and writes `listing_id` and `condition_url` back into the file.
@@ -64,7 +64,7 @@ At start, each listing is checked against the chain: it exists, belongs to `sell
 ## Tests
 
 ```bash
-cd gateway && npm ci
+(cd sdk && npm ci) && cd gateway && npm ci
 npm test                 # 17 unit tests: config, placeholders, fake HTTP server, schema check, Gateway.handle
 npm run test:sandbox     # 2 tests on a local node (after contracts/scripts/test-sandbox.sh built the WASM): passing source settles, failing source submits nothing
 ```

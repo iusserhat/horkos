@@ -1390,3 +1390,4 @@
   .ad-table td:last-child::before { content: "With: "; }
 }
 .lq-more { margin-left: var(--s3); }
+.ad-npm { margin-top: var(--s4); text-align: center; font-size: var(--fs-small); }

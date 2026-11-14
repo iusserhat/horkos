@@ -217,6 +217,8 @@ OutLayer's worker was resolving other accounts' requests within seconds again at
 | `horkos_open_delivery`: `{"symbol":"NEAR/USD","rows":[...4 one-minute points...]}` | data opened by the buyer |
 | `outlayer-verify` on the delivery tx | 5 × PASS: `evidence/attestation/order-26-outlayer-verify.txt` |
 
+Second check the same afternoon (15:59 UTC, owner `hk-try1-1252.testnet`, same path): order 27 on listing 4, `submit_delivery` → `on_verified` **Settled** in 52 s, 77 s from the agent's order to the opened data; tx `64SNte6pJwu3imJfRd6Y6XveKsTz73Ez1JUM3xvwsc8F`.
+
 ### OutLayer testnet diagnosis (14 Nov 2026, 12:07 to 12:35 UTC)
 
 - **Other projects:** 39 of 39 `request_execution` runs by other accounts (`tredio-oracle.testnet`, `zyx-dev.testnet`, `enclave.parry.testnet`; request ids 45008 to 45134) ended at exactly 201 blocks (112 to 121 s) with "Execution promise failed".

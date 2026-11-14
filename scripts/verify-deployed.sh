@@ -29,8 +29,8 @@ if [[ "${1:-}" == "--match-paths" ]]; then
     sudo -n mkdir -p "$cargo_home" 2>/dev/null && sudo -n chown -R "$(id -u):$(id -g)" "$(dirname "$cargo_home")" \
       || { echo "Cannot create $cargo_home; run: sudo mkdir -p $cargo_home && sudo chown \$USER $cargo_home"; exit 1; }
   fi
-  TARGET=$(mktemp -d)
-  trap 'rm -rf "$TARGET"' EXIT
+  TARGET="${VERIFY_TARGET_DIR:-$(mktemp -d)}"
+  [[ -n "${VERIFY_TARGET_DIR:-}" ]] || trap 'rm -rf "$TARGET"' EXIT
   CARGO_HOME="$cargo_home" CARGO_TARGET_DIR="$TARGET" contracts/scripts/build.sh >/dev/null 2>&1 \
     || { echo "build failed; rerun: CARGO_HOME=<that path> contracts/scripts/build.sh"; exit 1; }
 fi

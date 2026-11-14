@@ -11,6 +11,7 @@ export function footer() {
       { class: "wrap" },
       h("a", { class: "brand", href: "./" }, logo("#ffffff"), "horkos"),
       h("p", { class: "motto" }, "We don't resolve disputes. We prevent them."),
+      h("p", { class: "footer-native" }, "Built on NEAR. Checked in a TEE."),
       h(
         "div",
         { class: "links" },

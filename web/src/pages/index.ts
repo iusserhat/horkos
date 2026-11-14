@@ -24,8 +24,9 @@ import { builtOnNear } from "../sections/near";
 import { steps } from "../sections/steps";
 import { cta } from "../sections/cta";
 import { business } from "../sections/business";
+import { demo } from "../sections/demo";
 
 mount(qs("#header"), header("home"));
 document.body.classList.add("page-home");
-mount(qs("#main"), hero(), problem(), steps(), receipts(), flow(), useCases(), business(), connectPreview(), builtOnNear(), security(), cta());
+mount(qs("#main"), hero(), demo(), problem(), steps(), receipts(), flow(), useCases(), business(), connectPreview(), builtOnNear(), security(), cta());
 mount(qs("#footer"), footer());

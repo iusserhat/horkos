@@ -27,6 +27,7 @@ export function problem() {
           h("p", {}, "There is nothing left to argue about afterwards."),
         ),
       ),
+      h("p", { class: "pf-contrast" }, "Most agent markets settle quality disputes after the money moves. Horkos checks the delivery first."),
     ),
   );
 }

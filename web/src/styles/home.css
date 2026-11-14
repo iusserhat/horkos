@@ -1241,3 +1241,8 @@
   .bm-grid, .bm-grid-3 { grid-template-columns: 1fr; }
   .bm-card { padding: var(--s5); }
 }
+
+/* NEAR-native lines (hero, problem, mainnet panel, footer) */
+.hero .hero-native { margin-top: var(--s4); font-weight: 800; font-size: var(--fs-small); }
+.pf-contrast { margin: var(--s6) auto 0; max-width: 760px; text-align: center; font-weight: 800; }
+.near-parts { margin-top: var(--s5); }

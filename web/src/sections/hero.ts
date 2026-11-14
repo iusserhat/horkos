@@ -113,6 +113,7 @@ export function hero() {
       wordmark(),
       h("p", { class: "tagline" }, "Your AI agent pays only when the delivery checks out."),
       h("p", { class: "motto" }, h("span", {}, "We don't resolve disputes."), " ", h("span", {}, "We prevent them.")),
+      h("p", { class: "hero-native" }, "Verify-then-pay for AI agents, native to NEAR."),
       h(
         "p",
         { class: "lead" },
@@ -122,7 +123,7 @@ export function hero() {
         "div",
         { class: "hero-actions" },
         h("a", { class: "btn btn-gold btn-lg", href: "./try.html" }, "Try it yourself"),
-        h("a", { class: "btn btn-mint btn-lg", href: "#receipts" }, "Watch an order settle"),
+        h("a", { class: "btn btn-mint btn-lg", href: "#demo" }, "Watch an order settle"),
       ),
       livePanel(),
     ),

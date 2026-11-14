@@ -172,6 +172,7 @@ export function useCases() {
           h("li", {}, h("strong", {}, "Less trust in us and in OutLayer. "), "The TEE attestation should be verified, the team's full-access keys on the contract removed, and the code audited."),
           h("li", {}, h("strong", {}, "Shape is not truth. "), "A seller can still deliver well-formed but wrong data. Cross-source checks, control samples and test suites are how the conditions get stronger."),
         ),
+        h("p", { class: "near-parts" }, h("strong", {}, "Built from NEAR parts: "), "NEP-141 tokens, NEP-171 receipts, yield/resume for waiting on the verifier, OutLayer TEE for the check, function-call keys for agent mandates."),
       ),
       h("p", { class: "muted use-disclaimer" }, "Services are named to show where the pattern fits. None of them integrates with or endorses Horkos."),
     ),

@@ -1,6 +1,7 @@
 import { codeBlock, h, mount } from "../../lib/dom";
 import { CONTRACT, REPO, TOKEN, accountUrl, txUrl } from "../../lib/config";
 import { accountError } from "../../lib/accounts";
+import { demoVideo } from "../demo";
 
 /** Faucet contract for test tUSDC (contracts/faucet). Commands below are the ones checked on testnet. */
 const FAUCET = "faucet.horkos.testnet";
@@ -42,6 +43,11 @@ const code = (s: string) => h("code", {}, s);
 
 /* ---------- tracks ---------- */
 const WATCH: Step[] = [
+  {
+    title: "Watch the 2-minute demo",
+    body: () => [p("A real agent buying real data on NEAR testnet, start to Settled. Voice-over is synthetic (ElevenLabs)."), demoVideo(true)],
+    expect: () => ["The receipt turns ", h("b", {}, "Settled"), " only after the verifier passes the data; the bad delivery is refunded; the poisoned listing is blocked."],
+  },
   {
     title: "Open the live explorer",
     body: () => [p("Every order on ", code(CONTRACT), " with its status, read straight from NEAR testnet. Nothing to install."), h("a", { class: "btn btn-gold", href: "./explorer.html", target: "_blank" }, "Open the explorer")],

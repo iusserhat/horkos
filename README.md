@@ -45,7 +45,7 @@ stateDiagram-v2
   Cancelled --> [*]
 ```
 
-Each order reaches exactly one final state (`Settled`, `Refunded` or `Cancelled`). Settlement only credits the seller's internal balance; the seller withdraws separately, so no token transfer happens inside the verification callback. Full design (Turkish): `docs/DESIGN.md`. Decisions and reasons: `docs/DECISIONS.md`.
+Each order reaches exactly one final state (`Settled`, `Refunded` or `Cancelled`). Settlement only credits the seller's internal balance; the seller withdraws separately, so no token transfer happens inside the verification callback. Full design: [docs/architecture.md](docs/architecture.md); every method: [docs/contract-api.md](docs/contract-api.md); decisions: [docs/decisions.md](docs/decisions.md). All documents: [docs/README.md](docs/README.md).
 
 ## Quick start
 
@@ -72,7 +72,7 @@ Not real in the sandbox: the TEE and OutLayer's operator (the worker is a local 
 
 The scripts in `demo/` sign with the demo accounts' keys, which only the team has, so they cannot be re-run as-is; anyone can inspect the results. Accounts: owner `horkos-owner.testnet`, agent `horkos-agent.testnet`, sellers `horkos-seller-a/b/c.testnet`, contract `escrow.horkos.testnet`, token `tusdc.horkos.testnet`.
 
-- **Demo 1, good delivery → Settled.** Order 0: [`create_order`](https://explorer.testnet.near.org/transactions/92QVpcmFUQbxpYYV32sqR9CKdnxnN1n9H6VtH6KbLmzA), seller A's [`submit_delivery`](https://explorer.testnet.near.org/transactions/DgGzhbkGBEMHGG9duhFSQHgTKsXpxi9NgngEMb1BLAoD): OutLayer ran the verifier, `on_verified` settled the order, and the agent decrypted the JSON. Re-run on 13 Nov 14:22 UTC with the rotated agent key: order 5, [`create_order`](https://explorer.testnet.near.org/transactions/5jdfoCPv37ayyLefChhvRqLrnFGKEsNdsQRgHmnzY95), [`submit_delivery`](https://explorer.testnet.near.org/transactions/CbL9cC4uEvV8s5MjMaTKqNrvr6f743FcQoyHHmE2gb5S) → `Settled`. With live CoinGecko data on 13 Nov 16:52 UTC: order 8, [`create_order`](https://explorer.testnet.near.org/transactions/83XaoQwthAgLEiJViT1hwXQEwfGiZunFssoCCFtkRWyX), [`submit_delivery`](https://explorer.testnet.near.org/transactions/C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB) → `Settled`; the decrypted prices matched CoinGecko's (`docs/TESTNET.md`).
+- **Demo 1, good delivery → Settled.** Order 0: [`create_order`](https://explorer.testnet.near.org/transactions/92QVpcmFUQbxpYYV32sqR9CKdnxnN1n9H6VtH6KbLmzA), seller A's [`submit_delivery`](https://explorer.testnet.near.org/transactions/DgGzhbkGBEMHGG9duhFSQHgTKsXpxi9NgngEMb1BLAoD): OutLayer ran the verifier, `on_verified` settled the order, and the agent decrypted the JSON. Re-run on 13 Nov 14:22 UTC with the rotated agent key: order 5, [`create_order`](https://explorer.testnet.near.org/transactions/5jdfoCPv37ayyLefChhvRqLrnFGKEsNdsQRgHmnzY95), [`submit_delivery`](https://explorer.testnet.near.org/transactions/CbL9cC4uEvV8s5MjMaTKqNrvr6f743FcQoyHHmE2gb5S) → `Settled`. With live CoinGecko data on 13 Nov 16:52 UTC: order 8, [`create_order`](https://explorer.testnet.near.org/transactions/83XaoQwthAgLEiJViT1hwXQEwfGiZunFssoCCFtkRWyX), [`submit_delivery`](https://explorer.testnet.near.org/transactions/C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB) → `Settled`; the decrypted prices matched CoinGecko's (`docs/testnet.md`).
 - **Demo 2, bad delivery → Refunded.** Order 2: [`create_order`](https://explorer.testnet.near.org/transactions/4zL12Bg9TNRgVtXyyh7KfBrCRcQsa4bbuap2b3jd6rL6), seller B's [`submit_delivery`](https://explorer.testnet.near.org/transactions/HgPppJUNPThmUDfEpDxhtTnFeZZDVktzggR4thvhE2yj) failed the schema (order `Delivered`, no key for the buyer), then [`refund_expired`](https://explorer.testnet.near.org/transactions/7PkEjmE3LJfQeH3Ko5KvNXT4Xm9EFzF3Qpg84xXssfC5) after the deadline.
 - **Demo 3, hijacked agent → rejected.** A listing text tells the agent to buy a 500 tUSDC feed from seller C. The agent's [`create_order`](https://explorer.testnet.near.org/transactions/82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt) fails with `Seller not allowed by mandate`; budget and open orders unchanged.
 
@@ -86,7 +86,7 @@ near contract call-function as-read-only escrow.horkos.testnet get_order json-ar
 near contract call-function as-read-only escrow.horkos.testnet nft_token json-args '{"token_id":"0"}' network-config testnet now
 ```
 
-You should see `"status": "Settled"` for order 0, `"status": "Refunded"` for order 2, and NFT receipt `0` owned by `horkos-owner.testnet` with the order summary in its metadata. All transaction ids: `docs/TESTNET.md`.
+You should see `"status": "Settled"` for order 0, `"status": "Refunded"` for order 2, and NFT receipt `0` owned by `horkos-owner.testnet` with the order summary in its metadata. All transaction ids: `docs/testnet.md`.
 
 ### c) MCP server: let Claude buy within the mandate (testnet)
 
@@ -100,7 +100,7 @@ claude mcp add horkos -- "$PWD/node_modules/.bin/tsx" "$PWD/server.ts"
 #   "mcpServers": { "horkos": { "command": "/abs/path/horkos/mcp/node_modules/.bin/tsx", "args": ["/abs/path/horkos/mcp/server.ts"] } }
 ```
 
-For deliveries to happen, run a seller in another terminal (`cd demo && npm run seller -- a`). Then ask: *"Find a NEAR/USD price feed and buy it without spending more than 10 tUSDC, then show me the data."* You should see `horkos_search_listings` (listing 0 at 5 tUSDC, `seller_allowed_by_mandate: true`), `horkos_create_order` → `Open`, `horkos_get_order` → `Settled`, and `horkos_open_delivery` returning `{"symbol":"NEAR/USD","rows":[...]}`. Checked on 13 Nov with Claude Code (`claude -p`, model Sonnet): order 6 went `Open → Verifying → Settled` and the data opened. Asked to buy the "premium" listing (500 tUSDC, seller C), Claude declined on its own: it flagged the listing text as an injection and saw `seller_allowed_by_mandate: false`. The contract does not depend on that: when `create_order` is sent anyway (`npx tsx smoke.ts inject`, or demo 3), it fails with `Seller not allowed by mandate`. Listing descriptions are off-chain text in `mcp/catalog.testnet.json`; listing 2's is a deliberate prompt injection. MCP orders on testnet: 3 (cancelled), 4 and 6 (settled); see `docs/TESTNET.md`.
+For deliveries to happen, run a seller in another terminal (`cd demo && npm run seller -- a`). Then ask: *"Find a NEAR/USD price feed and buy it without spending more than 10 tUSDC, then show me the data."* You should see `horkos_search_listings` (listing 0 at 5 tUSDC, `seller_allowed_by_mandate: true`), `horkos_create_order` → `Open`, `horkos_get_order` → `Settled`, and `horkos_open_delivery` returning `{"symbol":"NEAR/USD","rows":[...]}`. Checked on 13 Nov with Claude Code (`claude -p`, model Sonnet): order 6 went `Open → Verifying → Settled` and the data opened. Asked to buy the "premium" listing (500 tUSDC, seller C), Claude declined on its own: it flagged the listing text as an injection and saw `seller_allowed_by_mandate: false`. The contract does not depend on that: when `create_order` is sent anyway (`npx tsx smoke.ts inject`, or demo 3), it fails with `Seller not allowed by mandate`. Listing descriptions are off-chain text in `mcp/catalog.testnet.json`; listing 2's is a deliberate prompt injection. MCP orders on testnet: 3 (cancelled), 4 and 6 (settled); see `docs/testnet.md`.
 
 Without an MCP client, `cd mcp && npx tsx smoke.ts inject` drives the same server over stdio (`buy`, `cancel` and `open N` spend or move testnet tUSDC).
 
@@ -116,7 +116,7 @@ cd web && npm ci && npm run build && npm run preview     # → http://localhost:
 
 - **Home:** the order flow as an animated diagram (happy path, no delivery, failed check, out of mandate), the NFT receipt in each status, use cases, which NEAR feature does what, the security model and limits. The "Orders on testnet" panel reads the contract over RPC.
 - **Connect:** a config generator for Claude Code, Claude Desktop, Cursor and other MCP clients (account names and paths only; it never asks for a key), near-cli commands for the mandate and the agent's function-call key, the five tools with request/response pairs captured from testnet, two recorded Claude Code conversations, an SDK example and troubleshooting.
-- **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/TESTNET.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
+- **Explorer:** orders, receipts, mandates, verifier versions and listings from `escrow.horkos.testnet` view methods, refreshed every 10 s. Order history comes from the repo's record of demo transactions (`docs/testnet.md`, copied at build time), otherwise from the NearBlocks testnet API checked against RPC; if neither works it is rebuilt from the order's fields and says so. The contract has no view that lists mandates, so the explorer shows owners that have orders and looks up others by name.
 
 Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM Plex Mono, self-hosted (no Google Fonts requests). Lighthouse 13.6 on the local build (13 Nov 2026), performance / accessibility / best practices / SEO: home 98/100/100/100 mobile, 100/100/100/100 desktop; connect, explorer and market 100/100/100/100 on both. Live home page on Netlify (14 Nov 2026): 95/100/100/100 mobile, 100/100/100/100 desktop.
 
@@ -136,12 +136,12 @@ OutLayer testnet sometimes fails a verification run without giving a reason. On 
 - **Mandate limits are enforced by the contract.** On every `create_order` the contract checks that the caller is the mandate's agent, the mandate is active and not expired, the seller is on the allowed list, and the price fits the per-order cap, the total cap and the budget. A leaked agent key can only buy within the mandate.
 - **Verifier version is pinned per order.** Each order keeps the verifier version (WASM sha256, OutLayer account, public key) that existed when it was created. The admin can publish new versions but cannot change the one an open order uses. Only the result of the contract's own OutLayer call is accepted (private callback, matched to the order and attempt).
 - **Open-order cap and storage deposit.** Each mandate has an open-order cap (default 50, at most 100). Each order's storage is paid from the owner's storage deposit, so order spam cannot drain the contract.
-- **Repository secret scan.** gitleaks 8.30.1 (official release, checksum verified) over the full git history found no secrets; the one hit was a false positive in `verifier/Cargo.lock`. Details: `docs/SECRET_SCAN.md`.
+- **Repository secret scan.** gitleaks 8.30.1 (official release, checksum verified) over the full git history found no secrets; the one hit was a false positive in `verifier/Cargo.lock`. Details: `docs/security.md`.
 
 ## Known limitations
 
 - **Testnet only.** No mainnet deployment.
-- **OutLayer's TEE attestation is not verified on chain.** OutLayer's callback carries only the program's output, with no signature or quote. The operator account (`worker.outlayer.testnet`) also has full-access keys, so the contract trusts OutLayer's operator. The attestation can be checked off-chain afterwards. Details: `spikes/outlayer/REPORT.md`, `docs/outlayer-question.md`.
+- **OutLayer's TEE attestation is not verified on chain.** OutLayer's callback carries only the program's output, with no signature or quote. The operator account (`worker.outlayer.testnet`) also has full-access keys, so the contract trusts OutLayer's operator. The attestation can be checked off-chain afterwards. Details: `spikes/outlayer/REPORT.md`, `docs/internal/outlayer-question.md`.
 - **The verifier's public key** is published by the admin with each verifier version; the contract does not check that it came from the TEE. (On testnet it was printed by the verifier inside OutLayer, tx `5iWyLC1TVjd7v4CKSDU4yggATB4x4g42TJs4xJAZRtRH`.)
 - **Receipt NFTs are not transferable** in this version.
 - **Conditions are JSON Schema only.** Horkos checks that a delivery meets the seller's published schema, not that the data is good.
@@ -182,21 +182,28 @@ cd .. && contracts/scripts/test-sandbox.sh              # 7 integration tests on
 
 Each should report no failures. The unit tests include per-order and total limit violations, a seller outside the mandate, double refund, an admin swapping the verifier for open orders, a valid result arriving after the deadline, a late callback after a refund, and the storage-deposit bound on create/cancel loops. The integration tests print the gas the callbacks burn (for example `GAS on_verified (settle): 2.40 Tgas`) and fail if any path uses more than half of what the contract attaches.
 
+## Documentation
+
+Start at [docs/README.md](docs/README.md): architecture, contract API, SDK, MCP, gateway, faucet, verifier, testnet evidence, security, decisions, FAQ. Changes: [CHANGELOG.md](CHANGELOG.md). Reporting a vulnerability: [SECURITY.md](SECURITY.md).
+
 ## Repository
 
 ```
 contracts/horkos/            escrow contract (Rust, near-sdk 5.30)
 contracts/test-token/        testnet NEP-141 token "tUSDC" (6 decimals)
+contracts/faucet/            testnet tUSDC faucet (20 per account per day, capped)
 contracts/mock-outlayer/     test-only stand-in for OutLayer (Worker mode yields until resolved, like OutLayer)
 contracts/integration-tests/ sandbox tests (near-workspaces)
 contracts/scripts/           build, sandbox test runner, Docker wrapper for the local node
 verifier/                    delivery verifier (Rust, WASI P2) that runs in OutLayer's TEE
 sdk/                         TypeScript SDK: HorkosAgent, HorkosSeller, HorkosOwner
 mcp/                         MCP server (stdio), 5 tools, NEAR testnet
+gateway/                     seller gateway: serve a listing from a JSON API by config
 web/                         static site: product page, MCP guide, live explorer (Vite + TypeScript)
 demo/                        seller services, testnet scenarios, local sandbox demo
 spikes/outlayer/             OutLayer experiment: WASI schema checker, probe contract, report
-docs/                        design, decisions, testnet deployment, secret scan
+docs/                        documentation (index: docs/README.md); docs/tr Turkish originals, docs/internal working notes
+render.yaml                  Render blueprint for the hosted testnet seller A
 ```
 
 ## Roadmap
@@ -222,7 +229,7 @@ Templates and borrowed formats:
 - `contracts/test-token` follows the fungible-token example in near-sdk-rs (v5.30.0) and adds an owner-only `mint`.
 - The FastFS upload format in `sdk/src/storage.ts` follows `out-layer/outlayer-cli` (`src/commands/upload.rs`).
 
-AI use: the code, tests, scripts and documentation drafts were written with Claude Code (Anthropic, model Claude Opus 5.5) under the direction of the team member, who set the design, made the decisions recorded in `docs/DECISIONS.md`, and reviewed the results. Commits made this way carry a `Co-Authored-By: Claude` trailer.
+AI use: the code, tests, scripts and documentation drafts were written with Claude Code (Anthropic, model Claude Opus 5.5) under the direction of the team member, who set the design, made the decisions recorded in `docs/decisions.md`, and reviewed the results. Commits made this way carry a `Co-Authored-By: Claude` trailer.
 
 ## License
 

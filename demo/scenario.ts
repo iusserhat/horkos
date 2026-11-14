@@ -18,7 +18,7 @@ const step = (m: string) => console.log(`\n▶ ${m}`);
 async function requireVerifier() {
   const v = await agent.getVerifier();
   if (!v) {
-    console.error("No verifier is published on the contract yet (get_verifier is null). Demos 1 and 2 need it; see docs/TESTNET.md.");
+    console.error("No verifier is published on the contract yet (get_verifier is null). Demos 1 and 2 need it; see docs/testnet.md.");
     process.exit(1);
   }
   console.log(`verifier v${v.version}: OutLayer ${v.config.outlayer}, WASM sha256 ${v.config.wasm_hash.slice(0, 12)}…`);

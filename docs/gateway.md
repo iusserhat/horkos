@@ -2,7 +2,7 @@
 
 `gateway/` turns an existing JSON API into a Horkos listing without writing seller code. For every `Open` order on a configured listing it calls the API, checks the answer against the listing's JSON Schema **locally**, and only then submits the encrypted delivery. If the check fails, nothing is submitted: the order stays `Open` and is refunded at its deadline, and the seller pays no verifier fee.
 
-Testnet proof (listing 3, order 12 `Settled`, 14 Nov 2026): [TESTNET.md](TESTNET.md#seller-gateway-configuration-only-14-nov-2026-0856-utc).
+Testnet proof (listing 3, order 12 `Settled`, 14 Nov 2026): [TESTNET.md](testnet.md#seller-gateway-configuration-only-14-nov-2026-0856-utc).
 
 ## Five-minute setup (testnet)
 

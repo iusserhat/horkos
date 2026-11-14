@@ -1,7 +1,7 @@
 /**
  * Demo configuration (NEAR testnet). Keys are read from the near-cli legacy
  * keychain (~/.near-credentials/testnet); nothing secret is stored in the repo.
- * Account names are listed in docs/TESTNET.md.
+ * Account names are listed in docs/testnet.md.
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";

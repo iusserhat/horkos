@@ -1,12 +1,12 @@
 # Horkos — Claude Code rehberi
 
-Kullanıcıyla **Türkçe**; kod, commit, README, yorumlar **İngilizce**. Yeni oturum: bu dosya + `docs/PROGRESS.md` yeterli.
+Kullanıcıyla **Türkçe**; kod, commit, README, yorumlar **İngilizce**. Yeni oturum: bu dosya + `docs/internal/PROGRESS.md` yeterli.
 
 ## Proje
 
 AI ajanları için emanet (escrow) protokolü: her satın alma, parası kontratta kilitli bir NFT makbuzdur; para satıcıya yalnızca mandate limiti ve makinece doğrulanabilir teslim koşulu sağlanınca geçer, yoksa süre dolunca alıcıya döner. İlke: anlaşmazlığı çözmüyoruz, engelliyoruz.
 
-NEAR Hackathon, son teslim **14 Kasım 23:59 UTC**. Kurallar `HACKATHON.md`; README temiz makinede "do X → see Y" ile tekrarlanabilir olmalı, AI kodu/kütüphaneler listelenir, kökte `LICENSE`. Çalışmayan şey iddia edilmez. Ayrıntı: `docs/DESIGN.md`, `docs/DECISIONS.md`, `docs/SUBMISSION.md`, `docs/TESTNET.md`.
+NEAR Hackathon, son teslim **14 Kasım 23:59 UTC**. Kurallar `HACKATHON.md`; README temiz makinede "do X → see Y" ile tekrarlanabilir olmalı, AI kodu/kütüphaneler listelenir, kökte `LICENSE`. Çalışmayan şey iddia edilmez. Ayrıntı: `docs/architecture.md`, `docs/decisions.md`, `docs/internal/SUBMISSION.md`, `docs/testnet.md`.
 
 ## Kesin kurallar (açık onay olmadan asla)
 
@@ -29,7 +29,7 @@ NEAR Hackathon, son teslim **14 Kasım 23:59 UTC**. Kurallar `HACKATHON.md`; REA
 
 ## Ortam
 
-WSL Ubuntu-22.04; `~/horkos` = `C:\Users\a\horkos`. `CARGO_TARGET_DIR=~/.cache/horkos-target`. Rust 1.99.1, cargo-near 0.22.0, near-cli-rs 0.30.1, Node 20. Kurulum: `bash ~/horkos/setup.sh`. API/sürüm tahmin etme; çalışan komutlar `docs/TESTNET.md`'de.
+WSL Ubuntu-22.04; `~/horkos` = `C:\Users\a\horkos`. `CARGO_TARGET_DIR=~/.cache/horkos-target`. Rust 1.99.1, cargo-near 0.22.0, near-cli-rs 0.30.1, Node 20. Kurulum: `bash ~/horkos/setup.sh`. API/sürüm tahmin etme; çalışan komutlar `docs/testnet.md`'de.
 
 ## Çalışma kuralları (token tasarrufu)
 
@@ -37,7 +37,7 @@ WSL Ubuntu-22.04; `~/horkos` = `C:\Users\a\horkos`. `CARGO_TARGET_DIR=~/.cache/h
 2. Testler sessiz: `cargo test -q 2>&1 | tail -20`, `npm test 2>&1 | tail -20`. Uzun loglar dosyaya, gerekirse grep.
 3. Değişiklikten sonra yalnızca ilgili test (`cargo test -p horkos <ad>`); tam set commit öncesi bir kez.
 4. Dosyaları baştan yazma; yerinde küçük düzenleme.
-5. NEAR/OutLayer/near-cli komutlarını bir kez araştır, çalışanı `docs/TESTNET.md`'ye yaz, sonra oradan kullan.
+5. NEAR/OutLayer/near-cli komutlarını bir kez araştır, çalışanı `docs/testnet.md`'ye yaz, sonra oradan kullan.
 6. Alt ajan kullanma.
 7. Rapor ≤ 8 satır: yapılan, çalışan, çalışmayan, kullanıcıdan beklenen. Tablo/kod alıntısı yok; ayrıntı dosyaya.
 8. Uzun işler arka planda; beklerken tekrar tekrar kontrol etme.

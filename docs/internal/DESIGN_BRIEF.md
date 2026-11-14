@@ -126,7 +126,7 @@ Flow steps (happy path), each with the one line the contract actually does:
 6. Key opens: buyer reads `encrypted_key`, decrypts the data; seller calls `withdraw`.
 Alternative tabs: No delivery (Open → deadline → `refund_expired` → `Refunded`); Failed check (`Verifying → Delivered`, resubmit → `Verifying → Settled`, or deadline → `Refunded`); Out of mandate (`create_order` panics "Seller not allowed by mandate"; no order, no NFT).
 
-Use cases (from `docs/DESIGN.md` §8; only JSON Schema conditions exist today, the site says so):
+Use cases (from `docs/architecture.md` §8; only JSON Schema conditions exist today, the site says so):
 1. Dataset purchase — works today: schema, minimum rows. Refund when the schema fails or nothing arrives by the deadline.
 2. Market or API data feed (≥ $1 per order; DESIGN.md rules out cent-sized calls) — works today: schema of the response.
 3. Agent-to-agent job with structured output (e.g. labels as JSON) — works today for shape; hidden control samples are planned.

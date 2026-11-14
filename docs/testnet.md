@@ -8,6 +8,7 @@ Deployed 1 Nov 2026; escrow code redeployed the same day (adds `VerifierConfig.e
 | `tusdc.horkos.testnet` | Test token tUSDC (NEP-141, 6 decimals), 1,000,000 minted to `horkos.testnet` | `79c37d5c1744438dee951a971041ce119fe8ce3b59bc381b59466f4d309f1a68` |
 | `horkos.testnet` | Admin of the escrow (publishes verifier versions), token owner (`mint`) | — |
 | `probe.horkos.testnet` | OutLayer spike contract (`spikes/outlayer/probe`) | — |
+| `faucet.horkos.testnet` | tUSDC faucet (`contracts/faucet`), 14 Nov 2026; see below | `55d6afc80cec5e397236a633d35d8811fcf75ab79f2a84a532ec46191d5389e4` |
 
 Initial transactions: token deploy `5oVQ2HERAaogMBSBTGnvnaDzuXUHQEiFy2tCHuMqQGPN`, escrow deploy `8pXPACZe4KVLvZrymeMGBEq2TKa4cBP9ik9aBg6tSFuM`, escrow registered on token `8uGEdigtB5BgU7KfQVRsHsNSb8zyZr5VFCtY1rKtuwEs`.
 
@@ -21,7 +22,25 @@ near account view-account-summary escrow.horkos.testnet network-config testnet n
 
 State on 1 Nov: no verifier published yet (`get_verifier` → `null`), so `create_order` is rejected ("Verifier not configured") until the verifier WASM is hosted and `set_verifier` is called.
 
-**Trust note:** the contract accounts still have full-access keys (kept in the deployer's local keychain, not in the repo). Whoever holds them can redeploy the code; see the threat model in `DESIGN.md`.
+**Trust note:** the contract accounts still have full-access keys (kept in the deployer's local keychain, not in the repo). Whoever holds them can redeploy the code; see the threat model in [security.md](security.md).
+
+## Transaction evidence at a glance
+
+Details and more transactions in the sections below. Every hash opens on https://testnet.nearblocks.io/txns/<hash>.
+
+| What | Result | Tx |
+| --- | --- | --- |
+| Escrow deployed (`new(token, admin)`) | Contract live | `8pXPACZe4KVLvZrymeMGBEq2TKa4cBP9ik9aBg6tSFuM` |
+| Verifier v0 published (`set_verifier`) | Version 0 | `5AmP9nyCvwPN13XLJojKurnjD7tfRtF4395atmWLizmU` |
+| Demo 1: seller A delivers valid data (order 0) | `Settled` | `DgGzhbkGBEMHGG9duhFSQHgTKsXpxi9NgngEMb1BLAoD` |
+| Demo 2: seller B delivers data that fails the schema (order 2) | `Delivered`, then `Refunded` | `HgPppJUNPThmUDfEpDxhtTnFeZZDVktzggR4thvhE2yj`, `7PkEjmE3LJfQeH3Ko5KvNXT4Xm9EFzF3Qpg84xXssfC5` |
+| Demo 3: agent tries a seller outside the mandate | Rejected: "Seller not allowed by mandate" | `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt` |
+| OutLayer run failed, seller resubmitted (order 4) | `Delivered`, then `Settled` | `JEGNjxrQbVSbfLSYio1v7DsPgS9PRH9HRbRtutLAYfKx` |
+| Live CoinGecko data (order 8) | `Settled` | `C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB` |
+| Gateway, config only (listing 3, order 12) | `Settled` | `BJ7gey6fbyw4qzPM7UignWiDxwQstLESQ78mFN6qQ5Dp` |
+| Faucet deployed and funded with 10,000 tUSDC | Live | `2MDXwb1vAjgrNfNYjC1LmaTdZyH9zvWXSxw8BdRbqNDD`, `CRGBkeMwRsE1ScDYiuz7imiuAw6VnGSUTSUzvinVmL9U` |
+| Fresh account claims 20 tUSDC | Balance `20000000` | `DSZRSc57ddEhBHe9MASomTj2xay6jvvSU94rdBuj4mvw` |
+| Fresh account's agent via MCP, OutLayer gave no valid result (order 13) | `Delivered`, then `Refunded` | `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`, `4GWzBi43QXszsSyMAN92zBbpEGPASKEDxnwYDr8uA1n4` |
 
 ## Demo accounts
 
@@ -43,14 +62,14 @@ Demo 3 ran on 1 Nov 2026: the agent's function-call key sent `create_order` for 
 
 - Cost estimate: `near contract call-function as-read-only outlayer.testnet estimate_execution_cost json-args '{"resource_limits":{"max_instructions":10000000000,"max_memory_mb":128,"max_execution_seconds":60}}' network-config testnet now` → 0.007001 NEAR upper bound; actual charge for the verifier ≈ 0.0015 NEAR, the rest is refunded.
 - Direct run of the verifier (any account, e.g. to read its public key): `near contract call-function as-transaction outlayer.testnet request_execution json-args '{"source":{"WasmUrl":{"url":"<wasm_url>","hash":"<sha256>","build_target":"wasm32-wasip2"}},"resource_limits":{...as above...},"input_data":"{\"cmd\":\"pubkey\"}","response_format":"Json","secrets_ref":{"profile":"verifier","account_id":"horkos.testnet"}}' prepaid-gas '300 Tgas' attached-deposit '0.01 NEAR' sign-as horkos.testnet network-config testnet sign-with-legacy-keychain send` — the return value is the verifier's JSON output.
-- First run of the gist-hosted verifier v0 (no secret yet): tx `6dnGVTiB1e8sDyEYrv7MoSdKGsLnPqUDFe7oCyNKo8wv`, WASM fetched and run in the TEE, output `{"error":"verifier secret key not available"}` as expected. Hosting and setup steps: `docs/VERIFIER_SETUP.md`.
+- First run of the gist-hosted verifier v0 (no secret yet): tx `6dnGVTiB1e8sDyEYrv7MoSdKGsLnPqUDFe7oCyNKo8wv`, WASM fetched and run in the TEE, output `{"error":"verifier secret key not available"}` as expected. Hosting and setup steps: `docs/verifier.md`.
 - With the secret (`verifier` profile, accessor WasmHash, access `AllowAll AND WasmHash`): request 38311 tx `22kdu6b3JJoesbH2y6jjQ6uNrUuQq32mg9LbgejmKJXf` and retry tx `Ds6y6n89BSsCCw4j9B4t6twKYUoyggRneqW9b7gqxSbQ` both ended "Execution promise failed", no `execution_completed` event, callback `null`. The verifier cannot panic on a bad key, so the worker refused before running (likely secrets access). Check: `near contract call-function as-read-only outlayer.testnet list_user_secrets json-args '{"account_id":"horkos.testnet"}' network-config testnet now`.
 - **OutLayer testnet outage, 13 Nov 2026 from at least 15:03 TSİ (12:03 UTC):** the OutLayer dashboard lists every testnet execution (dozens of accounts) as "Infrastructure Error", including ours (dashboard ids 91032, 91085; on-chain requests 38311 and the retry). Error text: "Failed to submit to NEAR: the chain did not take resolve_execution ... Smart contract panicked at src/execution.rs:1052:14: Execution request not found". The worker runs, but cannot write the result on chain. Our secret settings were not the cause and stay unchanged (build lock kept).
 - Retries after the outage: 15:16 TSİ failed (tx `BJT8YtUot2Auq8FcSdZXgPkDV4Czyd6qBwft1YWxm7X7`); **15:49 TSİ succeeded** (tx `5iWyLC1TVjd7v4CKSDU4yggATB4x4g42TJs4xJAZRtRH`): the verifier read `PROTECTED_VERIFIER_SK` in the TEE and printed its public key `pLiqba7GL8rXlTp8kUWIMbpJQ7d73xbG/toxTKJn72o=`.
 
 ## Verifier v0 published (13 Nov 2026)
 
-`set_verifier` by `horkos.testnet`, tx `5AmP9nyCvwPN13XLJojKurnjD7tfRtF4395atmWLizmU`, returned version `0`. Config: outlayer `outlayer.testnet`, WASM URL and sha256 as in `docs/VERIFIER_SETUP.md`, `build_target` `wasm32-wasip2`, `encryption_pubkey` above, secrets `verifier` / `horkos.testnet`, `min_fee` 0.01 NEAR, `max_fee` 0.05 NEAR. Check: `near contract call-function as-read-only escrow.horkos.testnet get_verifier json-args '{}' network-config testnet now`.
+`set_verifier` by `horkos.testnet`, tx `5AmP9nyCvwPN13XLJojKurnjD7tfRtF4395atmWLizmU`, returned version `0`. Config: outlayer `outlayer.testnet`, WASM URL and sha256 as in `docs/verifier.md`, `build_target` `wasm32-wasip2`, `encryption_pubkey` above, secrets `verifier` / `horkos.testnet`, `min_fee` 0.01 NEAR, `max_fee` 0.05 NEAR. Check: `near contract call-function as-read-only escrow.horkos.testnet get_verifier json-args '{}' network-config testnet now`.
 
 ## Demos 1 and 2 on testnet (13 Nov 2026, real OutLayer, verifier v0)
 

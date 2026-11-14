@@ -44,4 +44,4 @@ Captions on screen when time is cut: "+3 min" (demo 2 deadline), "+20 s" (verifi
 ## After recording
 
 - Watch the whole video once for keys, personal data, unreadable text and claims not in the README.
-- Posting on X and the submission are the owner's steps (`docs/X_POST.md`, `docs/SUBMISSION.md`).
+- Posting on X and the submission are the owner's steps (`docs/internal/X_POST.md`, `docs/internal/SUBMISSION.md`).

@@ -2,7 +2,7 @@
 
 Send only after the owner's explicit approval. Planned: 14 Nov 2026, 20:00 TSİ (deadline 14 Nov 23:59 UTC = 15 Nov 02:59 TSİ). The local copy of the rules says a submission cannot be edited; the live site's FAQ points to a "Request changes" page reviewed by hand. Treat it as final.
 
-Before sending: repo public, X post live, every claim below checked against the README and `docs/TESTNET.md`.
+Before sending: repo public, X post live, every claim below checked against the README and `docs/testnet.md`.
 
 ## Fields (API: `POST https://nearhackathon.com/api/applications`)
 
@@ -44,14 +44,14 @@ _1996 characters_ (limit 20–2000).
 ## Claim check
 
 Every sentence in `idea` maps to something on testnet or in the repo:
-- Settled through OutLayer: orders 0, 5 and 8 (`docs/TESTNET.md`, README Quick start b); order 8 with live CoinGecko prices.
+- Settled through OutLayer: orders 0, 5 and 8 (`docs/testnet.md`, README Quick start b); order 8 with live CoinGecko prices.
 - Site: https://horkos-escrow.netlify.app (Netlify; home, Connect, Explorer, Market return 200, live testnet data checked 14 Nov 2026). The `website` form field stays empty.
 - CoinGecko: seller A's data source only (`demo/sellers/coingecko.ts`); no payment to CoinGecko, no x402, no partnership or integration claimed.
 - Bad delivery refunded: order 2.
 - Prompt-injected 500 tUSDC order rejected: tx `82LUfji2HUSR9swkzvYVYYVJe31dedkrrj7Jicc7AXWt`.
 - MCP server: `mcp/`, orders 3 (cancelled) and 4 (settled).
 - Agent key rotation and full-access key deletion: txs in README Security model.
-- gitleaks: `docs/SECRET_SCAN.md`.
+- gitleaks: `docs/security.md`.
 - Not claimed: on-chain attestation verification, mainnet, transferable receipts, conditions other than JSON Schema.
 
-X post texts: `docs/X_POST.md`.
+X post texts: `docs/internal/X_POST.md`.

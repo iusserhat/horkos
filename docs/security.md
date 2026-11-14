@@ -78,6 +78,6 @@ Before the repo goes public.
 - Re-scan of all history (44 commits; gitleaks reports 43 scanned): the same single false positive (`verifier/Cargo.lock` line 188, commit `83866d9`). `ed25519:` strings of 60+ base58 characters: none. Keyword hits (`private_key`, `secret_key`, ...): code that reads the local keychain and this file only. No `.env`, `.pem`, `*key.json` or credentials files in any commit.
 - Re-run before the repo goes public if new commits land.
 
-### Re-scan (14 Nov 2026, ~12:35 UTC)
+### Re-scan (14 Nov 2026, ~09:35 UTC)
 
 gitleaks 8.30.1 (checksum re-verified) over all history (58 commits) and over the working tree: the same single false positive (`verifier/Cargo.lock` line 188). `ed25519:` strings of 60+ base58 characters: none in the tree or in `git log --all -p`.

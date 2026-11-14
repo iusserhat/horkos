@@ -165,6 +165,29 @@ near contract call-function as-transaction tusdc.horkos.testnet ft_transfer_call
 
 Order 13 did not settle: the verifier's answer for request 43883 was not a valid result (the reason is not visible on chain), while order 12 on the same listing settled 13 minutes earlier. The escrow behaved as designed: no payment, budget returned via `refund_expired`. The run also hit FastNEAR's `test.rpc.fastnear.com` rate limit (HTTP 429); `rpc.testnet.fastnear.com` and `rpc.testnet.near.org` answered.
 
+## Hosted seller A on Render (14 Nov 2026, from 10:20 UTC)
+
+Seller A is hosted on Render's free tier (`render.yaml`, `demo/sellers/hosted.ts`, service `horkos-seller-a`, Frankfurt). It serves listings 0 and 3, is checked every 5 minutes on `/health`, and is meant to stay online during judging (16 to 18 Nov): https://horkos-seller-a.onrender.com/health. If it is down, orders are not paid and are refunded after their delivery window with `refund_expired`. Fallback: the team runs seller A locally (`cd demo && npm run seller -- a`, or `npm run hosted` with `SELLER_ACCOUNT_ID` / `SELLER_PRIVATE_KEY` in the environment).
+
+The Try page agent track was repeated with three fresh accounts (`hk-try1/2/3-1252.testnet`, each claimed 20 tUSDC from the faucet, set a mandate for seller A and deposited 20 tUSDC; txs in the faucet section's format), buying listing 0 through the MCP server against the Render-hosted seller:
+
+| Order | Seller version | Result | Funding → Settled | Txs (`create_order`, `submit_delivery` ..., `refund_expired`) |
+| --- | --- | --- | --- | --- |
+| 14 | 0.2.0 | Not settled: CoinGecko 429 delayed delivery 3 min 44 s, then 2 OutLayer timeouts; refunded | — | `GubCQrR45w7S8kgyRj78XDcuX6xY5UFm98EdR3mW981C`, `8sxwyQHWv39VefkM3ESiMeyhbz34GhacQwr1nT5P7Rjr`, `8wEshPj1vmAKCjtBFhYa3WvYGxT1XPMqgBNDJ3iA8gRR`, `9dprRaqhnftZjaKPM533aXSXaEbhHmwREib81LJBoKZZ` |
+| 15 | 0.2.0 | **Settled**, buyer opened 4 NEAR/USD points | 1 min 21 s | `5rVjtFhqtuSKBp7nq31NEFwBQ4btj3axW5jkq1Sd5qZx`, `RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj` |
+| 16 | 0.2.0 | Not delivered: every CoinGecko call from Render answered 429; refunded | — | `36M1byQzRaTZfDtawjUSP5nHRrjTd3PMGwkFVFHtv96D`, `2bk8NMzsX2tjELWf2xZyEMrVfnpZ96hirU9mhsowpd2t` |
+| 17 | 0.2.1 | Not settled: 429s, then 2 OutLayer timeouts; refunded | — | `91sjzhn3iFkQnMhDq3ptETbDJj6QezB9eUR2i2qj9svG`, `9iQm4FLRuD9jHCJ3aDgjLHSaJRjCw3tcvs189MREe2p`, `8GQGEies3fSsqUQUjJWVx2w8ET6HMoza2XU57zuwM7DA`, `A3KMS9h37EjNcWCFdXZSdYpviZKAC2ePvRxuqVeAugBg` |
+| 18 | 0.2.3 | **Settled** (data from Coinbase after a CoinGecko 429) | 34 s | `7zGiSW98RNo4ZSmK3yapCWJUmCTYa3g2RawYyChFXyLe`, `ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX` |
+| 19 | 0.2.3 | Not settled: 3 OutLayer timeouts; refunded | — | `A89AnwCQ8zc7LvrBwL4YypwbGgFPb9xho2WyszXLtuUV`, `3bRD5PpqB1xgEdRbVFduiSy9omSivy9Y7N3eeDiSa4gD`, `Gz8aE3UZhUtU96MXtWKnS2e4vikD8aToWYNZ3eavgfz`, `MWy6dLdbakRFwnkjtouQ5E46ep9yXjsUYqHS7qy7BhK`, `EyLLrg62mZG87LiU8B4hV3YxSHRcx5n86NA3f4auGKP6` |
+| 20 | 0.2.3 | Not settled: 3 OutLayer timeouts; refunded | — | `91uWS8DamZJZsoaaAh22y1DXRNRqaoArG2hMiVur48V8`, `D4iXLnsvjF7AUnKenQ7wEC8FY88NjHBuKJPyYi6Vfb2G`, `DAN827NEiQ98415Dazo8fyuim6k3T8FfWQ19cNGqhLMu`, `AmSivFBkPncAV4a7cdJTeddyEgbTidqmctgSU89Fvp9r`, `D1cuRmrBDzJDioGYKXnqRHwHg1kpgq4Kn9zHp9XnC7Ji` |
+
+2 of 7 settled; no buyer lost money (every other order was refunded in full to its mandate budget). Two causes, both measured:
+
+1. **CoinGecko rate-limits Render's shared IP** (HTTP 429, seen in `/health` `last_problem`). Fixed in 0.2.2 / 0.2.3: one call per minute, last good answer reused for up to 10 minutes, fallback to Coinbase's public NEAR-USD API in the same data shape (checked against both listing schemas).
+2. **OutLayer did not resolve the verification within NEAR's yield limit.** Every failed run (orders 13, 14, 17, 19, 20) ended exactly 201 blocks (~106 to 121 s) after `request_execution`, with OutLayer's log "Execution promise failed: Failed" and a 0.001 NEAR charge; `on_verified` then moved the order to `Delivered`. Successful runs took 25 to 70 s. A direct `{"cmd":"pubkey"}` run of the same verifier succeeded in 45 blocks (tx `DzCN2kgbQ9Yv8oVaJU4Px8hUWDqVHWEXVe2SQNE64i22`), and other projects' OutLayer runs succeeded at the same time, so the WASM, its hash and the secret are fine; the slow part is OutLayer resolving our runs, which fetch three files from FastFS. The hosted seller retries with backoff until 150 s before the deadline (0.2.0+), which fits about three attempts in a 10-minute window.
+
+Order 13 (gateway, 09:10 UTC) had the same OutLayer cause: the gateway was running, `submit_delivery` was sent 11 s after funding (tx `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`), OutLayer request 43883 ended at 201 blocks with "Execution promise failed", `on_verified` ran and set `Delivered`.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

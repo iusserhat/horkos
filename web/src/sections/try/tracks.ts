@@ -4,6 +4,8 @@ import { accountError } from "../../lib/accounts";
 
 /** Faucet contract for test tUSDC (contracts/faucet). Commands below are the ones checked on testnet. */
 const FAUCET = "faucet.horkos.testnet";
+/** Hosted seller A (demo/sellers/hosted.ts on Render, render.yaml). */
+const SELLER_HEALTH = "https://horkos-seller-a.onrender.com/health";
 
 type TrackId = "watch" | "local" | "agent";
 interface Step {
@@ -135,10 +137,13 @@ const AGENT: Step[] = [
   },
   {
     title: "Ask your agent to buy",
-    body: () => [p("Start Claude Code in any folder and paste:"), codeBlock("Find a NEAR/USD price feed on Horkos and buy it for at most 10 tUSDC. Wait until the order is Settled, then open the delivery and show me the data.")],
+    body: () => [
+      h("p", { class: "callout" }, "Seller A is hosted on Render's free tier and checked every 5 minutes; it is online during judging, 16 to 18 Nov. Live status: ", ex(SELLER_HEALTH, "seller A /health"), ". OutLayer's testnet verifier sometimes times out (5 of 7 test orders on 14 Nov); the seller retries until the window is nearly over. If the order still isn't Settled, or the seller is down, nobody is paid and the order is refunded after its window with ", code("refund_expired"), ". Fallback: the team runs seller A locally with ", code("npm run seller -- a"), "."),
+      p("Start Claude Code in any folder and paste:"), codeBlock("Find a NEAR/USD price feed on Horkos and buy it for at most 10 tUSDC. Wait until the order is Settled, then open the delivery and show me the data.")],
     expect: () => [
-      h("ol", {}, h("li", {}, "It calls ", code("horkos_search_listings"), " and ", code("horkos_create_order"), "."), h("li", {}, "It polls ", code("horkos_get_order"), " until ", h("b", {}, "Settled"), " (usually 20 to 40 seconds)."), h("li", {}, "It opens the data: four NEAR/USD prices from CoinGecko.")),
-      p("If nothing happens for the whole delivery window (10 minutes), the seller is offline: call ", code("refund_expired"), " or wait for anyone to do it, and the 5 tUSDC goes back to your budget."),
+      h("ol", {}, h("li", {}, "It calls ", code("horkos_search_listings"), " and ", code("horkos_create_order"), "."), h("li", {}, "It polls ", code("horkos_get_order"), " until ", h("b", {}, "Settled"), " (usually 20 to 40 seconds)."), h("li", {}, "It opens the data: four NEAR/USD prices (from CoinGecko, or Coinbase when CoinGecko rate-limits the hosted seller).")),
+      p("If the order is not Settled when its 10-minute window ends (seller offline, or OutLayer gave no valid result: the order shows ", h("b", {}, "Delivered"), "), nobody is paid. Anyone can then call ", code("refund_expired"), " (nothing calls it automatically) and the 5 tUSDC goes back to your mandate budget:"),
+      codeBlock(`near contract call-function as-transaction ${CONTRACT} refund_expired json-args '{"order_id":"<id>"}' prepaid-gas '50 Tgas' attached-deposit '0 NEAR' ${sign(who.owner)}`),
     ],
   },
   {

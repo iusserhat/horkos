@@ -359,3 +359,9 @@ ul.plain {
 .rc-moves { margin-top: var(--s2); }
 .rc-target .receipt { outline: 4px solid var(--gold-deep); outline-offset: 4px; }
 .ex-hint { margin: var(--s2) 0 0; font-size: var(--fs-small); }
+.rc-ledger { margin: 0; font-weight: 700; font-size: var(--fs-small); overflow-wrap: anywhere; }
+.rc-ruling { border: 2px solid var(--ink); border-radius: var(--radius-inner); background: var(--card); padding: var(--s2) var(--s3); font-size: var(--fs-small); }
+.rc-ruling summary { cursor: pointer; font-weight: 700; }
+.rc-ruling dl { margin: var(--s2) 0 0; }
+.rc-ruling dd { margin: 0 0 var(--s2); overflow-wrap: anywhere; }
+.rc-ruling dt { color: var(--muted); }

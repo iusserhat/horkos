@@ -25,7 +25,7 @@ import { compileCondition, type Check } from "../../gateway/src/validate.js";
 import { sha256, toHex } from "../../sdk/src/index.js";
 import { PROFILES } from "./profiles.js";
 
-const VERSION = "hosted-seller 0.2.1";
+const VERSION = "hosted-seller 0.2.2";
 const env = process.env;
 const NETWORK = env.NETWORK ?? "testnet";
 const CONTRACT = env.CONTRACT ?? "escrow.horkos.testnet";
@@ -33,21 +33,49 @@ const SELLER = env.SELLER_ACCOUNT_ID ?? "";
 const KEY = env.SELLER_PRIVATE_KEY ?? "";
 const FASTFS = "https://test.fastfs.io/horkos-seller-a.testnet/outlayer.testnet";
 
+/**
+ * CoinGecko's free API answers HTTP 429 to shared cloud IPs (seen on Render,
+ * 14 Nov 2026). Each source is called at most once per CACHE_MS; the last good
+ * answer is reused for up to MAX_AGE_MS, so a burst of orders or a 429 does
+ * not stop deliveries. Older than that, nothing is delivered.
+ */
+const CACHE_MS = Number(env.CACHE_MS ?? 60_000);
+const MAX_AGE_MS = Number(env.MAX_AGE_MS ?? 10 * 60_000);
+function cached(name: string, fetcher: () => Promise<unknown>): () => Promise<unknown> {
+  let value: unknown;
+  let at = 0;
+  let tried = 0;
+  return async () => {
+    const now = Date.now();
+    if (now - tried >= CACHE_MS) {
+      tried = now;
+      try {
+        value = await fetcher();
+        at = Date.now();
+      } catch (e) {
+        log("source_error", { source: name, error: msg(e), cached_age_s: at ? Math.round((now - at) / 1000) : null });
+      }
+    }
+    if (!at || Date.now() - at > MAX_AGE_MS) throw new Error(`${name}: no data newer than ${MAX_AGE_MS / 60_000} min`);
+    return value;
+  };
+}
+
 /** Listings seller A can serve: where the condition lives and how the data is made. */
 const CATALOG: Record<string, { conditionUrl: string; data: () => Promise<unknown> }> = {
   // Demo listing: last 4 NEAR/USD points from CoinGecko's market_chart.
-  "0": { conditionUrl: `${FASTFS}/84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496.json`, data: async () => PROFILES.a.data() },
+  "0": { conditionUrl: `${FASTFS}/84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496.json`, data: cached("coingecko market_chart", async () => PROFILES.a.data()) },
   // Gateway listing: CoinGecko simple/price for NEAR (gateway/examples/coingecko.json).
   "3": {
     conditionUrl: `${FASTFS}/2abb3e2b80f1f421eb7937b1463d277aafdc817a89b12f84b25564bd1d3aca50.json`,
-    data: async () => {
+    data: cached("coingecko simple/price", async () => {
       const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_last_updated_at=true", {
         headers: { accept: "application/json" },
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
       return ((await res.json()) as { near: unknown }).near;
-    },
+    }),
   },
 };
 const LISTINGS = (env.LISTINGS ?? env.LISTING_ID ?? "0,3").split(",").map((s) => s.trim()).filter(Boolean);
@@ -62,7 +90,7 @@ const ONE_NEAR = 10n ** 24n;
 const STALE_MS = 120_000;
 
 /** Problems shown on /health (no secrets: URLs, order ids and error texts only). */
-const PROBLEMS = new Set(["retry", "not_delivered", "verification_failed", "delivery_failed", "poll_failed", "startup_failed"]);
+const PROBLEMS = new Set(["source_error", "retry", "not_delivered", "verification_failed", "delivery_failed", "poll_failed", "startup_failed"]);
 const counts: Record<string, number> = {};
 let lastProblem: Record<string, unknown> | null = null;
 
@@ -185,6 +213,8 @@ async function deliver(o: Order): Promise<void> {
 }
 
 async function poll(): Promise<void> {
+  // Keep each source's cache warm (at most one call per CACHE_MS), so data is ready when an order arrives.
+  for (const id of LISTINGS) CATALOG[id].data().catch(() => {});
   const ids: string[] = [];
   for (let from = 0; ; from += 100) {
     const page = await withRetry("nft_tokens", (c) => c.seller.listOrderIds(from, 100));

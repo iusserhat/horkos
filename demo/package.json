@@ -10,9 +10,13 @@
     "demo3": "tsx scenario.ts 3",
     "sandbox": "tsx sandbox.ts",
     "seller": "tsx sellers/run.ts",
+    "hosted": "tsx sellers/hosted.ts",
     "typecheck": "../sdk/node_modules/.bin/tsc -p tsconfig.json"
   },
   "devDependencies": {
     "tsx": "4.23.15"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -1,0 +1,34 @@
+# Render Blueprint: hosted testnet seller A (demo/sellers/hosted.ts).
+# Testnet only. The seller key is typed into the Render dashboard, never committed.
+services:
+  - type: web
+    name: horkos-seller-a
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: cd sdk && npm ci && cd ../demo && npm ci
+    startCommand: cd demo && npm run hosted
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NETWORK
+        value: testnet
+      - key: CONTRACT
+        value: escrow.horkos.testnet
+      - key: TOKEN
+        value: tusdc.horkos.testnet
+      - key: LISTING_ID
+        value: "0"
+      - key: RPC_URLS
+        value: https://rpc.testnet.fastnear.com,https://rpc.testnet.near.org
+      - key: POLL_MS
+        value: "15000"
+      - key: WITHDRAW
+        value: "0"
+      - key: SELLER_ACCOUNT_ID
+        sync: false
+      - key: SELLER_PRIVATE_KEY
+        sync: false

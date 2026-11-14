@@ -92,6 +92,8 @@ You should see `"status": "Settled"` for order 0, `"status": "Refunded"` for ord
 
 ### c) MCP server: let Claude buy within the mandate (testnet)
 
+**Judges, with your own fresh testnet accounts and no team keys:** follow the agent track on the [Try page](https://horkos-escrow.netlify.app/try.html): create accounts, claim 20 tUSDC from `faucet.horkos.testnet`, set a mandate for seller A, then ask Claude to buy listing 4. Seller A runs on Render during judging (https://horkos-seller-a.onrender.com/health).
+
 The server (`mcp/`, stdio) gives an agent five tools: `horkos_search_listings`, `horkos_create_order`, `horkos_get_order`, `horkos_open_delivery`, `horkos_cancel_order`. It signs as the agent, so it needs the agent's function-call key (the team has it; it can only call `create_order` / `cancel_order` on the escrow). You can point it at your own deployment with `HORKOS_AGENT`, `HORKOS_OWNER`, `HORKOS_CONTRACT` and `HORKOS_AGENT_KEY` (see the header of `mcp/server.ts`).
 
 ```bash
@@ -130,7 +132,7 @@ More (market page, 390 px, dark theme, each explorer tab): `docs/screenshots/`.
 
 ## OutLayer on testnet: failed runs
 
-Verification runs on OutLayer testnet, which sometimes times out (most of our runs on 14 Nov did); the hosted seller retries automatically for up to 30 minutes (listings 4 and 5 have a 30-minute window); if it still fails, the order refunds in full. Measurements and transactions: `docs/testnet.md`.
+**Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; the hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
 
 OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
 
@@ -175,8 +177,8 @@ What Horkos does differently, concretely: the spending mandate and the escrow ar
 ## Run the tests
 
 ```bash
-cd contracts && cargo test -p horkos -p test-token     # 101 + 4 unit tests
-cd .. && contracts/scripts/test-sandbox.sh              # 7 integration tests on a local node
+cd contracts && cargo test -p horkos -p test-token -p faucet   # 101 + 4 + 11 unit tests
+cd .. && contracts/scripts/test-sandbox.sh              # 1 faucet + 7 escrow integration tests on a local node
 (cd sdk && npm ci && npm test)                          # 6 SDK tests (after test-sandbox.sh)
 (cd verifier && cargo test)                             # 15 verifier tests
 (cd sdk && npm run test:verifier)                       # 5 end-to-end tests: SDK-built deliveries through the native verifier

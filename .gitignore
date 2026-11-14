@@ -30,3 +30,10 @@ video-raw/
 
 # Netlify CLI local state
 .netlify/
+
+# Local credentials and scratch files (never committed)
+credentials.json
+*.credentials.json
+.near-credentials/
+scratchpad/
+*.log

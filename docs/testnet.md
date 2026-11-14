@@ -38,6 +38,8 @@ Details and more transactions in the sections below. Every hash opens on https:/
 | OutLayer run failed, seller resubmitted (order 4) | `Delivered`, then `Settled` | `JEGNjxrQbVSbfLSYio1v7DsPgS9PRH9HRbRtutLAYfKx` |
 | Live CoinGecko data (order 8) | `Settled` | `C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB` |
 | Gateway, config only (listing 3, order 12) | `Settled` | `BJ7gey6fbyw4qzPM7UignWiDxwQstLESQ78mFN6qQ5Dp` |
+| Demo 1 for the video (order 9) | `Settled` | `4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP` |
+| Render-hosted seller A, judge path (orders 15 and 18) | `Settled` | `RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj`, `ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX` |
 | Faucet deployed and funded with 10,000 tUSDC | Live | `2MDXwb1vAjgrNfNYjC1LmaTdZyH9zvWXSxw8BdRbqNDD`, `CRGBkeMwRsE1ScDYiuz7imiuAw6VnGSUTSUzvinVmL9U` |
 | Fresh account claims 20 tUSDC | Balance `20000000` | `DSZRSc57ddEhBHe9MASomTj2xay6jvvSU94rdBuj4mvw` |
 | Fresh account's agent via MCP, OutLayer gave no valid result (order 13) | `Delivered`, then `Refunded` | `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`, `4GWzBi43QXszsSyMAN92zBbpEGPASKEDxnwYDr8uA1n4` |
@@ -167,7 +169,7 @@ Order 13 did not settle: the verifier's answer for request 43883 was not a valid
 
 ## Hosted seller A on Render (14 Nov 2026, from 10:20 UTC)
 
-Seller A is hosted on Render's free tier (`render.yaml`, `demo/sellers/hosted.ts`, service `horkos-seller-a`, Frankfurt). It serves listings 0 and 3, is checked every 5 minutes on `/health`, and is meant to stay online during judging (16 to 18 Nov): https://horkos-seller-a.onrender.com/health. If it is down, orders are not paid and are refunded after their delivery window with `refund_expired`. Fallback: the team runs seller A locally (`cd demo && npm run seller -- a`, or `npm run hosted` with `SELLER_ACCOUNT_ID` / `SELLER_PRIVATE_KEY` in the environment).
+Seller A is hosted on Render's free tier (`render.yaml`, `demo/sellers/hosted.ts`, service `horkos-seller-a`, Frankfurt). It serves listings 0, 3, 4 and 5, is checked every 5 minutes on `/health` by an UptimeRobot monitor (email alerts), and is meant to stay online during judging (16 to 18 Nov): https://horkos-seller-a.onrender.com/health. If it is down, orders are not paid and are refunded after their delivery window with `refund_expired`. Fallback: the team runs seller A locally (`cd demo && npm run seller -- a`, or `npm run hosted` with `SELLER_ACCOUNT_ID` / `SELLER_PRIVATE_KEY` in the environment).
 
 The Try page agent track was repeated with three fresh accounts (`hk-try1/2/3-1252.testnet`, each claimed 20 tUSDC from the faucet, set a mandate for seller A and deposited 20 tUSDC; txs in the faucet section's format), buying listing 0 through the MCP server against the Render-hosted seller:
 
@@ -203,6 +205,14 @@ Five orders on listing 4 through the MCP server, against the Render-hosted selle
 0 of 5 settled: all 49 verification attempts ended at OutLayer's 201-block limit (each `submit_delivery` took 123 to 127 s to final; OutLayer request ids 44806 to 44865 and later). The verifier itself is not the bottleneck: OutLayer's `execution_completed` event for the successful runs reports about 35 M instructions and 4.9 to 6.4 s (`time_ms`), against our limits of 10^10 instructions, 128 MB and 60 s. The verifier is referenced as a pre-built `wasm32-wasip2` WASM by URL and sha256 (`WasmUrl`), not compiled from source per run. Open question: the verifier's HTTP fetches (FastFS manifest, condition, ciphertext) have no timeout; if a fetch hangs inside OutLayer's worker the run never completes. A draft question to the OutLayer team is in `docs/internal/outlayer-timeouts.md`.
 
 Order 13 (gateway, 09:10 UTC) had the same OutLayer cause: the gateway was running, `submit_delivery` was sent 11 s after funding (tx `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`), OutLayer request 43883 ended at 201 blocks with "Execution promise failed", `on_verified` ran and set `Delivered`.
+
+### OutLayer testnet diagnosis (14 Nov 2026, 12:07 to 12:35 UTC)
+
+- **Other projects:** 39 of 39 `request_execution` runs by other accounts (`tredio-oracle.testnet`, `zyx-dev.testnet`, `enclave.parry.testnet`; request ids 45008 to 45134) ended at exactly 201 blocks (112 to 121 s) with "Execution promise failed".
+- **Minimal run:** our verifier's `{"cmd":"pubkey"}` (no network fetches, no data) at 12:31 UTC: request 45170, tx `F6dz4wBiha8hd8RmpTPQWkFWtYeq7iwLAxEcgDLCG1Qj`, failed after 125 s the same way. The same call took 45 blocks earlier the same day (tx `DzCN2kgbQ9Yv8oVaJU4Px8hUWDqVHWEXVe2SQNE64i22`).
+- **Our side, unchanged since the settled orders 15 and 18:** one verifier version (v0, WASM sha256 `61370b57…`, same URL), same resource limits (1e10 instructions, 128 MB, 60 s), same `min_fee` 0.01 NEAR, same condition files; the hosted seller changed only its retry and logging code. So there was nothing to roll back.
+- **Off-chain timing:** the verifier's full check path runs in its unit tests (15 tests) in 0.02 s natively; the two FastFS condition files download in about 0.5 s; on OutLayer, successful runs reported about 35M instructions and 4.9 to 6.4 s.
+- **Conclusion:** the timeouts are on OutLayer testnet's side, not in Horkos or the verifier. Draft report to OutLayer: `docs/internal/outlayer-timeouts.md`.
 
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 

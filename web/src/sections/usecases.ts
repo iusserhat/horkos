@@ -87,7 +87,7 @@ const CASES: UseCase[] = [
     checked: "Planned: the verifier runs the buyer's test suite. Today it checks JSON Schema only.",
     refund: "Tests fail, or nothing arrives before the deadline.",
     examples: [
-      { name: "Algora", what: "bounties are paid when a maintainer merges the pull request", url: "https://docs.algora.io/bounties/workflow" },
+      { name: "Algora", what: "bounties paid for merged pull requests", url: "https://algora.io" },
     ],
     mainnet: {
       fit: "Later",

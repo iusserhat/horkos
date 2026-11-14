@@ -3,6 +3,7 @@
   padding-bottom: var(--s9);
 }
 .explorer h1 {
+  overflow-wrap: anywhere;
   margin-top: var(--s2);
   max-width: 24ch;
 }

@@ -128,6 +128,8 @@ More (market page, 390 px, dark theme, each explorer tab): `docs/screenshots/`.
 
 ## OutLayer on testnet: failed runs
 
+Verification runs on OutLayer testnet, which sometimes times out; the hosted seller retries automatically for up to 30 minutes (listings 4 and 5 have a 30-minute window); if it still fails, the order refunds in full. Measurements and transactions: `docs/testnet.md`.
+
 OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
 
 ## Security model

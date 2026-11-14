@@ -24,7 +24,7 @@ No accounts or keys needed. Step 1 needs only `curl`; steps 2 to 4 need Rust (`r
 
 ```bash
 # 1. A settled order on testnet (read-only RPC call)
-curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"escrow.horkos.testnet","method_name":"get_order","args_base64":"'$(printf '{"order_id":"9"}' | base64)'"}}' | python3 -c 'import sys,json; o=json.loads(bytes(json.load(sys.stdin)["result"]["result"])); print(o["status"], o["verifier_version"])'
+curl -s https://rpc.testnet.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"escrow.horkos.testnet","method_name":"get_order","args_base64":"'$(printf '{"order_id":"9"}' | base64)'"}}' | python3 -c 'import sys,json; o=json.loads(bytes(json.load(sys.stdin)["result"]["result"])); print(o["status"], o["verifier_version"])'
 # Expected: Settled 0
 
 # 2. The verifier WASM rebuilds byte for byte from this repo

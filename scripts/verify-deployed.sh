@@ -14,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 TARGET="${CARGO_TARGET_DIR:-$PWD/contracts/target}"
-RPC="${NEAR_RPC:-https://rpc.testnet.near.org}"
+RPC="${NEAR_RPC:-https://rpc.testnet.fastnear.com}"
 fail=0
 
 if [[ "${1:-}" == "--match-paths" ]]; then

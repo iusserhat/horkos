@@ -42,7 +42,7 @@ fi
 # CONTRACT is the only caller the verifier accepts (compiled in via HORKOS_CONTRACT).
 
 verifier_config() {  # <account> <version> -> "wasm_hash wasm_url"
-  curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
+  curl -s https://rpc.testnet.fastnear.com -H 'content-type: application/json' \
     -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"'"$1"'","method_name":"get_verifier_version","args_base64":"'"$(printf '{"version":%s}' "$2" | base64)"'"}}' \
     | python3 -c 'import sys,json; r=json.load(sys.stdin)["result"]["result"]; c=json.loads(bytes(r)); print(c["wasm_hash"], c["wasm_url"])'
 }

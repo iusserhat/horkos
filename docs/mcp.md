@@ -17,7 +17,7 @@ Claude Desktop, Cursor and Windows paths: the config generator at https://horkos
 | `HORKOS_AGENT` | `horkos-agent.testnet` | Agent account |
 | `HORKOS_OWNER` | `horkos-owner.testnet` | Mandate owner |
 | `HORKOS_CONTRACT` | `escrow.horkos.testnet` | Escrow |
-| `NEAR_RPC_URL` | `https://test.rpc.fastnear.com` | RPC; if it answers HTTP 429, use `https://rpc.testnet.fastnear.com` or `https://rpc.testnet.near.org` |
+| `NEAR_RPC_URL` | `https://test.rpc.fastnear.com` | RPC; if it answers HTTP 429, use `https://rpc.testnet.fastnear.com`; `rpc.testnet.near.org` now answers 429 "endpoint is deprecated" |
 | `HORKOS_AGENT_KEY` | unset | `ed25519:...` function-call key. If unset, the key matching the agent's on-chain function-call key is read from `~/.near-credentials/testnet/<agent>/` |
 
 Buyer decryption keys are saved in `~/.horkos/buyer-keys.json` (mode 600), one per order. Logs go to stderr; stdout is the MCP channel.

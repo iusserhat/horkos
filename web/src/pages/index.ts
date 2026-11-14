@@ -28,5 +28,5 @@ import { demo } from "../sections/demo";
 
 mount(qs("#header"), header("home"));
 document.body.classList.add("page-home");
-mount(qs("#main"), hero(), demo(), problem(), steps(), receipts(), flow(), useCases(), business(), connectPreview(), builtOnNear(), security(), cta());
+mount(qs("#main"), hero(), demo(), steps(), problem(), receipts(), flow(), useCases(), business(), connectPreview(), builtOnNear(), security(), cta());
 mount(qs("#footer"), footer());

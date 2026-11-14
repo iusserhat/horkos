@@ -31,13 +31,14 @@ step "Contract unit tests (v1, v2, tUSDC, faucet)" "cd contracts && cargo test -
 step "Attack tests, 8 per escrow version (v1, v2)"   "cd contracts && cargo test -q -p horkos -p horkos-v2 --test attacks"
 step "Invariants, 100 random sequences (v1, v2)"     "cd contracts && INVARIANT_RUNS=100 cargo test -q --release -p horkos -p horkos-v2 --test invariants"
 step "Verifier unit tests"                           "cd verifier && cargo test -q"
-step "Sentinel rules"                                "cd sentinel && npm ci --silent && npm test"
-step "Gateway unit tests"                            "cd gateway && npm ci --silent && npm test"
 step "SDK + MCP type check"                          "cd sdk && npm ci --silent && npm run typecheck && cd ../mcp && npm ci --silent && npm run typecheck"
+step "Sentinel rules"                                "cd sentinel && npm ci --silent && npm test"
+step "Gateway unit tests (needs sdk/ installed)"     "cd gateway && npm ci --silent && npm test"
 if [[ -z "${JUDGE_SKIP_SANDBOX:-}" ]]; then
-  step "Sandbox integration tests (local NEAR node)"  "contracts/scripts/test-sandbox.sh"
-  step "SDK tests + verifier end-to-end (local node)" "cd sdk && npm test && npm run test:verifier"
-  step "Sandbox demo: demos 1-3, mock OutLayer"       "cd demo && npm ci --silent && npm run sandbox"
+  # Time limits: the first sandbox build downloads the near-sandbox binary; a stuck download should fail, not hang.
+  step "Sandbox integration tests (local NEAR node)"  "timeout 1800 contracts/scripts/test-sandbox.sh"
+  step "SDK tests + verifier end-to-end (local node)" "cd sdk && timeout 600 npm test && timeout 600 npm run test:verifier"
+  step "Sandbox demo: demos 1-3, mock OutLayer"       "cd demo && npm ci --silent && timeout 900 npm run sandbox"
 fi
 
 echo

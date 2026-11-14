@@ -13,34 +13,36 @@ const DESKTOP_PATH: Record<Os, string> = {
   Linux: "~/.config/Claude/claude_desktop_config.json",
 };
 
-function output(client: Client, os: Os, repo: string, owner: string, agent: string) {
+/** `fromSource`: run mcp/server.ts from a clone (advanced); otherwise the npm package via npx. */
+function output(client: Client, os: Os, repo: string, owner: string, agent: string, fromSource: boolean) {
   const win = client === "Claude Desktop" && os === "Windows";
   const sep = win ? "\\" : "/";
   const root = repo.replace(/[\\/]+$/, "");
-  const tsx = [root, "mcp", "node_modules", ".bin", win ? "tsx.cmd" : "tsx"].join(sep);
-  const server = [root, "mcp", "server.ts"].join(sep);
+  const command = fromSource ? [root, "mcp", "node_modules", ".bin", win ? "tsx.cmd" : "tsx"].join(sep) : win ? "cmd" : "npx";
+  const args = fromSource ? [[root, "mcp", "server.ts"].join(sep)] : win ? ["/c", "npx", "-y", "horkos-mcp"] : ["-y", "horkos-mcp"];
+  const shellArgs = fromSource ? `"${command}" "${args[0]}"` : "npx -y horkos-mcp";
   const env = { HORKOS_AGENT: agent, HORKOS_OWNER: owner };
   if (client === "Claude Code") {
     return {
       where: "Run in a terminal (any directory). Check with claude mcp list: horkos should show ✔ Connected.",
-      code: `claude mcp add horkos -e HORKOS_AGENT=${agent} -e HORKOS_OWNER=${owner} -- "${tsx}" "${server}"`,
+      code: `claude mcp add horkos -e HORKOS_AGENT=${agent} -e HORKOS_OWNER=${owner} -- ${shellArgs}`,
     };
   }
   if (client === "Claude Desktop") {
     return {
-      where: `Add to ${DESKTOP_PATH[os]} (Settings → Developer → Edit Config), then quit and restart Claude Desktop.`,
-      code: JSON.stringify({ mcpServers: { horkos: { command: tsx, args: [server], env } } }, null, 2),
+      where: `Add to ${DESKTOP_PATH[os]} (Settings → Developer → Edit Config), then quit and restart Claude Desktop.${win && !fromSource ? " On Windows npx is started through cmd /c (not tested by us on Windows)." : ""}`,
+      code: JSON.stringify({ mcpServers: { horkos: { command, args, env } } }, null, 2),
     };
   }
   if (client === "Cursor") {
     return {
       where: "Add to .cursor/mcp.json in your project, or ~/.cursor/mcp.json for all projects.",
-      code: JSON.stringify({ mcpServers: { horkos: { type: "stdio", command: tsx, args: [server], env } } }, null, 2),
+      code: JSON.stringify({ mcpServers: { horkos: { type: "stdio", command, args, env } } }, null, 2),
     };
   }
   return {
     where: "Any client that launches stdio MCP servers: use this command, arguments and environment.",
-    code: `command: ${tsx}\nargs:    ${server}\nenv:     HORKOS_AGENT=${agent}\n          HORKOS_OWNER=${owner}`,
+    code: `command: ${command}\nargs:    ${args.join(" ")}\nenv:     HORKOS_AGENT=${agent}\n          HORKOS_OWNER=${owner}`,
   };
 }
 
@@ -55,6 +57,8 @@ export function generator() {
   const owner = field("gen-owner", "Owner account", getAccounts().owner, "Sets the mandate and pays the budget.");
   const agent = field("gen-agent", "Agent account", getAccounts().agent, "Separate account; signs with its function-call key.");
   const repo = field("gen-repo", "Path to your clone of the repo", "/home/you/horkos", "Absolute path; the server runs from mcp/ inside it.");
+  const source = h("input", { id: "gen-source", name: "gen-source", type: "checkbox" });
+  const sourceField = h("div", { class: "field" }, h("label", { for: "gen-source" }, source, " Advanced: run from source (a clone of the repo) instead of npx"));
   const network = h(
     "select",
     { id: "gen-net", name: "gen-net" },
@@ -76,17 +80,19 @@ export function generator() {
       f.input.setAttribute("aria-invalid", e ? "true" : "false");
     }
     osField.hidden = client !== "Claude Desktop";
+    repo.el.hidden = !source.checked;
     if (eo || ea) {
       where.textContent = "Fix the account names above to get a config.";
       out.replaceChildren();
       return;
     }
     setAccounts({ owner: o, agent: a });
-    const r = output(client, os, repo.input.value.trim() || "/home/you/horkos", o, a);
+    const r = output(client, os, repo.input.value.trim() || "/home/you/horkos", o, a, source.checked);
     where.textContent = r.where;
     mount(out, codeBlock(r.code));
   };
   for (const f of [owner, agent, repo]) f.input.addEventListener("input", render);
+  source.addEventListener("change", render);
   osSel.addEventListener("change", () => {
     os = osSel.value as Os;
     render();
@@ -101,7 +107,7 @@ export function generator() {
     "section",
     { class: "guide-section", id: "config", "aria-labelledby": "config-title" },
     h("h2", { id: "config-title" }, "2. Generate your config"),
-    h("p", {}, "Pick your client and accounts. The output contains account names and paths only."),
+    h("p", {}, "Pick your client and accounts. By default the config starts the server from npm (", h("a", { href: "https://www.npmjs.com/package/horkos-mcp" }, "horkos-mcp"), ") with npx; no clone needed. The output contains account names and paths only."),
     h(
       "div",
       { class: "callout" },
@@ -124,6 +130,7 @@ export function generator() {
         h("div", { class: "field" }, h("label", { for: "gen-net" }, "Network"), network),
         owner.el,
         agent.el,
+        sourceField,
         repo.el,
         osField,
       ),

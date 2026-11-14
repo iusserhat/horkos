@@ -92,9 +92,9 @@ const LOCAL: Step[] = [
 
 const AGENT: Step[] = [
   {
-    title: "Install and clone",
-    body: () => [p("You need git, Node.js 20 and ", ex("https://github.com/near/near-cli-rs", "near-cli-rs"), ". The MCP server runs from the repository."), codeBlock(`git clone ${REPO} ${who.dir}\ncd ${who.dir}/sdk && npm ci\ncd ${who.dir}/mcp && npm ci`)],
-    expect: () => ["Both installs finish without errors."],
+    title: "Install the tools",
+    body: () => [p("You need Node.js 20 and ", ex("https://github.com/near/near-cli-rs", "near-cli-rs"), ". The MCP server comes from npm when your agent starts it (", code("npx -y horkos-mcp"), "); no clone needed."), codeBlock(`node --version\nnear --version`)],
+    expect: () => [code("v20"), " or newer, and a near-cli-rs version."],
   },
   {
     title: "Create two testnet accounts: you and your agent",
@@ -139,10 +139,10 @@ const AGENT: Step[] = [
   {
     title: "Connect your agent (Claude Code shown)",
     body: () => [
-      codeBlock(`claude mcp add horkos -e HORKOS_AGENT=${who.agent} -e HORKOS_OWNER=${who.owner} -- "${who.dir}/mcp/node_modules/.bin/tsx" "${who.dir}/mcp/server.ts"\nclaude mcp list`),
-      p("Claude Desktop, Cursor, Windows paths: the ", h("a", { href: "./connect.html#config" }, "config generator"), " writes the exact entry."),
+      codeBlock(`claude mcp add horkos -e HORKOS_AGENT=${who.agent} -e HORKOS_OWNER=${who.owner} -- npx -y horkos-mcp\nclaude mcp list`),
+      p("The server comes from npm (", ex("https://www.npmjs.com/package/horkos-mcp", "horkos-mcp"), "). Claude Desktop, Cursor, or running from your clone: the ", h("a", { href: "./connect.html#config" }, "config generator"), " writes the exact entry."),
     ],
-    expect: () => [code("horkos: … ✔ Connected"), " in the list, and five tools starting with ", code("horkos_"), "."],
+    expect: () => [code("horkos: npx -y horkos-mcp - ✔ Connected"), " in the list (checked on 14 Nov), and five tools starting with ", code("horkos_"), "."],
   },
   {
     title: "Ask your agent to buy",

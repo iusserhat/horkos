@@ -79,7 +79,7 @@ const LOCAL: Step[] = [
   {
     title: "Clone and build the contracts",
     body: () => [codeBlock(`git clone ${REPO} && cd horkos\ncontracts/scripts/test-sandbox.sh`), p("This builds the contracts, downloads a local NEAR node and runs the integration tests. The first run takes a few minutes.")],
-    expect: () => [code("test result: ok. 7 passed")],
+    expect: () => [code("test result: ok. 9 passed")],
   },
   {
     title: "Run all three scenarios on a local chain",

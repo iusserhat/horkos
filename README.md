@@ -61,8 +61,11 @@ curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"j
 # Expected: Settled 0
 
 # 2. The verifier WASM rebuilds byte for byte from this repo
-scripts/reproduce-verifier.sh --chain
-# Expected: "On-chain hash (escrow.horkos.testnet, verifier version 0): 61370b57…" … "MATCH"
+scripts/reproduce-verifier.sh --match-paths
+# Expected: on-chain hash 61370b57…, the published WASM at the pinned URL has that hash, … "MATCH"
+# (rustc embeds dependency paths, so --match-paths builds with the original CARGO_HOME path,
+#  read from the published WASM; it may ask you to create that directory with sudo.
+#  Plain scripts/reproduce-verifier.sh on a machine with another home directory gives a different hash.)
 
 # 3. That WASM ran in Intel TDX on exactly order 9's input and produced the output the contract settled on
 cargo install --locked --git https://github.com/out-layer/outlayer-verify --rev 90c27d9d4fc843194ddc6f8ebaafa4eb320c3bb6 outlayer-verify
@@ -172,7 +175,7 @@ On testnet (14 Nov): the buyer [transferred receipt #0](https://testnet.nearbloc
 
 ## OutLayer on testnet: failed runs
 
-**Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; the hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
+**Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX), [26](https://explorer.testnet.near.org/transactions/22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs); each run's TEE attestation passes `outlayer-verify` ([evidence/attestation/](evidence/attestation/README.md)). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; by 15:00 UTC OutLayer was answering again and order 26 (listing 4, hosted seller A) settled on its first attempt in about 2 minutes. The hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
 
 OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
 

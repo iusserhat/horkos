@@ -36,7 +36,9 @@ jobs:
       - run: cargo test -q
         working-directory: verifier
       - name: Rebuild the verifier WASM and compare with the pinned sha256
-        run: scripts/reproduce-verifier.sh
+        # --match-paths: same CARGO_HOME path as the original build (read from
+        # the published WASM), because rustc embeds dependency source paths.
+        run: scripts/reproduce-verifier.sh --match-paths
 
   node:
     name: TypeScript (typecheck + unit tests)

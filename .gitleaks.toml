@@ -1,0 +1,14 @@
+# gitleaks config: default rules plus one narrow allowlist.
+[extend]
+useDefault = true
+
+# `outlayer-verify` transcripts print the verifier's input and output, which
+# contain `sealed_key` / `buyer_sealed_key`: data keys sealed (libsodium sealed
+# box) to the verifier's or the buyer's X25519 public key. They are ciphertexts
+# and are public in the same testnet transactions. See docs/security.md.
+[[allowlists]]
+description = "sealed keys in outlayer-verify transcripts (ciphertext, public on chain)"
+condition = "AND"
+paths = ['''^evidence/attestation/order-\d+-outlayer-verify\.txt$''']
+regexTarget = "line"
+regexes = ['''sealed_key''']

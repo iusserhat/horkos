@@ -1,4 +1,4 @@
-# TEE attestation for settled orders 9, 15 and 18
+# TEE attestation for settled orders 9, 15, 18 and 26
 
 Each settled order was verified by one OutLayer run of the Horkos verifier. This folder holds the off-chain proof for those runs, checked on 14 Nov 2026 (about 15:00 UTC) with [`out-layer/outlayer-verify`](https://github.com/out-layer/outlayer-verify) at commit `90c27d9d4fc843194ddc6f8ebaafa4eb320c3bb6`.
 
@@ -7,10 +7,11 @@ Each settled order was verified by one OutLayer run of the Horkos verifier. This
 | 9 | [`4ctCVTTK…`](https://testnet.nearblocks.io/txns/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP) | 102880 | 2026-11-14 05:32:59 | 5 × PASS | `25094642…d535c9` |
 | 15 | [`RxQ68oH3…`](https://testnet.nearblocks.io/txns/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj) | 106224 | 2026-11-14 10:36:55 | 5 × PASS | `e53cb5a7…ba366e` |
 | 18 | [`ChRyUnRF…`](https://testnet.nearblocks.io/txns/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX) | 106595 | 2026-11-14 11:08:54 | 5 × PASS | `7163983e…6f98` |
+| 26 | [`22SUFSDM…`](https://testnet.nearblocks.io/txns/22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs) | 109121 | 2026-11-14 15:00:29 | 5 × PASS | `6e703058…630010` |
 
 Files per order:
 
-- `order-N-outlayer-verify.txt`: full output of `outlayer-verify tx <hash> --network testnet --api https://testnet-api.outlayer.ai --no-color --bundle ov-bundle-N.json` (the bundle was renamed afterwards).
+- `order-N-outlayer-verify.txt`: full output of `outlayer-verify tx <hash> --network testnet --api https://testnet-api.outlayer.ai --no-color --bundle ov-bundle-N.json` (orders 9, 15, 18: the bundle was renamed afterwards).
 - `order-N-bundle.json`: the self-contained evidence bundle (record, quote, collateral, payloads). It re-checks with no network.
 - `order-N-onchain.json`: the NEAR-side events of the same transaction (`execution_requested`, `execution_completed`, the contract's "Order N settled; data_sha256 …" log), read from archival RPC.
 

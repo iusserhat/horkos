@@ -32,7 +32,7 @@ How it works: the owner deposits a tUSDC budget and sets an on-chain mandate (to
 
 On testnet (tx ids in the README): good deliveries settled through OutLayer; a bad delivery refunded; a prompt-injected 500 tUSDC order rejected on chain. An MCP server lets Claude buy within the mandate, a faucet gives 20 tUSDC, a hosted seller serves judges, and npm run sandbox runs all demos locally with no keys.
 
-Status: live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders 9, 15, 18 (txs in docs/testnet.md).
+Status: live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders 9, 15, 18, 26 (txs in docs/testnet.md).
 
 Seller A's price data comes from public APIs (CoinGecko, Coinbase); neither is a partner.
 

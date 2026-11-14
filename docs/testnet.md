@@ -206,6 +206,17 @@ Five orders on listing 4 through the MCP server, against the Render-hosted selle
 
 Order 13 (gateway, 09:10 UTC) had the same OutLayer cause: the gateway was running, `submit_delivery` was sent 11 s after funding (tx `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY`), OutLayer request 43883 ended at 201 blocks with "Execution promise failed", `on_verified` ran and set `Delivered`.
 
+### Retest after the OutLayer outage (14 Nov 2026, 14:58 UTC)
+
+OutLayer's worker was resolving other accounts' requests within seconds again at 14:57 UTC. One order on listing 4 through the MCP server (`mcp/smoke.ts buy 4`, owner `horkos-owner.testnet`, agent `horkos-agent.testnet`), served by the Render-hosted seller A:
+
+| Step | Tx / result |
+| --- | --- |
+| `create_order` listing 4 → order 26 (`Open`) | `E2qVhqF9HpWqTCbTwRTktxd65dV4HRR3x8ng9BgqueGo` |
+| Seller A `submit_delivery` (OutLayer request → task 109121) → `on_verified` → **Settled** on attempt 1, 1 min 25 s after `submit_delivery` | `22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs` |
+| `horkos_open_delivery`: `{"symbol":"NEAR/USD","rows":[...4 one-minute points...]}` | data opened by the buyer |
+| `outlayer-verify` on the delivery tx | 5 × PASS: `evidence/attestation/order-26-outlayer-verify.txt` |
+
 ### OutLayer testnet diagnosis (14 Nov 2026, 12:07 to 12:35 UTC)
 
 - **Other projects:** 39 of 39 `request_execution` runs by other accounts (`tredio-oracle.testnet`, `zyx-dev.testnet`, `enclave.parry.testnet`; request ids 45008 to 45134) ended at exactly 201 blocks (112 to 121 s) with "Execution promise failed".

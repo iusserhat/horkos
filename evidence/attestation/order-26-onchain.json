@@ -1,0 +1,123 @@
+{
+  "order_id": 26,
+  "submit_delivery_tx": "22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs",
+  "signer": "horkos-seller-a.testnet",
+  "events": [
+    {
+      "receipt_id": "9zaGmn9Wykq2N8NiX26pGoK8EKK98C3xB6c4Yos9M13N",
+      "executor": "escrow.horkos.testnet",
+      "event": {
+        "standard": "horkos",
+        "version": "0.1.0",
+        "event": "order_status",
+        "data": [
+          {
+            "order_id": "26",
+            "status": "Verifying"
+          }
+        ]
+      }
+    },
+    {
+      "receipt_id": "3meiXnZ3z7iKogqBY3bVkrfnr412zMp3CB6adcBgfB8z",
+      "executor": "outlayer.testnet",
+      "event": {
+        "standard": "near-outlayer",
+        "version": "1.0.0",
+        "event": "execution_requested",
+        "data": [
+          {
+            "request_data": "{\"request_id\":46064,\"sender_id\":\"horkos-seller-a.testnet\",\"predecessor_id\":\"escrow.horkos.testnet\",\"code_source\":{\"WasmUrl\":{\"url\":\"https://gist.githubusercontent.com/iusserhat/b1490a9409f5e9571c3798ce3f6d1bb3/raw/f0bcf05ff5d4334c3ccf40de91a666c02830a110/horkos-verifier.wasm\",\"hash\":\"61370b5723c11477bd6b4231fc5b3bc7f1a4e0c6844a402feb31fc19470db80f\",\"build_target\":\"wasm32-wasip2\"}},\"resource_limits\":{\"max_instructions\":10000000000,\"max_memory_mb\":128,\"max_execution_seconds\":60},\"input_data\":\"{\\\"order_id\\\":\\\"26\\\",\\\"attempt\\\":1,\\\"delivery_ref\\\":\\\"https://test.fastfs.io/horkos-seller-a.testnet/outlayer.testnet/80261eca76e3e6586c0b0a9e94a2c27f13de6c24bca5b64c953d22f22efecb2a.json\\\",\\\"sealed_key\\\":\\\"jcFZZ+uyCQ004TlFSeRg67t1R+iTNUvTul0Wk95aKRRBQqZQYT0XK3w4zONvsl2S71C7vK8RCrStLnwXqQFkkEmEV7TOqw8qE8y8rex88gA/x+2S8aMbV580jcEUGcdMMz5JmEoWrY+jKiszPR8Qzg==\\\",\\\"condition_hash\\\":\\\"sha256:84d788383d9e3a888a6a8e0852ba7500c72aac1d6a05d41e7d92a7b7a0a39496\\\",\\\"buyer_pubkey\\\":\\\"LcxRYlyZttbvslURFwK1fz7iLhDLZ+qliJ1+GzpsICQ=\\\"}\",\"input_data_in_state\":false,\"secrets_ref\":{\"profile\":\"verifier\",\"account_id\":\"horkos.testnet\"},\"response_format\":\"Json\",\"payment\":\"10000000000000000000000\",\"attached_usd\":\"0\",\"timestamp\":1794668353559745891,\"compile_only\":false,\"force_rebuild\":false,\"store_on_fastfs\":false,\"use_bound_identity\":false,\"project_uuid\":null,\"project_id\":null}",
+            "data_id": [
+              222,
+              90,
+              240,
+              78,
+              160,
+              20,
+              114,
+              191,
+              72,
+              82,
+              20,
+              4,
+              207,
+              131,
+              38,
+              104,
+              169,
+              250,
+              59,
+              139,
+              239,
+              32,
+              33,
+              252,
+              121,
+              99,
+              28,
+              187,
+              238,
+              6,
+              36,
+              1
+            ],
+            "timestamp": 1794668353559745891
+          }
+        ]
+      }
+    },
+    {
+      "receipt_id": "74teXYAz6kX78jgD3RP5HGA43NZE2KJXnXEcj3McTREa",
+      "executor": "outlayer.testnet",
+      "event": {
+        "standard": "near-outlayer",
+        "version": "1.0.0",
+        "event": "execution_completed",
+        "data": [
+          {
+            "sender_id": "horkos-seller-a.testnet",
+            "code_source": {
+              "WasmUrl": {
+                "url": "https://gist.githubusercontent.com/iusserhat/b1490a9409f5e9571c3798ce3f6d1bb3/raw/f0bcf05ff5d4334c3ccf40de91a666c02830a110/horkos-verifier.wasm",
+                "hash": "61370b5723c11477bd6b4231fc5b3bc7f1a4e0c6844a402feb31fc19470db80f",
+                "build_target": "wasm32-wasip2"
+              }
+            },
+            "resources_used": {
+              "instructions": 35314596,
+              "time_ms": 7852,
+              "compile_time_ms": null
+            },
+            "success": true,
+            "error_message": null,
+            "payment_charged": "1785203500000000000000",
+            "payment_refunded": "8214796500000000000000",
+            "compilation_note": "Cached WASM from 2026-11-13T11:24:01.636083+00:00",
+            "timestamp": 1794668438221223333
+          }
+        ]
+      }
+    },
+    {
+      "receipt_id": "5vMeA5LHLn8zKSwmrsTzTXRpB5Ppz3YnCwm8PE1fRS1D",
+      "executor": "escrow.horkos.testnet",
+      "event": {
+        "standard": "horkos",
+        "version": "0.1.0",
+        "event": "order_status",
+        "data": [
+          {
+            "order_id": "26",
+            "status": "Settled"
+          }
+        ]
+      }
+    },
+    {
+      "receipt_id": "5vMeA5LHLn8zKSwmrsTzTXRpB5Ppz3YnCwm8PE1fRS1D",
+      "executor": "escrow.horkos.testnet",
+      "log": "Order 26 settled; data_sha256 6e703058388f1b8f3a89b6158c9f7088552c0fedfebfbc7f11b79959e0630010"
+    }
+  ]
+}

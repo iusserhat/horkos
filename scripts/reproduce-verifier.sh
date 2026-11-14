@@ -3,23 +3,56 @@
 # compares its sha256 with the hash pinned in the escrow contract's verifier
 # version 0 (the hash OutLayer checks before it runs the WASM).
 #
-#   scripts/reproduce-verifier.sh            # compare with the pinned hash below
-#   scripts/reproduce-verifier.sh --chain    # also read the hash live from escrow.horkos.testnet
+#   scripts/reproduce-verifier.sh                 # compare with the pinned hash below
+#   scripts/reproduce-verifier.sh --chain         # also read the hash live from escrow.horkos.testnet
+#   scripts/reproduce-verifier.sh --match-paths   # build with the same CARGO_HOME path as the original
 #
-# Prints MATCH or MISMATCH; exits 1 on MISMATCH. Needs rustup and curl.
+# Prints MATCH or MISMATCH; exits 1 on MISMATCH. Needs rustup, curl, python3.
+#
+# Why --match-paths: rustc embeds the absolute source paths of dependencies
+# (CARGO_HOME/registry/src/...) in panic messages, so the WASM is byte-for-byte
+# reproducible only with the same CARGO_HOME path. --match-paths downloads the
+# published WASM from the URL pinned on chain, checks its sha256, reads that
+# path out of it and builds there (the directory must be writable, e.g.
+# `sudo mkdir -p <dir> && sudo chown $USER <dir>`). Without it, a build on a
+# machine with a different home directory differs only in those strings.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+chain=0; match_paths=0
+for arg in "$@"; do
+  case "$arg" in
+    --chain) chain=1 ;;
+    --match-paths) match_paths=1; chain=1 ;;
+    *) echo "unknown option $arg"; exit 2 ;;
+  esac
+done
 
 TOOLCHAIN=1.99.1
 PINNED=61370b5723c11477bd6b4231fc5b3bc7f1a4e0c6844a402feb31fc19470db80f
 CONTRACT=escrow.horkos.testnet   # the only caller the verifier accepts (compiled in)
 
-if [[ "${1:-}" == "--chain" ]]; then
-  onchain=$(curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
+cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+if (( chain )); then
+  config=$(curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
     -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"'"$CONTRACT"'","method_name":"get_verifier_version","args_base64":"eyJ2ZXJzaW9uIjowfQ=="}}' \
-    | python3 -c 'import sys,json; r=json.load(sys.stdin)["result"]["result"]; print(json.loads(bytes(r))["wasm_hash"])')
+    | python3 -c 'import sys,json; r=json.load(sys.stdin)["result"]["result"]; c=json.loads(bytes(r)); print(c["wasm_hash"], c["wasm_url"])')
+  onchain=${config%% *}; url=${config#* }
   echo "On-chain hash ($CONTRACT, verifier version 0): $onchain"
   [[ "$onchain" == "$PINNED" ]] || { echo "On-chain hash differs from the pinned hash in this script"; PINNED=$onchain; }
+  if (( match_paths )); then
+    published=$(mktemp)
+    curl -sL "$url" -o "$published"
+    echo "Published WASM ($url): $(sha256sum "$published" | cut -d' ' -f1)"
+    [[ "$(sha256sum "$published" | cut -d' ' -f1)" == "$PINNED" ]] || { echo "Published WASM does not have the pinned hash"; exit 1; }
+    cargo_home=$(python3 -c 'import re,sys; m=re.search(rb"(/[\x21-\x7e]*?/\.cargo)/registry/src/", open(sys.argv[1],"rb").read()); print(m.group(1).decode())' "$published")
+    rm -f "$published"
+    echo "CARGO_HOME: same path as the original build (read from the published WASM, ${#cargo_home} characters)"
+    if ! mkdir -p "$cargo_home" 2>/dev/null; then
+      # Non-interactive sudo (CI runners); otherwise ask the user to create it.
+      sudo -n mkdir -p "$cargo_home" 2>/dev/null && sudo -n chown -R "$(id -u):$(id -g)" "$(dirname "$cargo_home")" \
+        || { echo "Cannot create $cargo_home; run: sudo mkdir -p $cargo_home && sudo chown \$USER $cargo_home"; exit 1; }
+    fi
+  fi
 fi
 
 rustup toolchain install "$TOOLCHAIN" --profile minimal --target wasm32-wasip2 >/dev/null 2>&1 || true
@@ -29,7 +62,7 @@ trap 'rm -rf "$target"' EXIT
 (
   cd verifier
   unset HORKOS_CONTRACT RUSTFLAGS CARGO_ENCODED_RUSTFLAGS
-  CARGO_TARGET_DIR="$target" cargo "+$TOOLCHAIN" build --release --locked --target wasm32-wasip2 -q
+  CARGO_HOME="$cargo_home" CARGO_TARGET_DIR="$target" cargo "+$TOOLCHAIN" build --release --locked --target wasm32-wasip2 -q
 )
 wasm="$target/wasm32-wasip2/release/horkos-verifier.wasm"
 built=$(sha256sum "$wasm" | cut -d' ' -f1)

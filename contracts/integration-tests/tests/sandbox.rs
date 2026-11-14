@@ -70,6 +70,11 @@ async fn register(token: &Contract, who: &Account) -> anyhow::Result<()> {
 /// Deploys everything and walks a buyer to the point of having an open
 /// mandate with 100 tUSDC, plus a 5 tUSDC listing from the allowed seller.
 async fn setup() -> anyhow::Result<Env> {
+    setup_with("horkos").await
+}
+
+/// Same as `setup`, with the escrow built from `crate_wasm` (`horkos` or `horkos_v2`).
+async fn setup_with(crate_wasm: &str) -> anyhow::Result<Env> {
     let worker = near_workspaces::sandbox().await?;
     let admin = account(&worker, "admin", 20).await?;
     let owner = account(&worker, "owner", 20).await?;
@@ -83,7 +88,7 @@ async fn setup() -> anyhow::Result<Env> {
         .transact()
         .await?
         .into_result()?;
-    let horkos = worker.dev_deploy(&wasm("horkos")).await?;
+    let horkos = worker.dev_deploy(&wasm(crate_wasm)).await?;
     horkos
         .call("new")
         .args_json(json!({"token": token.id(), "admin": admin.id()}))
@@ -536,5 +541,104 @@ async fn compromised_agent_out_of_mandate_order_is_rejected() -> anyhow::Result<
         .await?
         .json()?;
     assert_eq!(m["balance"], (100 * USDC).to_string());
+    Ok(())
+}
+
+// ------------------------------------------------------------- v2 receipts
+
+async fn transfer_receipt(e: &Env, from: &Account, to: &Account, id: u64) -> anyhow::Result<ExecutionFinalResult> {
+    Ok(from
+        .call(e.horkos.id(), "nft_transfer")
+        .args_json(json!({"receiver_id": to.id(), "token_id": id.to_string()}))
+        .deposit(NearToken::from_yoctonear(1))
+        .max_gas()
+        .transact()
+        .await?)
+}
+
+async fn holder(e: &Env, id: u64) -> anyhow::Result<String> {
+    let v: Value = e
+        .horkos
+        .view("get_receipt_holder")
+        .args_json(json!({"order_id": id.to_string()}))
+        .await?
+        .json()?;
+    Ok(v.as_str().unwrap().to_string())
+}
+
+#[tokio::test]
+async fn v2_transferred_receipt_settles_with_key_on_new_holders_receipt() -> anyhow::Result<()> {
+    let e = setup_with("horkos_v2").await?;
+    let bob = account(&e.worker, "bob", 5).await?;
+    let id = e.create_order().await?;
+    let stranger = transfer_receipt(&e, &bob, &bob, id).await?;
+    assert!(stranger.is_failure(), "stranger transfer must fail");
+    let res = transfer_receipt(&e, &e.owner, &bob, id).await?;
+    assert!(res.is_success(), "{:?}", res.failures());
+    assert!(res.logs().iter().any(|l| l.contains("\"event\":\"nft_transfer\"")));
+    assert_eq!(holder(&e, id).await?, bob.id().to_string());
+
+    let res = e.submit(id).await?;
+    assert!(res.is_success(), "{:?}", res.failures());
+    let order = e.order(id).await?;
+    assert_eq!(order["status"], "Settled");
+    assert!(order["encrypted_key"].is_string());
+    assert_eq!(holder(&e, id).await?, bob.id().to_string());
+    assert_eq!(e.earnings(&e.seller).await?, 5 * USDC);
+    // A final receipt is frozen.
+    let res = transfer_receipt(&e, &bob, &e.owner, id).await?;
+    assert!(format!("{:?}", res.failures()).contains("Receipt is final"));
+    Ok(())
+}
+
+#[tokio::test]
+async fn v2_transferred_receipt_refunds_new_holder_who_withdraws() -> anyhow::Result<()> {
+    let e = setup_with("horkos_v2").await?;
+    let bob = account(&e.worker, "bob", 5).await?;
+    register(&e.token, &bob).await?;
+    // A listing whose delivery window ends almost at once.
+    let listing: Value = e
+        .seller
+        .call(e.horkos.id(), "register_listing")
+        .args_json(json!({"price": (5 * USDC).to_string(), "condition_hash": "h", "delivery_window": "1000000000"}))
+        .deposit(NearToken::from_millinear(100))
+        .transact()
+        .await?
+        .json()?;
+    let order: Value = e
+        .agent
+        .call(e.horkos.id(), "create_order")
+        .args_json(json!({"owner": e.owner.id(), "listing_id": listing, "buyer_pubkey": "x25519:buyer", "verifier_version": 0}))
+        .max_gas()
+        .transact()
+        .await?
+        .into_result()?
+        .json()?;
+    let id: u64 = order["id"].as_str().unwrap().parse()?;
+    let res = transfer_receipt(&e, &e.owner, &bob, id).await?;
+    assert!(res.is_success(), "{:?}", res.failures());
+    e.worker.fast_forward(5).await?;
+
+    let res = e
+        .agent
+        .call(e.horkos.id(), "refund_expired")
+        .args_json(json!({"order_id": id.to_string()}))
+        .transact()
+        .await?;
+    assert!(res.is_success(), "{:?}", res.failures());
+    assert_eq!(e.order(id).await?["status"], "Refunded");
+    assert_eq!(e.earnings(&bob).await?, 5 * USDC);
+    let mandate: Value = e.horkos.view("get_mandate").args_json(json!({"owner": e.owner.id()})).await?.json()?;
+    assert_eq!(mandate["balance"], (95 * USDC).to_string(), "buyer's budget does not get it back");
+
+    let res = bob
+        .call(e.horkos.id(), "withdraw")
+        .args_json(json!({"from": "Earnings", "amount": null}))
+        .deposit(NearToken::from_yoctonear(1))
+        .max_gas()
+        .transact()
+        .await?;
+    assert!(res.is_success(), "{:?}", res.failures());
+    assert_eq!(e.ft_balance(&bob).await?, 5 * USDC);
     Ok(())
 }

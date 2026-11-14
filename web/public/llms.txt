@@ -1,6 +1,6 @@
 # Horkos
 
-> Escrow for purchases made by AI agents on NEAR testnet. Each order locks its price in a contract as an NFT receipt; the seller is paid only if the owner's on-chain mandate allows the order and a verifier in NEAR OutLayer's TEE confirms the delivery matches the listing's JSON Schema; otherwise the order is refunded after its deadline. On the v2 contract the receipt can be passed on, and the data or the refund goes to its holder. Testnet only.
+> Verify-then-pay for AI agents on NEAR. Every order is an NFT receipt that holds the money and carries the claim. Escrow for purchases made by AI agents on NEAR testnet. Each order locks its price in a contract as an NFT receipt; the seller is paid only if the owner's on-chain mandate allows the order and a verifier in NEAR OutLayer's TEE confirms the delivery matches the listing's JSON Schema; otherwise the order is refunded after its deadline. On the v2 contract the receipt can be passed on, and the data or the refund goes to its holder. Testnet only.
 
 Start with JUDGES.md and CLAIMS.md. Run `npm run judge` in the repository (no keys). The MCP server is `npx -y horkos-mcp`.
 

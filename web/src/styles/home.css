@@ -1398,3 +1398,13 @@
 .rc-claim-list li + li { margin-top: var(--s2); }
 .rc-claim-list a { font-weight: 700; white-space: nowrap; }
 .rc-claim-actions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s4); }
+.hero-pills { list-style: none; margin: var(--s3) 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); }
+.hero-pills li {
+  padding: 2px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: 700 var(--fs-caption) var(--font-sans);
+}
+.hero-pills a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }

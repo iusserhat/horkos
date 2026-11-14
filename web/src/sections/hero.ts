@@ -68,7 +68,7 @@ function livePanel() {
       );
       foot.textContent = `${total} orders on ${CONTRACT}. Times show the last status change.`;
     } catch {
-      list.replaceChildren(h("li", { class: "muted" }, "Testnet RPC did not answer. The explorer retries every 10 s."));
+      list.replaceChildren(h("li", { class: "muted" }, "Testnet RPC did not answer. The explorer shows a snapshot and retries every 30 s."));
     }
   })();
   return h(
@@ -113,7 +113,14 @@ export function hero() {
       wordmark(),
       h("p", { class: "tagline" }, "Your AI agent pays only when the delivery checks out."),
       h("p", { class: "motto" }, h("span", {}, "We don't resolve disputes."), " ", h("span", {}, "We prevent them.")),
-      h("p", { class: "hero-native" }, "Verify-then-pay for AI agents, native to NEAR."),
+      h("p", { class: "hero-native" }, "Verify-then-pay for AI agents on NEAR. Every order is an NFT receipt that holds the money and carries the claim."),
+      h(
+        "ul",
+        { class: "hero-pills", "aria-label": "In short" },
+        h("li", {}, "Agent-safe payments"),
+        h("li", {}, "TEE-checked delivery"),
+        h("li", {}, h("a", { href: "#receipts" }, "NFT receipts that hold money")),
+      ),
       h(
         "p",
         { class: "lead" },

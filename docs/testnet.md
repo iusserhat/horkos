@@ -289,6 +289,17 @@ Owner `hk-try2-1252.testnet`, agent `hk-try2-1252-agent.testnet`, second account
 
 Three different accounts claimed one after another: [`HSKHxJvc…`](https://testnet.nearblocks.io/txns/HSKHxJvc7PX3z57WkpZSXKrFkFm6MkhmZ34rt9eieK32), [`CYYLBS1U…`](https://testnet.nearblocks.io/txns/CYYLBS1UZMtShKodWPCinyGy229NnQAWu681Crvw9ofe), [`8KLz3fFS…`](https://testnet.nearblocks.io/txns/8KLz3fFSPDSkdfFrAtemWC2ai7ke6k5TjMUsxv4vGQUU), each log "Sent 20000000". The faucet contract limits only per account (24 h) and by the total cap; it has no rate limit across accounts. After these, `get_info` shows 160 of 10,000 tUSDC distributed (room for 492 more claims). The `429 Too Many Requests` seen while creating accounts came from NEAR's account-creation service (`near account create-account sponsor-by-faucet-service`), which Horkos does not run; it limited repeated creations from one connection. The Try page names it and shows the `fund-myself` alternative.
 
+### v2 with a judge-style seller: the gateway on escrow-v2 (14 Nov 2026, 16:19 to 16:26 UTC)
+
+A fresh seller account (`hk-friend-1114.testnet`) ran `gateway/` with `"contract": "escrow-v2.horkos.testnet"` (CoinGecko source, as `gateway/examples/coingecko-testnet.json`): `register` → listing 2 (10 minutes). Owner `hk-try3-1252.testnet` (5 tUSDC moved from its v1 budget: [`F9bhsNuP…`](https://testnet.nearblocks.io/txns/F9bhsNuPanz1DLFkjfDCnLw5jwPcxnimskc2UifocwhB)) set a v2 mandate for that seller and funded it ([`BkTqMEoW…`](https://testnet.nearblocks.io/txns/BkTqMEoWqcys9PC5m5rUdCgdcvdY1piaGwCv4QAygzqv), [`BkM9VhkA…`](https://testnet.nearblocks.io/txns/BkM9VhkA7SwhBDmG9B91BMRXhPt2E3syerTwbDygBVWK)); its agent ordered listing 2 → order 3 ([`HLxioDyZ…`](https://testnet.nearblocks.io/txns/HLxioDyZxd5qrZLWyadm5GNYwRdvgT3cLpkbrQesz2fU)); the owner passed receipt #3 to `hk-v2holder-1114.testnet` ([`BNxNVSum…`](https://testnet.nearblocks.io/txns/BNxNVSums933g9RyDSJKJR6qu9tLpyctp8GnVUE955L2)).
+
+| Attempt | Result | Tx |
+| --- | --- | --- |
+| 1, by the gateway | OutLayer "Execution promise failed" → `Delivered`, nobody paid (the gateway does not resubmit) | [`AZPrBYwK…`](https://testnet.nearblocks.io/txns/AZPrBYwK41M6B8LvDsxjYewSchNs5WcCqdYBFr18Nk7V) |
+| 2, resubmitted by hand with the same seller and source (`HorkosSeller.submitDelivery`) | **Settled** (1 min 49 s) | [`GAighaUd…`](https://testnet.nearblocks.io/txns/GAighaUd7BnuF7CsJR6QtuHB1Qkj3aHCxAhU5d8SoBCq) |
+
+The buyer key on this order was a placeholder, so nobody opens this delivery; the new holder opening the data is shown with order 1 above.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

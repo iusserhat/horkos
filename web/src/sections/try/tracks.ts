@@ -184,6 +184,7 @@ near contract call-function as-read-only ${V2} balance_of json-args '{"account_i
       ];
     },
     expect: () => [
+      h("p", { class: "callout" }, "The hosted seller serves v1 only. On v2 you will see the transfer and, after the deadline, the refund going to the new holder. To see a v2 order settle, run your own seller with the gateway: create a seller account, put it in ", code("allowed_sellers"), " instead of seller B, copy ", code("gateway/examples/coingecko-testnet.json"), " with ", code('"contract": "escrow-v2.horkos.testnet"'), ", your seller and no ", code("listing_id"), ", then ", code("cd gateway && npm ci && npm run gateway -- register --config my.json && npm run gateway -- run --config my.json"), " and order the listing id it prints. The gateway submits once; if OutLayer fails that run the order shows Delivered and refunds at its deadline. Our run of this: ", ex("https://github.com/iusserhat/horkos/blob/main/docs/testnet.md", "docs/testnet.md ↗"), "."),
       code("get_receipt_holder"), " returns ", code("your-friend.testnet"), " after the transfer; your agent's ", code("cancel_order"), " now fails with ", code("Only the agent or owner can cancel"),
       "; after the deadline ", code("balance_of"), " shows ", code('"5000000"'), " for your friend (withdraw it with ", code('withdraw {"from":"Earnings"}'), "), not your budget. Our own run, including a settlement after a transfer: ", ex("https://github.com/iusserhat/horkos/blob/main/docs/testnet.md", "docs/testnet.md ↗"), ".",
     ],

@@ -285,6 +285,10 @@ Owner `hk-try2-1252.testnet`, agent `hk-try2-1252-agent.testnet`, second account
 | Agent `cancel_order` | fails: "Only the agent or owner can cancel" | |
 | `refund_expired` after the deadline | `balance_of(hk-friend-1114.testnet)` → `"5000000"` | [`JAK8Usdp…`](https://testnet.nearblocks.io/txns/JAK8UsdpYUjMFS8KtvKMwhuf9buHDCWjdxz6YvfRkdEP) |
 
+### Faucet check for many judges (14 Nov 2026, 16:15 UTC)
+
+Three different accounts claimed one after another: [`HSKHxJvc…`](https://testnet.nearblocks.io/txns/HSKHxJvc7PX3z57WkpZSXKrFkFm6MkhmZ34rt9eieK32), [`CYYLBS1U…`](https://testnet.nearblocks.io/txns/CYYLBS1UZMtShKodWPCinyGy229NnQAWu681Crvw9ofe), [`8KLz3fFS…`](https://testnet.nearblocks.io/txns/8KLz3fFSPDSkdfFrAtemWC2ai7ke6k5TjMUsxv4vGQUU), each log "Sent 20000000". The faucet contract limits only per account (24 h) and by the total cap; it has no rate limit across accounts. After these, `get_info` shows 160 of 10,000 tUSDC distributed (room for 492 more claims). The `429 Too Many Requests` seen while creating accounts came from NEAR's account-creation service (`near account create-account sponsor-by-faucet-service`), which Horkos does not run; it limited repeated creations from one connection. The Try page names it and shows the `fund-myself` alternative.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

@@ -102,12 +102,15 @@ const AGENT: Step[] = [
       p("NEAR's faucet service creates and funds them. Keys go to your local keychain (", code("~/.near-credentials"), "); nothing is sent to this site."),
       codeBlock(`near account create-account sponsor-by-faucet-service ${who.owner} autogenerate-new-keypair save-to-legacy-keychain network-config testnet create\n\nnear account create-account sponsor-by-faucet-service ${who.agent} autogenerate-new-keypair save-to-legacy-keychain network-config testnet create`),
     ],
-    expect: () => ["Two accounts with some testnet NEAR: ", ex(accountUrl(who.owner), who.owner), " and ", ex(accountUrl(who.agent), who.agent), "."],
+    expect: () => [
+      "Two accounts with some testnet NEAR: ", ex(accountUrl(who.owner), who.owner), " and ", ex(accountUrl(who.agent), who.agent), ".",
+      h("p", { class: "callout" }, "If it answers ", code("429 Too Many Requests"), ": that is NEAR's account-creation service limiting your connection (it is not run by Horkos). Wait a few minutes, or create the agent account from your own: ", code(`near account create-account fund-myself ${who.agent} '1 NEAR' autogenerate-new-keypair save-to-legacy-keychain ${sign(who.owner)}`), "."),
+    ],
   },
   {
     title: "Get 20 test tUSDC from the Horkos faucet",
     body: () => [
-      p("tUSDC is the project's test token. The faucet gives each account 20 tUSDC once a day and registers its storage on the token."),
+      p("tUSDC is the project's test token. The faucet gives each account 20 tUSDC once a day and registers its storage on the token. The limit is per account only, so other people claiming at the same time do not affect you."),
       codeBlock(`near contract call-function as-transaction ${FAUCET} claim json-args '{}' prepaid-gas '50 Tgas' attached-deposit '0 NEAR' ${sign(who.owner)}\n\nnear contract call-function as-read-only ${TOKEN} ft_balance_of json-args '{"account_id":"${who.owner}"}' network-config testnet now`),
     ],
     expect: () => [code('"20000000"'), " (tUSDC has 6 decimals, so that is 20 tUSDC)."],

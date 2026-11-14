@@ -28,7 +28,9 @@
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <div id="header"></div>
-    <main id="main"><noscript><p class="wrap">This page needs JavaScript to read live data from NEAR testnet.</p></noscript></main>
+    <main id="main"><noscript><div class="wrap"><h2>Horkos</h2><p>Escrow for purchases made by AI agents on NEAR testnet. Each order locks its price in a contract and mints an NFT receipt. The seller is paid only if the owner's on-chain mandate allows the order and a verifier running in NEAR OutLayer's TEE confirms the delivery matches the listing's JSON Schema; otherwise anyone can refund the order after its deadline. On the v2 contract the receipt can be passed on, and the data or the refund goes to whoever holds it.</p>
+<p>Check it: <a href="https://github.com/iusserhat/horkos">source code</a> · <a href="https://github.com/iusserhat/horkos/blob/main/JUDGES.md">JUDGES.md</a> · <a href="https://github.com/iusserhat/horkos/blob/main/AGENTS.md">AGENTS.md</a> · <a href="https://github.com/iusserhat/horkos/blob/main/CLAIMS.md">CLAIMS.md</a> (every claim with a command or transaction) · <a href="https://github.com/iusserhat/horkos/blob/main/docs/testnet.md">testnet transactions</a> · <a href="https://github.com/iusserhat/horkos/blob/main/evidence/attestation/README.md">TEE attestations</a> · <a href="https://horkos-escrow.netlify.app/llms.txt">llms.txt</a>. Run <code>npm run judge</code> in the repo (no keys). MCP server: <code>npx -y horkos-mcp</code>.</p>
+<p>Contracts: escrow.horkos.testnet (v1), escrow-v2.horkos.testnet (v2, transferable receipts), tusdc.horkos.testnet, faucet.horkos.testnet. Testnet only; the contract trusts OutLayer's operator for the verification result (attestations are checked off-chain).</p><p>This page has three ways to try Horkos: watch real testnet orders, run all demos on a local NEAR node (no accounts or keys), or connect your own MCP agent with fresh testnet accounts, 20 tUSDC from the faucet and a mandate. The same steps are in the README (Quick start).</p></div></noscript></main>
     <div id="footer"></div>
     <script type="module" src="./src/pages/try.ts"></script>
   </body>

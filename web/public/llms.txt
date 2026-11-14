@@ -1,0 +1,36 @@
+# Horkos
+
+> Escrow for purchases made by AI agents on NEAR testnet. Each order locks its price in a contract as an NFT receipt; the seller is paid only if the owner's on-chain mandate allows the order and a verifier in NEAR OutLayer's TEE confirms the delivery matches the listing's JSON Schema; otherwise the order is refunded after its deadline. On the v2 contract the receipt can be passed on, and the data or the refund goes to its holder. Testnet only.
+
+Start with JUDGES.md and CLAIMS.md. Run `npm run judge` in the repository (no keys). The MCP server is `npx -y horkos-mcp`.
+
+## For judges and agents
+
+- [JUDGES.md](https://github.com/iusserhat/horkos/blob/main/JUDGES.md): tracks and checks with expected output
+- [CLAIMS.md](https://github.com/iusserhat/horkos/blob/main/CLAIMS.md): every claim with a command or transaction
+- [AGENTS.md](https://github.com/iusserhat/horkos/blob/main/AGENTS.md): layout, commands, accounts, known limits
+- [README](https://github.com/iusserhat/horkos/blob/main/README.md)
+- [Full text for language models](https://horkos-escrow.netlify.app/llms-full.txt)
+
+## Evidence
+
+- [Testnet transactions](https://github.com/iusserhat/horkos/blob/main/docs/testnet.md)
+- [TEE attestations (outlayer-verify)](https://github.com/iusserhat/horkos/blob/main/evidence/attestation/README.md)
+- [Threat model](https://github.com/iusserhat/horkos/blob/main/docs/threat-model.md)
+- [Security model and tests](https://github.com/iusserhat/horkos/blob/main/docs/security.md)
+- [Explorer snapshot v1](https://horkos-escrow.netlify.app/snapshot-v1.json), [v2](https://horkos-escrow.netlify.app/snapshot-v2.json)
+
+## Site
+
+- [Home](https://horkos-escrow.netlify.app/)
+- [Try it](https://horkos-escrow.netlify.app/try.html)
+- [Explorer](https://horkos-escrow.netlify.app/explorer.html) ([v2](https://horkos-escrow.netlify.app/explorer.html?contract=v2))
+- [Market](https://horkos-escrow.netlify.app/market.html)
+- [Connect an MCP agent](https://horkos-escrow.netlify.app/connect.html)
+
+## Optional
+
+- [Architecture](https://github.com/iusserhat/horkos/blob/main/docs/architecture.md)
+- [Contract API](https://github.com/iusserhat/horkos/blob/main/docs/contract-api.md)
+- [Decisions (ADRs)](https://github.com/iusserhat/horkos/blob/main/docs/decisions.md)
+- [MCP server on npm](https://www.npmjs.com/package/horkos-mcp)

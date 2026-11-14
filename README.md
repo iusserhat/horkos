@@ -74,8 +74,8 @@ outlayer-verify bundle evidence/attestation/order-9-bundle.json --offline --shor
 outlayer-verify tx 4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP --network testnet --api https://testnet-api.outlayer.ai
 # Expected: five "[ PASS ]" lines (Authenticity, Identity, Binding, Input, Output), wasm sha256 61370b57…
 
-# 4. The deployed contracts are this repo's code
-contracts/scripts/build.sh && scripts/verify-deployed.sh
+# 4. The deployed contracts are this repo's code (rebuilds them with the original CARGO_HOME path, like step 2)
+scripts/verify-deployed.sh --match-paths
 # Expected: MATCH for escrow.horkos.testnet, escrow-v2.horkos.testnet, tusdc.horkos.testnet, faucet.horkos.testnet
 ```
 

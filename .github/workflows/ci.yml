@@ -82,7 +82,9 @@ jobs:
       - name: Build contracts + sandbox integration tests
         run: contracts/scripts/test-sandbox.sh
       - name: Compare built contracts with the code deployed on testnet
-        run: CARGO_TARGET_DIR="$PWD/contracts/target" scripts/verify-deployed.sh
+        # Rebuilds with the original CARGO_HOME path (read from the deployed code),
+        # because rustc embeds dependency source paths in the wasm.
+        run: scripts/verify-deployed.sh --match-paths
       - uses: actions/setup-node@v4
         with:
           node-version: 20

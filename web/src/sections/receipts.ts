@@ -173,7 +173,7 @@ export function receipts() {
         { class: "why-grid" },
         why("It proves where the money is.", ["Locked, being checked, paid out or refunded: anyone can read it with ", h("code", {}, "nft_token"), "."], "w-mint"),
         why("Only the contract changes it.", ["Status moves only through create_order, submit_delivery, on_verified, refund_expired and cancel_order. There is no method to edit it by hand."], "w-gold"),
-        why("Not transferable, on purpose.", ["The receipt's owner is the buyer and the target of the data key, so ", h("code", {}, "nft_transfer"), " fails in this version."], "w-lilac"),
+        why("Transferable on v2.", ["On the main contract the receipt stays with the buyer. On ", h("code", {}, "escrow-v2.horkos.testnet"), " it moves with ", h("code", {}, "nft_transfer"), " while the order is open, and a refund goes to whoever holds it."], "w-lilac"),
       ),
       h("details", { class: "rc-json" }, h("summary", {}, "Show the metadata exactly as nft_token returns it"), h("pre", { class: "code" }, json)),
     ),

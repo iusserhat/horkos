@@ -35,6 +35,8 @@ jobs:
           workspaces: verifier
       - run: cargo test -q
         working-directory: verifier
+      - name: Rebuild the verifier WASM and compare with the pinned sha256
+        run: scripts/reproduce-verifier.sh
 
   node:
     name: TypeScript (typecheck + unit tests)

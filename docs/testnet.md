@@ -214,6 +214,36 @@ Order 13 (gateway, 09:10 UTC) had the same OutLayer cause: the gateway was runni
 - **Off-chain timing:** the verifier's full check path runs in its unit tests (15 tests) in 0.02 s natively; the two FastFS condition files download in about 0.5 s; on OutLayer, successful runs reported about 35M instructions and 4.9 to 6.4 s.
 - **Conclusion:** the timeouts are on OutLayer testnet's side, not in Horkos or the verifier. Draft report to OutLayer: `docs/internal/outlayer-timeouts.md`.
 
+## v2: transferable receipts (14 Nov 2026, 14:30 to 14:40 UTC)
+
+New contract `escrow-v2.horkos.testnet` (crate `contracts/horkos-v2`, ADR-036). v1 (`escrow.horkos.testnet`) was not touched. Built with `cargo near build non-reproducible-wasm` (near-sdk 5.30.0, cargo-near 0.22.0); wasm sha256 `419eb799babfc29c3605f6ed457714b44fb600c3a2dd3709874366ac29463741`.
+
+| Step | Result | Tx |
+| --- | --- | --- |
+| Account created by `horkos.testnet` (0.5 NEAR), funded 4.5 NEAR by `horkos-owner.testnet` | Live | [`8tC53DGQ…`](https://testnet.nearblocks.io/txns/8tC53DGQVYezfvNcviyV1NWogXQW7Gx56j5Btf77x4JC), [`2sV5SXEZ…`](https://testnet.nearblocks.io/txns/2sV5SXEZc3UuBwvbC6RXN9diDyzVYpgNJajxBx16K6U2) |
+| Deployed with `new(token: tusdc.horkos.testnet, admin: horkos.testnet)` | Contract live | [`3d82HWLU…`](https://testnet.nearblocks.io/txns/3d82HWLUAfDnDz7bhFZicDd8v6JMwCfk8YfsVLyiepwd) |
+| Registered on tUSDC; verifier version 0 = same config as v1 | Done | [`J7bwt8Wo…`](https://testnet.nearblocks.io/txns/J7bwt8WojfSUhxP5bzuiDjJKeAvuHBnUCQwGAuwFbSyk), [`DqXhbpxs…`](https://testnet.nearblocks.io/txns/DqXhbpxsHZ977AXLA7yb1cA1Py55he62wo2eLNFFCgtg) |
+| Buyer `hk-v2buyer-1114.testnet`: 20 tUSDC from the faucet, mandate (agent `hk-v2agent-1114.testnet`, seller `horkos-seller-b.testnet`), 10 tUSDC budget | Done | [`5YymLUUh…`](https://testnet.nearblocks.io/txns/5YymLUUhavUXcEQXM5Tpnt8aXm3jadfvLceUqeHuGVcz), [`Cg5VK5cR…`](https://testnet.nearblocks.io/txns/Cg5VK5cRTXShnvJQDMU5CbHVcTRB8dmHZixjpzCZpfhG), [`A9rZphL3…`](https://testnet.nearblocks.io/txns/A9rZphL3NAPmjPNxAPqu4bCo1oGpkSiAF5N4gdVvter2) |
+| Seller B: listing 0, 5 tUSDC, 4-minute delivery window (listing 4's schema hash) | Listing 0 | [`3z9xRY9Y…`](https://testnet.nearblocks.io/txns/3z9xRY9Y267nyUGiSRuzU1qwWYg39HJzHaaufS6bJCpY) |
+| Agent creates order 0; receipt #0 minted to the buyer | `Open` | [`5Rj4oCST…`](https://testnet.nearblocks.io/txns/5Rj4oCSTrevsZmYjVNLgT4LUXQdjtEoGaLSUYDzYBwKF) |
+| `hk-v2holder-1114.testnet` tries to take the receipt itself | Fails: "Sender not approved" | [`8pYeWbvZ…`](https://testnet.nearblocks.io/txns/8pYeWbvZmbCE2Y97Y3a6ifuWGaN9bNjjuzfmhzrAqd7S) |
+| **Buyer transfers receipt #0 to `hk-v2holder-1114.testnet`** (NEP-297 `nft_transfer` event) | Holder changed | [`CLQE8n9U…`](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w) |
+| Buyer's agent tries `cancel_order` after the transfer | Fails: "Only the agent or owner can cancel" | [`2UnvtpQU…`](https://testnet.nearblocks.io/txns/2UnvtpQUeiUFTSnMTaKQXjNF5QsZn3iJaAs5B1MBqc2B) |
+| `refund_expired` before the deadline | Fails: "Order not expired yet" | [`B5C9awYp…`](https://testnet.nearblocks.io/txns/B5C9awYp4BJwvo7rrohbn3K2ubZeX7PnsFYjUUwJty6f) |
+| **`refund_expired` after the deadline: 5 tUSDC credited to the new holder**, not to the buyer's budget (buyer: balance 5, spent 5, open orders 0) | `Refunded` | [`4NFBbMto…`](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti) |
+| **Holder withdraws**: `ft_balance_of(hk-v2holder-1114.testnet)` = `5000000` | 5 tUSDC in the holder's wallet | [`Az6pUNWs…`](https://testnet.nearblocks.io/txns/Az6pUNWs842yT5jqssVuskLNATFPnpjwpct9s6M9LAns) |
+| Holder tries to transfer the refunded receipt | Fails: "Receipt is final: settled, refunded or cancelled receipts cannot be transferred" | [`5LX3xmR9…`](https://testnet.nearblocks.io/txns/5LX3xmR9DwhEVkLWe8iPRDs77JKS84zwyBnB5jNSpzVs) |
+
+Check:
+
+```bash
+near contract call-function as-read-only escrow-v2.horkos.testnet get_receipt_holder json-args '{"order_id":"0"}' network-config testnet now   # "hk-v2holder-1114.testnet"
+near contract call-function as-read-only escrow-v2.horkos.testnet get_order json-args '{"order_id":"0"}' network-config testnet now            # "status": "Refunded", "buyer": "hk-v2buyer-1114.testnet"
+near contract call-function as-read-only tusdc.horkos.testnet ft_balance_of json-args '{"account_id":"hk-v2holder-1114.testnet"}' network-config testnet now   # "5000000"
+```
+
+Not shown on testnet: settlement on v2. The verifier WASM pinned in verifier version 0 accepts only `escrow.horkos.testnet` as its caller (compiled in, see `verifier/src/main.rs`), so a v2 order would not settle through OutLayer. A v2 verifier needs its own build (`HORKOS_CONTRACT=escrow-v2.horkos.testnet`), its own TEE key and a new verifier version. Settlement with a transferred receipt is covered by the unit test `transfer_while_verifying_then_settle_leaves_key_on_new_holders_receipt` and the sandbox test `v2_transferred_receipt_settles_with_key_on_new_holders_receipt`.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.

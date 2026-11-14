@@ -173,7 +173,26 @@ Logged as `EVENT_JSON:{...}`. `Open` has no `order_status` event; the mint marks
 - One token per order, `token_id` = order id, owner = the mandate owner (buyer).
 - Metadata: title "Horkos receipt #{id}", description "Escrow receipt for an AI agent purchase", `copies` 1, `issued_at` = creation (ms), `expires_at` = deadline (ms), `updated_at` = last change (ms), `extra` = JSON `{order_id, amount, token, seller, listing_id, status, deadline}`. Rewritten on every status change, paid from the 32-byte slack reserved at creation.
 - Supported: `nft_token`, `nft_tokens`, `nft_total_supply`, `nft_supply_for_owner`, `nft_tokens_for_owner`, `nft_metadata`.
-- `nft_transfer` and `nft_transfer_call` always panic with "Receipts are non-transferable in this version". There are no approvals.
+- v1 (`escrow.horkos.testnet`): `nft_transfer` and `nft_transfer_call` always panic with "Receipts are non-transferable in this version". There are no approvals.
+- v2 (`escrow-v2.horkos.testnet`, crate `contracts/horkos-v2`): receipts are transferable; see below and ADR-036.
+
+## v2: transferable receipts
+
+Everything above applies to v2, with these changes.
+
+| Method | Who | Deposit | Effect / errors |
+| --- | --- | --- | --- |
+| `nft_transfer(receiver_id, token_id, approval_id?, memo?)` | holder or approved account | exactly 1 yocto | Moves the receipt (the claim). NEP-297 `nft_transfer` event. "Sender not approved", "Requires attached deposit of exactly 1 yoctoNEAR", "Receipt is final: settled, refunded or cancelled receipts cannot be transferred" |
+| `nft_transfer_call(..., msg)` | same | exactly 1 yocto | NEP-171 transfer and call; returned if `nft_on_transfer` returns `true`, unless the order closed meanwhile (then it stays with the receiver) |
+| `nft_approve(token_id, account_id, msg?)` | holder | approval storage | NEP-178; only while the order is open |
+| `nft_revoke`, `nft_revoke_all` | holder | exactly 1 yocto | NEP-178 |
+| `nft_is_approved(token_id, approved_account_id, approval_id?)` | view | | NEP-178 |
+| `get_receipt_holder(order_id)` | view | | Current holder, or `null` |
+| `set_receipt_pubkey(order_id, buyer_pubkey)` | holder | exactly 1 yocto | Replaces the key the data key is sealed to. "Only the receipt holder", "Key can change only while the order is Open or Delivered", "buyer_pubkey must have the same length as the current key" |
+| `cancel_order(order_id)` | holder; the agent only while the buyer holds the receipt | | `Open` only. Refund as below |
+| `refund_expired(order_id)` | anyone | | Refund as below |
+
+Refunds: if the buyer holds the receipt, the amount returns to the mandate budget (as in v1). Otherwise it is credited to the holder's internal balance (`balance_of`), withdrawn with `withdraw({"from":"Earnings"})`; the buyer's mandate frees the open-order slot and keeps the amount as spent.
 
 ## Limits
 

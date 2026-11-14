@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.0 (14 Nov 2026)
+
+### Added
+- Escrow contract v2 (`contracts/horkos-v2`, deployed as `escrow-v2.horkos.testnet`): transferable receipts (NEP-171 `nft_transfer` / `nft_transfer_call`, NEP-178 approvals, NEP-297 events). Refunds go to the current holder; final receipts are frozen; `set_receipt_pubkey`; `get_receipt_holder`. ADR-036. v1 unchanged.
+- CI (GitHub Actions): contract, verifier, TypeScript, sandbox tests and the sandbox demo on every push.
+- `scripts/reproduce-verifier.sh`: rebuilds the verifier WASM and compares its sha256 with the pinned hash.
+
 ## v0.1.0 (14 Nov 2026), NEAR Hackathon release
 
 Testnet only.

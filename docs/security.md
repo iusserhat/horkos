@@ -19,7 +19,7 @@ Scope: NEAR testnet only. No mainnet deployment, no real funds. Reporting a vuln
 | Settlement only before the deadline; a late result is ignored | `on_verified`, `refund_expired` |
 | Settlement credits an internal balance; tokens move only in `withdraw`, which restores the balance if the transfer fails | `withdraw`, `on_withdraw` |
 | Buyer key re-sealed only to the `buyer_pubkey` stored on the order | Verifier input built by the contract |
-| Receipts cannot be transferred | "Receipts are non-transferable in this version" |
+| Receipts cannot be transferred (v1). v2: only holder or approved account, 1 yocto, only while the order is open; refunds follow the holder (ADR-036) | v1: "Receipts are non-transferable in this version"; v2: "Sender not approved", "Receipt is final ..." |
 | Only the configured token is accepted; deposits without a mandate are returned | `ft_on_transfer` |
 
 Every method, with its errors: [contract-api.md](contract-api.md).

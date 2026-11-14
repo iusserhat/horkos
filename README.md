@@ -62,7 +62,7 @@ contracts/scripts/test-sandbox.sh      # builds the contracts, downloads the loc
 cd demo && npm ci && npm run sandbox
 ```
 
-`test-sandbox.sh` should end with `test result: ok. 7 passed`. `npm run sandbox` starts a local NEAR node, deploys the real Horkos and test-token contracts and `mock-outlayer` in `Worker` mode, and builds the real verifier natively. When the contract calls `request_execution`, the mock yields like OutLayer; a worker loop in `demo/sandbox.ts` runs the verifier on the request and resumes it with the verifier's output. You should see:
+`test-sandbox.sh` should end with `test result: ok. 9 passed`. `npm run sandbox` starts a local NEAR node, deploys the real Horkos and test-token contracts and `mock-outlayer` in `Worker` mode, and builds the real verifier natively. When the contract calls `request_execution`, the mock yields like OutLayer; a worker loop in `demo/sandbox.ts` runs the verifier on the request and resumes it with the verifier's output. You should see:
 
 1. `order 0: Settled`, then the agent decrypts `{"symbol":"NEAR/USD","rows":[...]}`.
 2. `valid=false, reason: schema: ... at /rows`, `order 1: Delivered`, the agent gets `nothing to open`, and after the 25 s window `refund_expired → order 1: Refunded`, 5 tUSDC back in the budget.
@@ -130,6 +130,17 @@ Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM P
 
 More (market page, 390 px, dark theme, each explorer tab): `docs/screenshots/`.
 
+## Receipts are transferable (v2)
+
+A second contract, `escrow-v2.horkos.testnet` (`contracts/horkos-v2`), makes the receipt the claim on the order. The v1 contract above is unchanged and receipts there stay non-transferable.
+
+- `nft_transfer` / `nft_transfer_call` follow NEP-171 (1 yoctoNEAR, holder or NEP-178-approved account) and emit NEP-297 `nft_transfer` events. Receipts move only while the order is open; settled, refunded or cancelled receipts are frozen.
+- `refund_expired` and `cancel_order` pay the **current holder**: back into the mandate budget if the buyer still holds the receipt, otherwise into the holder's balance, withdrawable with `withdraw(Earnings)`. After a transfer the buyer's agent can no longer cancel.
+- Settlement stores the data key sealed to the receipt's `buyer_pubkey`; the holder can set a new one with `set_receipt_pubkey` while no verification is running.
+- The mandate still governs only who may create orders and for how much. Reasons and edge cases: ADR-036 in `docs/decisions.md`; methods: `docs/contract-api.md`.
+
+On testnet (14 Nov): the buyer [transferred receipt #0](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w) to another account, the buyer's agent's cancel [failed](https://testnet.nearblocks.io/txns/2UnvtpQUeiUFTSnMTaKQXjNF5QsZn3iJaAs5B1MBqc2B), and after the deadline [`refund_expired` paid the 5 tUSDC to the new holder](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti), who [withdrew it](https://testnet.nearblocks.io/txns/Az6pUNWs842yT5jqssVuskLNATFPnpjwpct9s6M9LAns). All steps: `docs/testnet.md`. Not shown on testnet: settlement on v2, because the deployed verifier WASM only accepts `escrow.horkos.testnet` as its caller; settlement after a transfer is covered by unit and sandbox tests.
+
 ## OutLayer on testnet: failed runs
 
 **Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; the hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
@@ -149,7 +160,7 @@ OutLayer testnet sometimes fails a verification run without giving a reason. On 
 - **Testnet only.** No mainnet deployment.
 - **OutLayer's TEE attestation is not verified on chain.** OutLayer's callback carries only the program's output, with no signature or quote. The operator account (`worker.outlayer.testnet`) also has full-access keys, so the contract trusts OutLayer's operator. The attestation can be checked off-chain afterwards. Details: `spikes/outlayer/REPORT.md`, `docs/internal/outlayer-question.md`.
 - **The verifier's public key** is published by the admin with each verifier version; the contract does not check that it came from the TEE. (On testnet it was printed by the verifier inside OutLayer, tx `5iWyLC1TVjd7v4CKSDU4yggATB4x4g42TJs4xJAZRtRH`.)
-- **Receipt NFTs are not transferable** in this version.
+- **Receipt NFTs are not transferable on v1** (`escrow.horkos.testnet`). They are on v2 (`escrow-v2.horkos.testnet`), which has no verifier build of its own yet, so v2 orders cannot settle through OutLayer on testnet.
 - **Conditions are JSON Schema only.** Horkos checks that a delivery meets the seller's published schema, not that the data is good.
 - **Admin powers.** The admin can add verifier versions but cannot affect existing orders. However, the contract accounts (`escrow.horkos.testnet`, `tusdc.horkos.testnet`) still have full-access keys held by the team, and whoever holds them can redeploy the code.
 - **Costs.** Each order charges about 1,517 bytes of storage (≈ 0.0152 NEAR) to the owner's storage deposit; the seller pays OutLayer's fee (≈ 0.0015 NEAR charged per run on testnet) for each verification attempt.
@@ -177,8 +188,8 @@ What Horkos does differently, concretely: the spending mandate and the escrow ar
 ## Run the tests
 
 ```bash
-cd contracts && cargo test -p horkos -p test-token -p faucet   # 101 + 4 + 11 unit tests
-cd .. && contracts/scripts/test-sandbox.sh              # 1 faucet + 7 escrow integration tests on a local node
+cd contracts && cargo test -p horkos -p horkos-v2 -p test-token -p faucet   # 101 + 122 + 4 + 11 unit tests
+cd .. && contracts/scripts/test-sandbox.sh              # 1 faucet + 7 escrow (v1) + 2 v2 integration tests on a local node
 (cd sdk && npm ci && npm test)                          # 6 SDK tests (after test-sandbox.sh)
 (cd verifier && cargo test)                             # 15 verifier tests
 (cd sdk && npm run test:verifier)                       # 5 end-to-end tests: SDK-built deliveries through the native verifier
@@ -195,7 +206,8 @@ Start at [docs/README.md](docs/README.md): architecture, contract API, SDK, MCP,
 ## Repository
 
 ```
-contracts/horkos/            escrow contract (Rust, near-sdk 5.30)
+contracts/horkos/            escrow contract v1, deployed as escrow.horkos.testnet (Rust, near-sdk 5.30)
+contracts/horkos-v2/         escrow contract v2: transferable receipts, deployed as escrow-v2.horkos.testnet
 contracts/test-token/        testnet NEP-141 token "tUSDC" (6 decimals)
 contracts/faucet/            testnet tUSDC faucet (20 per account per day, capped)
 contracts/mock-outlayer/     test-only stand-in for OutLayer (Worker mode yields until resolved, like OutLayer)
@@ -217,7 +229,7 @@ render.yaml                  Render blueprint for the hosted testnet seller A
 - Mainnet deployment, with the contract accounts' full-access keys removed or upgrades behind a DAO or timelock.
 - Cross-chain payment and refund through NEAR Intents.
 - Richer conditions: test suites and recomputable outputs, not only JSON Schema.
-- Transferable receipts.
+- A verifier build for v2, so transferred receipts settle on testnet too.
 - Browser wallet: roadmap. A web page where the owner sets up the mandate and buys with a NEAR wallet (today: SDK, MCP or near-cli). `web/src/lib/wallet.ts` (NEAR Wallet Selector 10.1.4, Meteor and MyNearWallet, testnet) is in the repo but no page uses it: on 13 Nov a real connect-and-sign flow could not be checked (MyNearWallet has stopped new app connections and approvals since 1 Nov; Meteor's web wallet blocks automated browsers), and nothing unchecked is claimed.
 - On-chain verification of the verifier's TEE attestation, once OutLayer exposes it to contracts.
 

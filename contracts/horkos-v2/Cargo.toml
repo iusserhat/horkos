@@ -1,0 +1,17 @@
+[package]
+name = "horkos-v2"
+version = "0.1.0"
+edition = "2021"
+description = "Horkos v2: escrow with transferable NFT receipts for AI agent purchases"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+near-sdk = { workspace = true }
+near-contract-standards = { workspace = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }

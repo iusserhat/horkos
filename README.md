@@ -51,6 +51,33 @@ stateDiagram-v2
 
 Each order reaches exactly one final state (`Settled`, `Refunded` or `Cancelled`). Settlement only credits the seller's internal balance; the seller withdraws separately, so no token transfer happens inside the verification callback. Full design: [docs/architecture.md](docs/architecture.md); every method: [docs/contract-api.md](docs/contract-api.md); decisions: [docs/decisions.md](docs/decisions.md). All documents: [docs/README.md](docs/README.md).
 
+## Verify it yourself in 5 minutes
+
+No accounts or keys needed. Step 1 needs only `curl`; steps 2 to 4 need Rust (`rustup`); step 4 also needs `cargo-near` 0.22.0. Builds take a few minutes the first time.
+
+```bash
+# 1. A settled order on testnet (read-only RPC call)
+curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"escrow.horkos.testnet","method_name":"get_order","args_base64":"'$(printf '{"order_id":"9"}' | base64)'"}}' | python3 -c 'import sys,json; o=json.loads(bytes(json.load(sys.stdin)["result"]["result"])); print(o["status"], o["verifier_version"])'
+# Expected: Settled 0
+
+# 2. The verifier WASM rebuilds byte for byte from this repo
+scripts/reproduce-verifier.sh --chain
+# Expected: "On-chain hash (escrow.horkos.testnet, verifier version 0): 61370b57…" … "MATCH"
+
+# 3. That WASM ran in Intel TDX on exactly order 9's input and produced the output the contract settled on
+cargo install --locked --git https://github.com/out-layer/outlayer-verify --rev 90c27d9d4fc843194ddc6f8ebaafa4eb320c3bb6 outlayer-verify
+outlayer-verify bundle evidence/attestation/order-9-bundle.json --offline --short
+# Expected: PROVEN task 102880 (execute) d2757cd2f877b2a7…3869ad2c
+outlayer-verify tx 4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP --network testnet --api https://testnet-api.outlayer.ai
+# Expected: five "[ PASS ]" lines (Authenticity, Identity, Binding, Input, Output), wasm sha256 61370b57…
+
+# 4. The deployed contracts are this repo's code
+contracts/scripts/build.sh && scripts/verify-deployed.sh
+# Expected: MATCH for escrow.horkos.testnet, escrow-v2.horkos.testnet, tusdc.horkos.testnet, faucet.horkos.testnet
+```
+
+CI runs steps 2 and 4 on every push. Orders 15 and 18 and what this does and does not prove: [evidence/attestation/](evidence/attestation/README.md). In short, the contract itself does not check the attestation; it trusts OutLayer's operator, and these checks are after the fact.
+
 ## Quick start
 
 Requirements: Linux or macOS, Rust ≥ 1.95 with the `wasm32-unknown-unknown` target, `cargo-near` 0.22, Node.js 20, git. The local NEAR node needs glibc ≥ 2.39; on older systems (for example Ubuntu 22.04) the scripts run it in Docker (`ubuntu:24.04`), so Docker is needed there. `setup.sh` installs the toolchain on Ubuntu/WSL.

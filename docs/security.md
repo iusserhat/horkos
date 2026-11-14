@@ -81,3 +81,10 @@ Before the repo goes public.
 ### Re-scan (14 Nov 2026, ~09:35 UTC)
 
 gitleaks 8.30.1 (checksum re-verified) over all history (58 commits) and over the working tree: the same single false positive (`verifier/Cargo.lock` line 188). `ed25519:` strings of 60+ base58 characters: none in the tree or in `git log --all -p`.
+
+### Pre-submission sweep (14 Nov 2026, ~12:56 UTC)
+
+- gitleaks 8.30.1 over all history (75 commits): the same single false positive (`verifier/Cargo.lock` line 188). `git log -p --all`: `ed25519:` strings are 44-character public keys only; no `BEGIN PRIVATE`, Bearer, GitHub, Netlify, Render, ElevenLabs or CoinGecko tokens; `.env*`, `.netlify/`, `video-raw/`, credentials and scratch files are ignored and were never committed.
+- Images (docs, `web/public`), the demo video (frames every 3 s, OCR and visual check) and its poster: no paths, user names, hosts or keys; MP4 metadata holds only the encoder tag.
+- Live site: no source maps, no keys, no local paths in the HTML or JS bundles. `render.yaml` carries no secret values (`sync: false` for the seller account and key); `/health` shows balances, versions and order ids only.
+- Commit author email is the owner's personal address on every commit (visible once the repo is public).

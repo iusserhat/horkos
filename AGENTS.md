@@ -18,7 +18,7 @@ Horkos: escrow for purchases made by AI agents on NEAR (testnet). An order locks
 | `sdk/`, `mcp/`, `gateway/`, `demo/` | TypeScript SDK, MCP server (5 tools), seller gateway, demo sellers and scenarios |
 | `web/` | Website (https://horkos-escrow.netlify.app) |
 | `docs/` | Architecture, contract API, decisions (ADRs), security, testnet evidence |
-| `evidence/attestation/` | `outlayer-verify` output and offline bundles for settled orders 9, 15, 18, 26 |
+| `evidence/attestation/` | `outlayer-verify` output and offline bundles for settled orders 9, 15, 18, 26 (v1) and order 1 (v2) |
 | `scripts/` | `reproduce-verifier.sh`, `verify-deployed.sh` |
 
 ## Run without keys or accounts
@@ -40,7 +40,7 @@ Toolchain: Rust 1.99.1, cargo-near 0.22.0, Node 20. The same commands run in CI 
 | Account | Role |
 | --- | --- |
 | `escrow.horkos.testnet` | Escrow v1, verifier version 0 (WASM sha256 `61370b57…db80f`) |
-| `escrow-v2.horkos.testnet` | Escrow v2 (transferable receipts) |
+| `escrow-v2.horkos.testnet` | Escrow v2 (transferable receipts), verifier version 1 (WASM sha256 `4919f8e2…ea996`) |
 | `tusdc.horkos.testnet` / `faucet.horkos.testnet` | Test token / faucet (20 tUSDC per account per 24 h) |
 | `horkos.testnet` | Admin |
 | `horkos-seller-a.testnet` | Seller A, hosted on Render (listings 0, 3, 4, 5 on v1) |
@@ -54,7 +54,7 @@ Transactions for every claim: `docs/testnet.md`.
 - OutLayer testnet sometimes fails runs (timeouts at NEAR's 201-block yield limit, e.g. 14 Nov from about 11:30 to 15:00 UTC); the order then refunds after its deadline.
 - Conditions are JSON Schema only: Horkos checks the shape of a delivery, not its quality.
 - Contract accounts still have full-access keys held by the team, who could redeploy the code.
-- v2 on testnet has shown transfers and refund-to-holder; see the README for whether a v2 settlement has been shown.
+- v2 is a separate contract; the hosted seller A serves v1 only. v2 has shown on testnet: transfer, refund to the new holder, and settlement after a transfer with the new holder opening the data (`docs/testnet.md`).
 - `scripts/verify-deployed.sh` matches the deployed contracts on the deploying machine and in a fresh clone there, but GitHub's runner compiles different bytes, so it is not part of CI.
 
 ## Rules for changes

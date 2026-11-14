@@ -253,7 +253,21 @@ near contract call-function as-read-only escrow-v2.horkos.testnet get_order json
 near contract call-function as-read-only tusdc.horkos.testnet ft_balance_of json-args '{"account_id":"hk-v2holder-1114.testnet"}' network-config testnet now   # "5000000"
 ```
 
-Not shown on testnet: settlement on v2. The verifier WASM pinned in verifier version 0 accepts only `escrow.horkos.testnet` as its caller (compiled in, see `verifier/src/main.rs`), so a v2 order would not settle through OutLayer. A v2 verifier needs its own build (`HORKOS_CONTRACT=escrow-v2.horkos.testnet`), its own TEE key and a new verifier version. Settlement with a transferred receipt is covered by the unit test `transfer_while_verifying_then_settle_leaves_key_on_new_holders_receipt` and the sandbox test `v2_transferred_receipt_settles_with_key_on_new_holders_receipt`.
+### v2 settlement with a transferred receipt (14 Nov 2026, 15:57 to 16:02 UTC)
+
+A verifier build for v2 (caller `escrow-v2.horkos.testnet`, sha256 `4919f8e244c69d61b14db61a62f4a2edbcf25fa40b448729d23b24e4eb7ea996`, rebuilt by `scripts/reproduce-verifier.sh --match-paths --v2`) hosted at a [gist pinned to its commit](https://gist.githubusercontent.com/iusserhat/7540fd00f2760c0afe28a4610ac8053a/raw/c4e2c062173c30d6b22fa07ced99c7bedb0bd45a/horkos-verifier.wasm), with its own OutLayer secret (profile `verifier-v2`, `PROTECTED_VERIFIER_SK` generated in the TEE, access AllowAll AND that WASM hash). Run with `cd demo && npx tsx v2-transfer.ts`.
+
+| Step | Result | Tx |
+| --- | --- | --- |
+| Public key read in the TEE (`{"cmd":"pubkey"}`); two earlier runs right after the secret was saved failed at OutLayer ("Execution promise failed", requests 46410, 46422) | `MHEWYEbQS2l8fuExYTOJipdZYoXP+MXh/jSNxEaChEk=` | [`EkRL9pgZ…`](https://testnet.nearblocks.io/txns/EkRL9pgZhwYwyiXAMsNqd6WKCEWnA92ouGgq1UhqRUmW) |
+| `set_verifier` on escrow-v2 | verifier version 1 | [`GeZ5XdQx…`](https://testnet.nearblocks.io/txns/GeZ5XdQxM6nYvGZXsXpDA9aVuKuvYbVqDZDLXUohzmWB) |
+| Seller B registers listing 1 (market-data schema, 30-minute window) | listing 1 | [`3uPrhS6x…`](https://testnet.nearblocks.io/txns/3uPrhS6x2xtPHzrBRFgsbAKYUdD95FSDYeBQ4aNxr7Lq) |
+| Agent `hk-v2agent-1114.testnet` creates order 1 for `hk-v2buyer-1114.testnet` | `Open`, receipt #1 to the buyer | [`AXasZFUA…`](https://testnet.nearblocks.io/txns/AXasZFUARM4pVNDyjgmtNEnzCi5mKeSgR77jTis7Sdan) |
+| **Buyer transfers receipt #1 to `hk-v2holder-1114.testnet`** | holder changed | [`9DxmwUQE…`](https://testnet.nearblocks.io/txns/9DxmwUQEtLBacJTPCEEKjhpyGztESDimHwshLptrSf3J) |
+| **Holder sets its own X25519 key** (`set_receipt_pubkey`) | key replaced | [`FoUpv6R7…`](https://testnet.nearblocks.io/txns/FoUpv6R7ZXAY7PMrG4ZYZUomUuEJHDUr8iqmys6aHCL6) |
+| **Seller B delivers live NEAR/USD prices; OutLayer task 109964 verifies; `on_verified` → Settled** (13 s from `submit_delivery` to `on_verified`) | `Settled`, attempt 1 | [`C1BTBTks…`](https://testnet.nearblocks.io/txns/C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS) |
+| **New holder opens the data** with its key: `{"symbol":"NEAR/USD","rows":[4 points]}`; the buyer's original key fails to open it | data opened by the holder only | `demo/v2-transfer.ts` output |
+| `outlayer-verify` on the delivery tx | 5 × PASS, wasm `4919f8e2…` | `evidence/attestation/v2-order-1-outlayer-verify.txt` |
 
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 

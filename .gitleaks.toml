@@ -9,6 +9,6 @@ useDefault = true
 [[allowlists]]
 description = "sealed keys in outlayer-verify transcripts (ciphertext, public on chain)"
 condition = "AND"
-paths = ['''^evidence/attestation/order-\d+-outlayer-verify\.txt$''']
+paths = ['''^evidence/attestation/(v2-)?order-\d+-outlayer-verify\.txt$''']
 regexTarget = "line"
 regexes = ['''sealed_key''']

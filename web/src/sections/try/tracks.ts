@@ -246,6 +246,14 @@ function trackView(id: TrackId) {
   const count = h("span", { class: "tk-count" });
   const list = h("ol", { class: "tk-steps" });
   let open = Math.min([...Array(tk.steps.length).keys()].find((i) => !done.has(i)) ?? 0, tk.steps.length - 1);
+  // try.html#v2 opens the optional receipt-transfer step.
+  if (id === "agent" && location.hash === "#v2") {
+    const v2 = tk.steps.findIndex((st) => st.title.includes("(v2)"));
+    if (v2 >= 0) {
+      open = v2;
+      setTimeout(() => list.querySelector<HTMLElement>(`[data-i="${v2}"]`)?.scrollIntoView({ block: "start" }), 50);
+    }
+  }
 
   const render = () => {
     const pct = Math.round((100 * done.size) / tk.steps.length);
@@ -294,7 +302,7 @@ function trackView(id: TrackId) {
 }
 
 export function tryPage() {
-  let current: TrackId = (store.get("try-track") as TrackId) || "watch";
+  let current: TrackId = location.hash === "#v2" ? "agent" : (store.get("try-track") as TrackId) || "watch";
   const panel = h("div", {});
   const cards = h("div", { class: "tk-tabs", role: "tablist", "aria-label": "Ways to try Horkos" });
   const grid = h("div", { class: "tk-cards" }, cards);

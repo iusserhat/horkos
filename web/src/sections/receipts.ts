@@ -169,6 +169,24 @@ export function receipts() {
         h("div", {}, cardSlot, h("p", { class: "muted rc-note" }, "The card is receipt #5 read live from testnet. The buttons only switch its status, to show how the same token reads in each state.")),
       ),
       h(
+        "div",
+        { class: "rc-claim panel" },
+        h("h3", {}, "An NFT that holds money and carries the claim"),
+        h(
+          "ul",
+          { class: "rc-claim-list" },
+          h("li", {}, "It holds the order's money: 5 tUSDC stays locked until the delivery is checked. ", h("a", { href: "./explorer.html#receipts" }, "Live receipts in the explorer")),
+          h("li", {}, "Pass it on and the claim moves with it: the refund goes to whoever holds it. ", h("a", { href: "https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w", target: "_blank", rel: "noopener" }, "transfer ↗"), " · ", h("a", { href: "https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti", target: "_blank", rel: "noopener" }, "refund to the new holder ↗")),
+          h("li", {}, "The new holder opens the data, the original buyer can't. ", h("a", { href: "https://testnet.nearblocks.io/txns/C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS", target: "_blank", rel: "noopener" }, "settlement ↗"), " · ", h("a", { href: "./explorer.html?contract=v2#receipts" }, "v2 receipts")),
+        ),
+        h(
+          "div",
+          { class: "rc-claim-actions" },
+          h("a", { class: "btn btn-gold", href: "./explorer.html?contract=v2#receipts" }, "See transferred receipts"),
+          h("a", { class: "btn", href: "./try.html#v2" }, "Try it yourself"),
+        ),
+      ),
+      h(
         "ul",
         { class: "why-grid" },
         why("It proves where the money is.", ["Locked, being checked, paid out or refunded: anyone can read it with ", h("code", {}, "nft_token"), "."], "w-mint"),

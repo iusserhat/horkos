@@ -4,6 +4,12 @@
 
 Start with JUDGES.md and CLAIMS.md. Run `npm run judge` in the repository (no keys). The MCP server is `npx -y horkos-mcp`.
 
+## An NFT that holds money and carries the claim
+
+- It holds the order's money: 5 tUSDC stays locked until the delivery is checked. [Live receipts](https://horkos-escrow.netlify.app/explorer.html#receipts)
+- Pass it on and the claim moves with it: the refund goes to whoever holds it. [Transfer](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w), [refund to the new holder](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti)
+- The new holder opens the data, the original buyer can't. [Settlement](https://testnet.nearblocks.io/txns/C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS), [v2 receipts](https://horkos-escrow.netlify.app/explorer.html?contract=v2#receipts)
+
 ## For judges and agents
 
 - [JUDGES.md](https://github.com/iusserhat/horkos/blob/main/JUDGES.md): tracks and checks with expected output

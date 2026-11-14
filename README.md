@@ -4,54 +4,19 @@
 
 [![CI](https://github.com/iusserhat/horkos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iusserhat/horkos/actions/workflows/ci.yml)
 
-**Judges:** start at [JUDGES.md](JUDGES.md) (tracks and five checks with expected output).
-
 <p align="center"><em>Verify-then-pay for AI agents, native to NEAR.</em></p>
 
-Horkos is an escrow contract on NEAR for purchases made by AI agents: each order locks its price in the contract as an NFT receipt, and the seller is paid only if the owner's spending mandate allows the order and a verifier confirms the delivery meets a machine-checkable condition; otherwise the money returns after the deadline.
+**What.** Horkos is an escrow contract on NEAR for purchases made by AI agents: each order locks its price in the contract as an NFT receipt, and the seller is paid only if the owner's spending mandate allows the order and a verifier confirms the delivery meets a machine-checkable condition; otherwise the money returns after the deadline.
 
-**We don't resolve disputes. We prevent them.**
+**Why.** An agent's payment cannot be reversed: if it overspends, follows a prompt injection, or pays a seller who delivers nothing or garbage, the money is gone. Letting the buyer approve deliveries does not work either, because a buyer who already has the data can claim it was bad.
 
-Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). Runs on NEAR testnet. License: MIT.
+**How to verify.** [JUDGES.md](JUDGES.md): five checks with expected output · [Verify it yourself in 5 minutes](#verify-it-yourself-in-5-minutes) · [TEE attestations](evidence/attestation/README.md) · [testnet transactions](docs/testnet.md) · [live site](https://horkos-escrow.netlify.app) and [Try page](https://horkos-escrow.netlify.app/try.html) · AI agents: [AGENTS.md](AGENTS.md).
 
-## Problem → solution
+**We don't resolve disputes. We prevent them.** Built at NEAR HACKATHON (development window 19 Oct to 14 Nov 2026). Runs on NEAR testnet. License: MIT.
 
-An agent's payment cannot be reversed: if it overspends, follows a prompt injection, or pays a seller who delivers nothing or garbage, the money is gone. Letting the buyer approve deliveries does not work either, because a buyer who already has the data can claim it was bad. Horkos puts the owner's limits (budget, per-order cap, allowed sellers, expiry) in the escrow contract itself, so a compromised agent cannot buy outside them. The seller delivers encrypted data, and a verifier running in NEAR OutLayer's TEE checks it against the listing's condition (a JSON Schema) before the buyer gets the key and the seller gets paid. If no valid delivery is verified before the deadline, anyone can trigger the refund.
+## How it works
 
-## Architecture
-
-```mermaid
-flowchart LR
-  Owner[Owner] -- "set_mandate, ft_transfer_call (budget)" --> H
-  Agent["Agent<br/>(function-call key:<br/>create_order, cancel_order)"] -- create_order --> H
-  H[(Horkos escrow contract<br/>escrow.horkos.testnet)] -- "mint NFT receipt" --> Owner
-  Seller[Seller] -- "encrypted data" --> Store[(FastFS / HTTPS)]
-  Seller -- "submit_delivery (key sealed to verifier)" --> H
-  H -- "request_execution (pinned WASM sha256)" --> OL[NEAR OutLayer]
-  OL --> V["Verifier in TEE<br/>decrypt, check JSON Schema,<br/>re-seal key to buyer"]
-  V -- "fetch" --> Store
-  OL -- "on_verified (result)" --> H
-  H -- "Settled: seller balance + buyer key" --> Seller
-  Anyone[Anyone] -- "refund_expired (after deadline)" --> H
-```
-
-```mermaid
-stateDiagram-v2
-  [*] --> Open: create_order (within mandate)
-  Open --> Verifying: submit_delivery
-  Open --> Cancelled: cancel_order
-  Open --> Refunded: refund_expired
-  Verifying --> Settled: valid result, before deadline
-  Verifying --> Delivered: invalid or missing result
-  Delivered --> Verifying: seller resubmits
-  Delivered --> Refunded: refund_expired
-  Verifying --> Refunded: refund_expired
-  Settled --> [*]
-  Refunded --> [*]
-  Cancelled --> [*]
-```
-
-Each order reaches exactly one final state (`Settled`, `Refunded` or `Cancelled`). Settlement only credits the seller's internal balance; the seller withdraws separately, so no token transfer happens inside the verification callback. Full design: [docs/architecture.md](docs/architecture.md); every method: [docs/contract-api.md](docs/contract-api.md); decisions: [docs/decisions.md](docs/decisions.md). All documents: [docs/README.md](docs/README.md).
+Horkos puts the owner's limits (budget, per-order cap, allowed sellers, expiry) in the escrow contract itself, so a compromised agent cannot buy outside them. The seller delivers encrypted data, and a verifier running in NEAR OutLayer's TEE checks it against the listing's condition (a JSON Schema) before the buyer gets the key and the seller gets paid. If no valid delivery is verified before the deadline, anyone can trigger the refund.
 
 ## Verify it yourself in 5 minutes
 
@@ -142,6 +107,58 @@ For deliveries to happen, run a seller in another terminal (`cd demo && npm run 
 
 Without an MCP client, `cd mcp && npx tsx smoke.ts inject` drives the same server over stdio (`buy`, `cancel` and `open N` spend or move testnet tUSDC).
 
+## Receipts are transferable (v2)
+
+A second contract, `escrow-v2.horkos.testnet` (`contracts/horkos-v2`), makes the receipt the claim on the order. The v1 contract above is unchanged and receipts there stay non-transferable.
+
+- `nft_transfer` / `nft_transfer_call` follow NEP-171 (1 yoctoNEAR, holder or NEP-178-approved account) and emit NEP-297 `nft_transfer` events. Receipts move only while the order is open; settled, refunded or cancelled receipts are frozen.
+- `refund_expired` and `cancel_order` pay the **current holder**: back into the mandate budget if the buyer still holds the receipt, otherwise into the holder's balance, withdrawable with `withdraw(Earnings)`. After a transfer the buyer's agent can no longer cancel.
+- Settlement stores the data key sealed to the receipt's `buyer_pubkey`; the holder can set a new one with `set_receipt_pubkey` while no verification is running.
+- The mandate still governs only who may create orders and for how much. Reasons and edge cases: ADR-036 in `docs/decisions.md`; methods: `docs/contract-api.md`.
+
+On testnet (14 Nov): the buyer [transferred receipt #0](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w) to another account, the buyer's agent's cancel [failed](https://testnet.nearblocks.io/txns/2UnvtpQUeiUFTSnMTaKQXjNF5QsZn3iJaAs5B1MBqc2B), and after the deadline [`refund_expired` paid the 5 tUSDC to the new holder](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti), who [withdrew it](https://testnet.nearblocks.io/txns/Az6pUNWs842yT5jqssVuskLNATFPnpjwpct9s6M9LAns). All steps: `docs/testnet.md`. Not shown on testnet: settlement on v2, because the deployed verifier WASM only accepts `escrow.horkos.testnet` as its caller; settlement after a transfer is covered by unit and sandbox tests.
+
+## OutLayer on testnet: failed runs
+
+**Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX), [26](https://explorer.testnet.near.org/transactions/22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs); each run's TEE attestation passes `outlayer-verify` ([evidence/attestation/](evidence/attestation/README.md)). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; by 15:00 UTC OutLayer was answering again and order 26 (listing 4, hosted seller A) settled on its first attempt in about 2 minutes. The hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
+
+OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Owner[Owner] -- "set_mandate, ft_transfer_call (budget)" --> H
+  Agent["Agent<br/>(function-call key:<br/>create_order, cancel_order)"] -- create_order --> H
+  H[(Horkos escrow contract<br/>escrow.horkos.testnet)] -- "mint NFT receipt" --> Owner
+  Seller[Seller] -- "encrypted data" --> Store[(FastFS / HTTPS)]
+  Seller -- "submit_delivery (key sealed to verifier)" --> H
+  H -- "request_execution (pinned WASM sha256)" --> OL[NEAR OutLayer]
+  OL --> V["Verifier in TEE<br/>decrypt, check JSON Schema,<br/>re-seal key to buyer"]
+  V -- "fetch" --> Store
+  OL -- "on_verified (result)" --> H
+  H -- "Settled: seller balance + buyer key" --> Seller
+  Anyone[Anyone] -- "refund_expired (after deadline)" --> H
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> Open: create_order (within mandate)
+  Open --> Verifying: submit_delivery
+  Open --> Cancelled: cancel_order
+  Open --> Refunded: refund_expired
+  Verifying --> Settled: valid result, before deadline
+  Verifying --> Delivered: invalid or missing result
+  Delivered --> Verifying: seller resubmits
+  Delivered --> Refunded: refund_expired
+  Verifying --> Refunded: refund_expired
+  Settled --> [*]
+  Refunded --> [*]
+  Cancelled --> [*]
+```
+
+Each order reaches exactly one final state (`Settled`, `Refunded` or `Cancelled`). Settlement only credits the seller's internal balance; the seller withdraws separately, so no token transfer happens inside the verification callback. Full design: [docs/architecture.md](docs/architecture.md); every method: [docs/contract-api.md](docs/contract-api.md); decisions: [docs/decisions.md](docs/decisions.md). All documents: [docs/README.md](docs/README.md).
+
 ## Website (`web/`)
 
 Live site: https://horkos-escrow.netlify.app (Netlify, deployed by hand from `web/dist`; no git-triggered deploys).
@@ -163,23 +180,6 @@ Built with Vite and TypeScript, no UI framework; fonts Fredoka, Nunito and IBM P
 | ![Home, desktop](docs/screenshots/index-1440-light.png) | ![Connect, desktop](docs/screenshots/connect-1440-light.png) | ![Explorer, desktop](docs/screenshots/explorer-order-history-1440-light.png) |
 
 More (market page, 390 px, dark theme, each explorer tab): `docs/screenshots/`.
-
-## Receipts are transferable (v2)
-
-A second contract, `escrow-v2.horkos.testnet` (`contracts/horkos-v2`), makes the receipt the claim on the order. The v1 contract above is unchanged and receipts there stay non-transferable.
-
-- `nft_transfer` / `nft_transfer_call` follow NEP-171 (1 yoctoNEAR, holder or NEP-178-approved account) and emit NEP-297 `nft_transfer` events. Receipts move only while the order is open; settled, refunded or cancelled receipts are frozen.
-- `refund_expired` and `cancel_order` pay the **current holder**: back into the mandate budget if the buyer still holds the receipt, otherwise into the holder's balance, withdrawable with `withdraw(Earnings)`. After a transfer the buyer's agent can no longer cancel.
-- Settlement stores the data key sealed to the receipt's `buyer_pubkey`; the holder can set a new one with `set_receipt_pubkey` while no verification is running.
-- The mandate still governs only who may create orders and for how much. Reasons and edge cases: ADR-036 in `docs/decisions.md`; methods: `docs/contract-api.md`.
-
-On testnet (14 Nov): the buyer [transferred receipt #0](https://testnet.nearblocks.io/txns/CLQE8n9UKcBv9jRB1W1ukFXTfrQ7DfmL6Wq6z5G61f4w) to another account, the buyer's agent's cancel [failed](https://testnet.nearblocks.io/txns/2UnvtpQUeiUFTSnMTaKQXjNF5QsZn3iJaAs5B1MBqc2B), and after the deadline [`refund_expired` paid the 5 tUSDC to the new holder](https://testnet.nearblocks.io/txns/4NFBbMtoh9cmkm8HoWW8b1ty41GcB3A3yoL4KWF66tti), who [withdrew it](https://testnet.nearblocks.io/txns/Az6pUNWs842yT5jqssVuskLNATFPnpjwpct9s6M9LAns). All steps: `docs/testnet.md`. Not shown on testnet: settlement on v2, because the deployed verifier WASM only accepts `escrow.horkos.testnet` as its caller; settlement after a transfer is covered by unit and sandbox tests.
-
-## OutLayer on testnet: failed runs
-
-**Status:** Live verification depends on OutLayer testnet. When it times out, the order refunds in full. Settled examples: orders [9](https://explorer.testnet.near.org/transactions/4ctCVTTKZgiwBJJr7LydyURjGdnViVg2vSgjAPMbUuzP), [15](https://explorer.testnet.near.org/transactions/RxQ68oH3LVJL7LCoPwYyLPbKb5sbHrRUbsDSzh7HANj), [18](https://explorer.testnet.near.org/transactions/ChRyUnRFx5fe4zCzKetg46tZv35bQYA38imbnga9gwuX), [26](https://explorer.testnet.near.org/transactions/22SUFSDMVzJ2N2Joq37m9dNSKvTzM3YyPTQrfMXwC3hs); each run's TEE attestation passes `outlayer-verify` ([evidence/attestation/](evidence/attestation/README.md)). On 14 Nov from about 11:30 UTC every OutLayer testnet run we sampled timed out at NEAR's 201-block yield limit, including other projects' runs and a verifier call that fetches nothing; by 15:00 UTC OutLayer was answering again and order 26 (listing 4, hosted seller A) settled on its first attempt in about 2 minutes. The hosted seller retries for up to 30 minutes (listings 4 and 5 have a 30-minute window) before the refund applies. Measurements and transactions: `docs/testnet.md`.
-
-OutLayer testnet sometimes fails a verification run without giving a reason. On 13 Nov 2026 every testnet execution failed from about 12:00 UTC (still failing at 12:16, working again by 12:49) with "Execution request not found"; later that day one of our runs (order 4, OutLayer request 38907) failed the same way while other runs worked. In that case the callback carries no result, and the contract moves the order from `Verifying` back to `Delivered`. The seller calls `submit_delivery` again and the order settles (order 4 settled on the second attempt). If the deadline passes first, `refund_expired` returns the funds. The money is never stuck in the contract. If OutLayer does not answer at all, `npm run sandbox` (Quick start a) shows the same flow locally. This path is also covered by the sandbox test `invalid_and_null_results_return_to_delivered_then_retry_settles`.
 
 ## Security model
 

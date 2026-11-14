@@ -177,6 +177,7 @@ cd .. && contracts/scripts/test-sandbox.sh              # 7 integration tests on
 (cd verifier && cargo test)                             # 15 verifier tests
 (cd sdk && npm run test:verifier)                       # 5 end-to-end tests: SDK-built deliveries through the native verifier
 (cd mcp && npm ci && npm run typecheck)                 # MCP server type check
+(cd gateway && npm ci && npm test && npm run test:sandbox)  # 17 gateway unit tests + 2 on a local node
 ```
 
 Each should report no failures. The unit tests include per-order and total limit violations, a seller outside the mandate, double refund, an admin swapping the verifier for open orders, a valid result arriving after the deadline, a late callback after a refund, and the storage-deposit bound on create/cancel loops. The integration tests print the gas the callbacks burn (for example `GAS on_verified (settle): 2.40 Tgas`) and fail if any path uses more than half of what the contract attaches.

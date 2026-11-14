@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["usd", "last_updated_at"],
+  "additionalProperties": false,
+  "properties": {
+    "usd": { "type": "number", "exclusiveMinimum": 0 },
+    "last_updated_at": { "type": "integer", "minimum": 0 }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "network": "testnet",
+  "contract": "escrow.horkos.testnet",
+  "seller": "horkos-seller-a.testnet",
+  "listings": [
+    {
+      "create": {
+        "price_tusdc": 5,
+        "deliver_within_min": 10,
+        "condition_file": "coingecko-schema.json",
+        "description": "NEAR/USD spot price with its update time, from CoinGecko's free public API (price data by CoinGecko)."
+      },
+      "source": {
+        "url": "https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_last_updated_at=true",
+        "method": "GET",
+        "json_path": "near"
+      },
+      "listing_id": "3",
+      "condition_url": "https://test.fastfs.io/horkos-seller-a.testnet/outlayer.testnet/2abb3e2b80f1f421eb7937b1463d277aafdc817a89b12f84b25564bd1d3aca50.json"
+    }
+  ]
+}

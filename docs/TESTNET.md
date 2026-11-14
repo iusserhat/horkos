@@ -93,6 +93,18 @@ Seller A now fetches NEAR/USD from CoinGecko's free public API (`/api/v3/coins/n
 
 Order 8 (`npm run demo1`): `create_order` tx `83XaoQwthAgLEiJViT1hwXQEwfGiZunFssoCCFtkRWyX`, seller A `submit_delivery` tx `C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB` (`Verifying` → `Settled` in the same transaction tree); the buyer decrypted `{"symbol":"NEAR/USD","rows":[{"t":1794588000,"price":3.502227668047138},{"t":1794588300,"price":3.493038727538854},{"t":1794588600,"price":3.494547529635413},{"t":1794588660,"price":3.499031485674342}]}`. Check: the same endpoint read again at 16:53:52 UTC returned the first three points with identical values; the fourth is CoinGecko's live point at 16:51:00, which CoinGecko replaces as time moves (its 16:52:40 point was 3.50138).
 
+## Seller gateway, configuration only (14 Nov 2026, 08:56 UTC)
+
+`horkos-seller-a.testnet` sold a new listing with no seller code: `gateway/examples/coingecko.json` (CoinGecko's free `simple/price` endpoint, no key) and `gateway/examples/coingecko-schema.json`. Steps: `npm run gateway -- check --config examples/coingecko-testnet.json` (OK, usd 3.31), `register` (listing 3: 5 tUSDC, 10 min, condition `sha256:2abb3e2b80f1f421eb7937b1463d277aafdc817a89b12f84b25564bd1d3aca50`), then `run`.
+
+| Step | Tx |
+| --- | --- |
+| `register_listing` (listing 3) | `6t7JPNToywDV25LdxxPu5BK5sCrKkrUsEHNfn4kq5z5Q` |
+| `create_order` by `horkos-agent.testnet` (order 12, buyer `horkos-owner.testnet`, 5 tUSDC) | `F4NtzscXuqJdncSmTZgqWewhhuZ2JUeJkSzV3kKknwf2` |
+| `submit_delivery` by the gateway → `Verifying` → `Settled` (OutLayer verifier, same tx tree) | `BJ7gey6fbyw4qzPM7UignWiDxwQstLESQ78mFN6qQ5Dp` |
+
+Gateway log: order received 08:57:21 UTC, delivered and `Settled` 08:59:11 UTC; `get_order 12` → `Settled`, attempts 1, delivery at `https://test.fastfs.io/horkos-seller-a.testnet/outlayer.testnet/93a113785b6e9106a18afe34b03fa586004fdff612f5f0cb4f81079c3c63e474.json`.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.
@@ -281,6 +293,25 @@ Every transaction that changed a demo order's status, mapped from chain on 13 No
     "t": 1794588756,
     "method": "submit_delivery",
     "tx": "C97q52MF6UcN4G8M3EAG5JoY4Cpa3Z4kQrNqUB7UN4WB",
+    "to": [
+     "Verifying",
+     "Settled"
+    ]
+   }
+  ],
+  "12": [
+   {
+    "t": 1794646635,
+    "method": "create_order",
+    "tx": "F4NtzscXuqJdncSmTZgqWewhhuZ2JUeJkSzV3kKknwf2",
+    "to": [
+     "Open"
+    ]
+   },
+   {
+    "t": 1794646648,
+    "method": "submit_delivery",
+    "tx": "BJ7gey6fbyw4qzPM7UignWiDxwQstLESQ78mFN6qQ5Dp",
     "to": [
      "Verifying",
      "Settled"

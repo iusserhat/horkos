@@ -1,0 +1,22 @@
+import "@fontsource/fredoka/latin-500.css";
+import "@fontsource/fredoka/latin-600.css";
+import "@fontsource/fredoka/latin-700.css";
+import "@fontsource/nunito/latin-500.css";
+import "@fontsource/nunito/latin-700.css";
+import "@fontsource/nunito/latin-800.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/components.css";
+import "../styles/home.css";
+import "../styles/try.css";
+import { mount, qs } from "../lib/dom";
+import { header } from "../sections/header";
+import { footer } from "../sections/footer";
+import { tryPage } from "../sections/try/tracks";
+
+document.body.classList.add("page-home");
+mount(qs("#header"), header("try"));
+mount(qs("#main"), ...tryPage());
+mount(qs("#footer"), footer());

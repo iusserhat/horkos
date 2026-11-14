@@ -16,7 +16,7 @@ export function footer() {
         { class: "links" },
         h("a", { href: REPO }, "GitHub"),
         h("a", { href: repoFile("README.md") }, "README"),
-        h("a", { href: repoFile("docs/DESIGN.md") }, "Design"),
+        h("a", { href: repoFile("docs/architecture.md") }, "Architecture"),
         h("a", { href: repoFile("LICENSE") }, "MIT License"),
         h("span", { class: "built" }, "Built for NEAR Hackathon 2026 on NEAR testnet. Horkos was the Greek spirit who held people to their oaths."),
       ),

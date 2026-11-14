@@ -26,7 +26,7 @@ export function security() {
             h("li", {}, "Mandate caps, allowed sellers and expiry are checked by the contract on every order, so a leaked agent key can only buy within them."),
             h("li", {}, "Each order keeps the verifier version (WASM sha256) it was created with; a new version cannot change open orders."),
             h("li", {}, "Open-order cap per mandate (default 50) and per-order storage paid from the owner's deposit."),
-            h("li", {}, "A gitleaks scan of the full git history found no secrets. ", h("a", { href: repoFile("docs/SECRET_SCAN.md") }, "Scan record")),
+            h("li", {}, "A gitleaks scan of the full git history found no secrets. ", h("a", { href: repoFile("docs/security.md") }, "Scan record")),
           ),
         ),
         h(

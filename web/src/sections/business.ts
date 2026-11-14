@@ -9,10 +9,10 @@ interface Stat {
 
 // Figures checked on 14 Nov 2026. Each tile names its source; nothing here is a Horkos number.
 const TODAY: Stat[] = [
+  { big: "95%", what: "of x402 value on Base comes from payments of $1 or more", note: "Up from 49% in the first months, by early 2026. Counted by value, agent payments are already the size Horkos is built for.", src: ["Chainalysis, via Fireblocks", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
   { big: "196 million", what: "x402 payments since launch", note: "More than $42 million settled across 12 chains, as of 1 Nov 2026.", src: ["Fireblocks, citing agenteconomy.to", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
   { big: "$274,000", what: "x402 value in October 2026", note: "From 5.1 million payments: a few cents each. More than 95% of activity has been protocol signalling, not trade (Artemis).", src: ["Fireblocks; CoinDesk", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
-  { big: "87%+", what: "of x402 payments are under 10 cents", note: "Cent-sized API calls: paying upfront is fine there, and escrow would cost more than it protects.", src: ["Chainalysis, via Fireblocks", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
-  { big: "49% → 95%", what: "of x402 value on Base comes from payments of $1 or more", note: "From the earliest months to early 2026. The money is moving to the purchases worth checking.", src: ["Chainalysis, via Fireblocks", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
+  { big: "87%+", what: "of x402 payments, counted one by one, are under 10 cents", note: "Many tiny API calls, little of the value. Paying upfront is fine for those; Horkos doesn't compete there.", src: ["Chainalysis, via Fireblocks", "https://www.fireblocks.com/blog/agent-economy-numbers-x402-data"] },
 ];
 
 const TOMORROW: Stat[] = [
@@ -49,10 +49,10 @@ export function business() {
         { class: "sec-head" },
         h("p", { class: "eyebrow eb-white" }, "Business model and market"),
         h("h2", { id: "bm-title" }, "Small today, and aimed at the part that grows."),
-        h("p", { class: "lead" }, "Agent payments are real but tiny so far, and almost all of them are too small to need escrow. Horkos is built for the purchases above about a dollar, where a failed delivery actually costs something."),
+        h("p", { class: "lead" }, "Agent payments are early. Most of them by count are cent-sized API calls, but most of the money already moves in payments of a dollar or more. That is where a failed delivery costs something, and where Horkos is built to sit."),
       ),
       h("h3", { class: "bm-h" }, "The market today"),
-      h("ul", { class: "bm-grid" }, ...TODAY.map((s, i) => stat(s, ["c1", "c2", "c3", "c4"][i]))),
+      h("ul", { class: "bm-grid" }, ...TODAY.map((s, i) => stat(s, ["c4", "c1", "c2", "c3"][i]))),
       h("h3", { class: "bm-h" }, "Where it is heading"),
       h("ul", { class: "bm-grid bm-grid-3" }, ...TOMORROW.map((s, i) => stat(s, ["c5", "c6", "c7"][i]))),
       h(

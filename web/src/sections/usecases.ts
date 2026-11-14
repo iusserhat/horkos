@@ -21,7 +21,7 @@ interface UseCase {
   demoSource?: string[];
 }
 
-// From docs/DESIGN.md §8. Today the verifier checks JSON Schema only.
+// From docs/tr/DESIGN.md §8 (use cases). Today the verifier checks JSON Schema only.
 const CASES: UseCase[] = [
   {
     title: "Market data",

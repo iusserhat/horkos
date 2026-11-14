@@ -12,6 +12,7 @@ export default defineConfig({
         connect: resolve(import.meta.dirname, "connect.html"),
         explorer: resolve(import.meta.dirname, "explorer.html"),
         market: resolve(import.meta.dirname, "market.html"),
+        try: resolve(import.meta.dirname, "try.html"),
       },
     },
   },

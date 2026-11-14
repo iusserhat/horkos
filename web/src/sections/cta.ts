@@ -18,6 +18,7 @@ export function cta() {
       h(
         "div",
         { class: "cta-btns" },
+        h("a", { class: "btn btn-gold btn-lg", href: "./try.html" }, "Try it step by step"),
         h("a", { class: "btn btn-mint btn-lg", href: "./explorer.html" }, "Open the live explorer"),
         h("a", { class: "btn btn-lg", href: REPO }, "Read the code on GitHub"),
       ),

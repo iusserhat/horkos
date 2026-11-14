@@ -221,3 +221,56 @@
   font-weight: 800;
   color: var(--danger);
 }
+/* ===== sell from your own API */
+.api-flow {
+  list-style: none;
+  counter-reset: a;
+  margin: 0 0 var(--s7);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s4);
+}
+.api-flow li {
+  counter-increment: a;
+  background: var(--card);
+  border: var(--line);
+  border-radius: 22px;
+  box-shadow: var(--pop-sm);
+  padding: var(--s5) var(--s4) var(--s4);
+  font-size: var(--fs-small);
+  position: relative;
+}
+.api-flow li::before {
+  content: counter(a);
+  position: absolute;
+  top: -16px;
+  left: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--gold);
+  color: #1d2140;
+  display: grid;
+  place-items: center;
+  font: 700 1rem var(--font-display);
+}
+.s-sub { display: grid; gap: var(--s3); }
+.s-sub[hidden] { display: none; }
+.s-field select {
+  font: 600 var(--fs-small) var(--font-sans);
+  color: var(--text);
+  background: var(--surface);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.s-label { font: 600 1rem var(--font-display); }
+#api .callout { margin-top: var(--s4); text-align: left; }
+@media (max-width: 900px) {
+  .api-flow { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .api-flow { grid-template-columns: 1fr; }
+}

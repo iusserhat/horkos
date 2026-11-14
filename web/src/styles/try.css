@@ -1,0 +1,173 @@
+/* ===== try it: path cards */
+.tk-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s4);
+  margin-bottom: var(--s7);
+}
+.tk-card {
+  text-align: left;
+  font: inherit;
+  color: #1d2140;
+  border: var(--line);
+  border-radius: 24px;
+  box-shadow: var(--pop);
+  padding: var(--s4) var(--s5) var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+}
+.tk-card:hover { transform: translateY(-2px); box-shadow: 0 8px 0 0 var(--ink); }
+.tk-card strong { font: 700 1.35rem / 1.15 var(--font-display); }
+.tk-card span:last-child { font-size: var(--fs-small); color: #2c3152; }
+.tk-time {
+  align-self: flex-start;
+  font: 800 var(--fs-caption) / 1.4 var(--font-sans);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #ffffff;
+}
+.tk-sky { background: var(--sky); }
+.tk-mint { background: var(--mint); }
+.tk-gold { background: var(--gold); }
+.tk-sell { background: #ffffff; border-style: dashed; }
+.tk-card[aria-selected="true"] {
+  outline: 4px solid var(--ink);
+  outline-offset: 4px;
+}
+.tk-card[aria-selected="true"]::after {
+  content: "Selected";
+  align-self: flex-start;
+  margin-top: 4px;
+  font: 800 var(--fs-caption) / 1.4 var(--font-sans);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 10px;
+}
+
+/* ===== progress */
+.tk-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+  font-weight: 800;
+}
+.tk-bar {
+  flex: 1;
+  height: 18px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  overflow: hidden;
+}
+.tk-bar span {
+  display: block;
+  height: 100%;
+  background: var(--mint);
+  border-right: 3px solid var(--ink);
+  transition: width 0.3s ease-out;
+}
+.tk-count { white-space: nowrap; }
+
+/* ===== inputs */
+.tk-inputs {
+  padding: var(--s5);
+  margin-bottom: var(--s5);
+  display: grid;
+  gap: var(--s3);
+}
+.tk-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s4);
+}
+.tk-err { color: var(--danger); font-weight: 700; min-height: 1.2em; }
+
+/* ===== steps */
+.tk-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+}
+.tk-step {
+  border: var(--line);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--pop-sm);
+  overflow: hidden;
+}
+.tk-step.is-open { box-shadow: var(--pop); }
+.tk-step.is-done:not(.is-open) { background: var(--band-mint); }
+.tk-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s4) var(--s5);
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.tk-n {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--gold);
+  color: #1d2140;
+  display: grid;
+  place-items: center;
+  font: 700 1.1rem var(--font-display);
+}
+.tk-n.ok { background: var(--mint); }
+.tk-title { font: 600 1.25rem / 1.25 var(--font-display); }
+.tk-body {
+  padding: 0 var(--s5) var(--s5) calc(var(--s5) + 40px + var(--s4));
+  display: grid;
+  gap: var(--s3);
+}
+.tk-body > .btn { justify-self: start; }
+.tk-expect {
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  background: var(--band-mint);
+  padding: var(--s3) var(--s4);
+  display: grid;
+  gap: 6px;
+}
+.tk-expect strong { font: 700 1rem var(--font-display); }
+.tk-expect ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.tk-actions { display: flex; gap: var(--s3); }
+
+@media (max-width: 1000px) {
+  .tk-cards { grid-template-columns: 1fr 1fr; }
+  .tk-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .tk-cards { grid-template-columns: 1fr; }
+  .tk-body { padding: 0 var(--s4) var(--s4); }
+  .tk-progress { flex-direction: column; align-items: stretch; }
+}
+/* fields (same look as the market forms) */
+.s-field { display: grid; gap: 6px; font-weight: 800; font-size: var(--fs-small); }
+.s-field input {
+  font: 500 var(--fs-small) var(--font-mono);
+  color: var(--text);
+  background: var(--surface);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 10px 12px;
+  width: 100%;
+}

@@ -121,8 +121,8 @@ export function hero() {
       h(
         "div",
         { class: "hero-actions" },
-        h("a", { class: "btn btn-gold btn-lg", href: "#receipts" }, "Watch an order settle"),
-        h("a", { class: "btn btn-mint btn-lg", href: "./connect.html" }, "Connect your agent"),
+        h("a", { class: "btn btn-gold btn-lg", href: "./try.html" }, "Try it yourself"),
+        h("a", { class: "btn btn-mint btn-lg", href: "#receipts" }, "Watch an order settle"),
       ),
       livePanel(),
     ),

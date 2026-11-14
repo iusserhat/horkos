@@ -52,9 +52,9 @@ export function marketHead() {
         { class: "lead" },
         "Every offer below is a listing on ",
         h("code", {}, CONTRACT),
-        ". Your agent's money waits in escrow until the delivery passes the listing's check. Anyone with a NEAR account can sell here.",
+        ". Your agent's money waits in escrow until the delivery passes the listing's check. Anyone with a NEAR account can sell here: list a dataset with the seller script, or connect your own API with Horkos Gateway.",
       ),
-      h("div", { class: "hero-actions mk-actions" }, h("a", { class: "btn btn-gold btn-lg", href: "#offers" }, "Browse offers"), h("a", { class: "btn btn-mint btn-lg", href: "#sell" }, "Sell your data")),
+      h("div", { class: "hero-actions mk-actions" }, h("a", { class: "btn btn-gold btn-lg", href: "#offers" }, "Browse offers"), h("a", { class: "btn btn-mint btn-lg", href: "#sell" }, "Sell your data"), h("a", { class: "btn btn-lg", href: "#api" }, "Connect your API")),
       stats,
     ),
   );

@@ -16,8 +16,9 @@ import { header } from "../sections/header";
 import { footer } from "../sections/footer";
 import { marketHead, listingsGrid } from "../sections/market/listings";
 import { sellGuide } from "../sections/market/sell";
+import { apiGuide } from "../sections/market/api";
 
 document.body.classList.add("page-home");
 mount(qs("#header"), header("market"));
-mount(qs("#main"), marketHead(), listingsGrid(), sellGuide());
+mount(qs("#main"), marketHead(), listingsGrid(), sellGuide(), apiGuide());
 mount(qs("#footer"), footer());

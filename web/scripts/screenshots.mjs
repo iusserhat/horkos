@@ -1,13 +1,13 @@
 // Full-page screenshots of the built site: 1440 px and 390 px, light and dark.
 // Usage: npm run build && npm run preview (another terminal) && npm run shots -- [page ...]
-// Pages: index, connect, explorer, market (default: all). Output: ../docs/screenshots/<page>-<width>-<theme>.png
+// Pages: index, connect, explorer, market, try (default: all). Output: ../docs/screenshots/<page>-<width>-<theme>.png
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 
 const BASE = process.env.SHOTS_BASE ?? "http://localhost:4173";
 const OUT = resolve(import.meta.dirname, "../../docs/screenshots");
-const pages = process.argv.slice(2).length ? process.argv.slice(2) : ["index", "connect", "explorer", "market"];
+const pages = process.argv.slice(2).length ? process.argv.slice(2) : ["index", "connect", "explorer", "market", "try"];
 const widths = [1440, 390];
 const themes = ["light", "dark"];
 

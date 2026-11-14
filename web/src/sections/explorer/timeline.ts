@@ -10,7 +10,7 @@ export function timeline(history: History) {
   const steps = history.events.flatMap((e) => e.to.map((st, i) => ({ st: st as Status, e, first: i === 0 })));
   const note =
     history.source === "repo"
-      ? "History from the repository's record of demo transactions (docs/TESTNET.md)."
+      ? "History from the repository's record of demo transactions (docs/testnet.md)."
       : history.source === "nearblocks"
         ? "History found through the NearBlocks testnet API and checked against each transaction's events on RPC."
         : "Full history unavailable: NearBlocks did not answer or had no match. Timeline rebuilt from the order's fields on chain, without transaction links.";

@@ -50,10 +50,10 @@ jobs:
         working-directory: sdk
       - run: npm ci && npm run typecheck
         working-directory: mcp
-      - run: npm ci && npm run typecheck
-        working-directory: demo
       - run: npm ci && npm run typecheck && npm test
         working-directory: gateway
+      - run: npm ci && npm run typecheck   # imports gateway/, so after its npm ci
+        working-directory: demo
 
   contracts:
     name: Contracts (unit + sandbox tests, SDK, sandbox demo)

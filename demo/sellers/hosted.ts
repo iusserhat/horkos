@@ -25,7 +25,7 @@ import { compileCondition, type Check } from "../../gateway/src/validate.js";
 import { sha256, toHex } from "../../sdk/src/index.js";
 import { PROFILES } from "./profiles.js";
 
-const VERSION = "hosted-seller 0.3.0";
+const VERSION = "hosted-seller 0.3.1";
 const env = process.env;
 const NETWORK = env.NETWORK ?? "testnet";
 const CONTRACT = env.CONTRACT ?? "escrow.horkos.testnet";
@@ -242,7 +242,7 @@ async function deliver(o: Order): Promise<void> {
       return c.seller.submitDelivery({ orderId: o.id, data, conditionUrl: cond.url });
     });
     health.last_delivery_at = new Date().toISOString();
-    const tr = used.seller.lastDelivery;
+    const tr = used.seller.deliveries.get(o.id);
     log("attempt", {
       order: o.id,
       listing: o.listing_id,

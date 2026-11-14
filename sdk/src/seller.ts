@@ -52,8 +52,8 @@ export async function prepareDelivery(args: {
 /** Seller side: list, watch for orders, deliver, withdraw. */
 export class HorkosSeller extends HorkosClient {
   private readonly store: BlobStore;
-  /** Set by each `submitDelivery`; useful for logs. */
-  lastDelivery: DeliveryTrace | null = null;
+  /** Set by each `submitDelivery`, per order id (the last attempt); useful for logs. */
+  readonly deliveries = new Map<string, DeliveryTrace>();
 
   constructor(opts: SellerOptions) {
     super(opts);
@@ -160,12 +160,12 @@ export class HorkosSeller extends HorkosClient {
     const logs = (res.receipts_outcome ?? []).flatMap((o) => o.outcome.logs);
     const requested = logs.find((l) => l.includes('"execution_requested"'));
     const id = requested?.match(/request_id\\?":(\d+)/)?.[1];
-    this.lastDelivery = {
+    this.deliveries.set(order.id, {
       txHash: res.transaction.hash,
       requestId: id ? Number(id) : null,
       outlayerLogs: logs.filter((l) => l.startsWith("[[") || /promise failed|execution_completed/.test(l)).map((l) => l.slice(0, 160)),
       ms: Date.now() - started,
-    };
+    });
     return (await this.getOrder(order.id))!;
   }
 

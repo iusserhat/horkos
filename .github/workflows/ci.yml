@@ -60,6 +60,8 @@ jobs:
         working-directory: gateway
       - run: npm ci && npm run typecheck   # imports gateway/, so after its npm ci
         working-directory: demo
+      - run: npm ci && npm run typecheck && npm test
+        working-directory: sentinel
 
   contracts:
     name: Contracts (unit + sandbox tests, SDK, sandbox demo)

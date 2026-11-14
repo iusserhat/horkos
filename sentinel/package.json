@@ -1,0 +1,20 @@
+{
+  "name": "horkos-sentinel",
+  "private": true,
+  "type": "module",
+  "description": "Horkos Sentinel: watches an owner's orders and flags (optionally cancels) suspicious ones before delivery",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sentinel": "tsx src/cli.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.25",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

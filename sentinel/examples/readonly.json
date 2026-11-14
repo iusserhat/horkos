@@ -1,0 +1,7 @@
+{
+  "network": "testnet",
+  "contract": "escrow.horkos.testnet",
+  "owners": [
+    { "owner": "hk-judge-1114.testnet", "agent": "hk-judge-1114-agent.testnet", "auto_cancel": false }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "contract": "escrow.horkos.testnet",
+  "rpc": "https://rpc.testnet.fastnear.com",
+  "poll_ms": 3000,
+  "webhook": null,
+  "owners": [
+    { "owner": "hk-judge-1114.testnet", "agent": "hk-judge-1114-agent.testnet", "auto_cancel": true }
+  ],
+  "rules": { "price_deviation_pct": 50, "lookalike_max_distance": 2, "burst_count": 3, "burst_window_min": 10, "near_limit_pct": 80 }
+}

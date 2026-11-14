@@ -105,6 +105,47 @@ Order 8 (`npm run demo1`): `create_order` tx `83XaoQwthAgLEiJViT1hwXQEwfGiZunFss
 
 Gateway log: order received 08:57:21 UTC, delivered and `Settled` 08:59:11 UTC; `get_order 12` → `Settled`, attempts 1, delivery at `https://test.fastfs.io/horkos-seller-a.testnet/outlayer.testnet/93a113785b6e9106a18afe34b03fa586004fdff612f5f0cb4f81079c3c63e474.json`.
 
+## tUSDC faucet (14 Nov 2026, 09:00 UTC)
+
+`faucet.horkos.testnet` (`contracts/faucet`, code sha256 `55d6afc80cec5e397236a633d35d8811fcf75ab79f2a84a532ec46191d5389e4`): `claim()` sends 20 tUSDC, once per account per 24 h, up to a total cap of 10,000 tUSDC; it pays the caller's token storage deposit if needed. Owner `horkos.testnet` alone can refill (`ft_transfer_call`), pause (`set_paused`) or change the cap (`set_cap`). Views: `get_info`, `next_claim_at`.
+
+| Step | Tx |
+| --- | --- |
+| 5 NEAR from `horkos-seller-c.testnet` to `horkos.testnet` (gas for the deploy) | `7mmxjHYsKaZPSZEJF6BK7Jmo8aTxYHDfXhfaToZq77RR` |
+| Create `faucet.horkos.testnet` (3 NEAR) | `D2vMWmtZvmxD7m7sG4Fax5dPGaCMdxD2UMMhvfhAcPxi` |
+| Deploy + `new(owner horkos.testnet, token tusdc.horkos.testnet, amount 20, cap 10,000)` | `2MDXwb1vAjgrNfNYjC1LmaTdZyH9zvWXSxw8BdRbqNDD` |
+| Register the faucet on the token | `3dfZUWKvf2qvJRB5SwqXug1MKnw2PxpNFWdXMywZo7Jp` |
+| Refill 10,000 tUSDC (`ft_transfer_call`, log "Refilled with 10000000000") | `CRGBkeMwRsE1ScDYiuz7imiuAw6VnGSUTSUzvinVmL9U` |
+
+### Judge path, run with fresh accounts
+
+All commands below ran as written (owner `hk-judge-1114.testnet`, agent `hk-judge-1114-agent.testnet`):
+
+```bash
+O=hk-judge-1114.testnet; A=hk-judge-1114-agent.testnet
+near account create-account sponsor-by-faucet-service $O autogenerate-new-keypair save-to-legacy-keychain network-config testnet create
+near account create-account sponsor-by-faucet-service $A autogenerate-new-keypair save-to-legacy-keychain network-config testnet create
+near contract call-function as-transaction faucet.horkos.testnet claim json-args '{}' prepaid-gas '50 Tgas' attached-deposit '0 NEAR' sign-as $O network-config testnet sign-with-legacy-keychain send
+near contract call-function as-read-only tusdc.horkos.testnet ft_balance_of json-args "{\"account_id\":\"$O\"}" network-config testnet now      # "20000000"
+near account add-key $A grant-function-call-access --allowance '1 NEAR' --contract-account-id escrow.horkos.testnet --function-names 'create_order, cancel_order' autogenerate-new-keypair save-to-legacy-keychain network-config testnet sign-with-legacy-keychain send
+near contract call-function as-transaction escrow.horkos.testnet set_mandate json-args '{"agent":"'$A'","max_total":"20000000","max_per_order":"10000000","allowed_sellers":["horkos-seller-a.testnet"],"expires_at":"<now + 7 days, ns>","max_open_orders":null}' prepaid-gas '50 Tgas' attached-deposit '0.5 NEAR' sign-as $O network-config testnet sign-with-legacy-keychain send
+near contract call-function as-transaction tusdc.horkos.testnet ft_transfer_call json-args '{"receiver_id":"escrow.horkos.testnet","amount":"20000000","msg":""}' prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as $O network-config testnet sign-with-legacy-keychain send
+```
+
+| Step | Tx / result |
+| --- | --- |
+| Create owner / agent | `EyeEfAA2FzWGta9PhNtkZpJ2oi6PYCSJ3NFMRcqo7bYV` / `C1bG4bkMxk5GCc3JtVpq99Ac9nADb1kw4UfVvbUVekAV` |
+| `claim` (registers on the token, log "Sent 20000000"); balance `"20000000"` | `DSZRSc57ddEhBHe9MASomTj2xay6jvvSU94rdBuj4mvw` |
+| Second `claim` the same minute | refused: "Already claimed; next claim after 1794733747535 ms" |
+| Agent function-call key | `9uqGzbA3Fn8Uk57Jxnq9oB9iyih5v59kv155McYKyiKW` |
+| `set_mandate` / budget deposit (balance 20 tUSDC) | `4vcQpLsc4L7hMehm6XBdCVkRMPPjTSw1hrNzm7mKRxUu` / `2ohrFTaiB7jVSWB75SLC56GRN6rQ6riDh4e9zy5pt64K` |
+| MCP server as this agent: `horkos_create_order` listing 3 → order 13 | `2iwWR21NsuyXQ4azQQ29qZNtMc1vRPHRqg9HKQvF7QJQ` |
+| Gateway `submit_delivery` for order 13 → `Delivered` (OutLayer gave no valid result; nobody paid; refundable after the deadline) | `6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY` |
+| `refund_expired` order 13 → `Refunded`, 5 tUSDC back to the budget | `4GWzBi43QXszsSyMAN92zBbpEGPASKEDxnwYDr8uA1n4` |
+| MCP `horkos_create_order` listing 2 (seller C) | rejected: "Seller not allowed by mandate" |
+
+Order 13 did not settle: the verifier's answer for request 43883 was not a valid result (the reason is not visible on chain), while order 12 on the same listing settled 13 minutes earlier. The escrow behaved as designed: no payment, budget returned via `refund_expired`. The run also hit FastNEAR's `test.rpc.fastnear.com` rate limit (HTTP 429); `rpc.testnet.fastnear.com` and `rpc.testnet.near.org` answered.
+
 ## Order history (machine-readable, read by `web/scripts/demo-history.mjs`)
 
 Every transaction that changed a demo order's status, mapped from chain on 13 Nov 2026 (`t` = block time, unix seconds; `to` = `order_status` events in that transaction; `create_order` emits the NFT mint, status `Open`). Rejected `create_order` calls create no order.
@@ -315,6 +356,33 @@ Every transaction that changed a demo order's status, mapped from chain on 13 No
     "to": [
      "Verifying",
      "Settled"
+    ]
+   }
+  ],
+  "13": [
+   {
+    "t": 1794647417,
+    "method": "create_order",
+    "tx": "2iwWR21NsuyXQ4azQQ29qZNtMc1vRPHRqg9HKQvF7QJQ",
+    "to": [
+     "Open"
+    ]
+   },
+   {
+    "t": 1794647428,
+    "method": "submit_delivery",
+    "tx": "6LvF1Mo9RL44GwRRp7vTTFe6f4fiU9uPekzC1HpiGHBY",
+    "to": [
+     "Verifying",
+     "Delivered"
+    ]
+   },
+   {
+    "t": 1794648338,
+    "method": "refund_expired",
+    "tx": "4GWzBi43QXszsSyMAN92zBbpEGPASKEDxnwYDr8uA1n4",
+    "to": [
+     "Refunded"
     ]
    }
   ]

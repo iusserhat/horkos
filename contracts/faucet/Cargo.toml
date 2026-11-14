@@ -1,0 +1,17 @@
+[package]
+name = "faucet"
+version = "0.1.0"
+edition = "2021"
+description = "Testnet-only tUSDC faucet for Horkos: 20 tUSDC per account per 24 hours, with a total cap"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+near-sdk = { workspace = true }
+near-contract-standards = { workspace = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }

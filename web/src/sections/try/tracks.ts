@@ -259,7 +259,8 @@ function trackView(id: TrackId) {
 export function tryPage() {
   let current: TrackId = (store.get("try-track") as TrackId) || "watch";
   const panel = h("div", {});
-  const cards = h("div", { class: "tk-cards", role: "tablist", "aria-label": "Ways to try Horkos" });
+  const cards = h("div", { class: "tk-tabs", role: "tablist", "aria-label": "Ways to try Horkos" });
+  const grid = h("div", { class: "tk-cards" }, cards);
   const select = (id: TrackId) => {
     current = id;
     store.set("try-track", id);
@@ -273,7 +274,7 @@ export function tryPage() {
     b.addEventListener("click", () => select(id));
     cards.append(b);
   });
-  cards.append(h("a", { class: "tk-card tk-sell", href: "./market.html#api" }, h("span", { class: "tk-time" }, "for data sellers"), h("strong", {}, "Sell from your own API"), h("span", {}, "Connect your API with Horkos Gateway. Opens the Market page.")));
+  grid.append(h("a", { class: "tk-card tk-sell", href: "./market.html#api" }, h("span", { class: "tk-time" }, "for data sellers"), h("strong", {}, "Sell from your own API"), h("span", {}, "Connect your API with Horkos Gateway. Opens the Market page.")));
   select(current);
 
   return [
@@ -288,6 +289,6 @@ export function tryPage() {
         h("p", { class: "lead" }, "Pick a path. Each step says exactly what to run and what you should see, and the page remembers where you are."),
       ),
     ),
-    h("section", { class: "section band band-paper", "aria-label": "Paths" }, h("div", { class: "wrap" }, cards, panel)),
+    h("section", { class: "section band band-paper", "aria-label": "Paths" }, h("div", { class: "wrap" }, grid, panel)),
   ];
 }

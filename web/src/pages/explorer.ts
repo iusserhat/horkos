@@ -13,9 +13,9 @@ import "../styles/home.css";
 import "../styles/connect.css";
 import "../styles/explorer.css";
 import { h, mount, qs, shorten, tabs } from "../lib/dom";
-import { CONTRACT, DEMO_OWNER, txUrl } from "../lib/config";
+import { CONTRACT, CONTRACT_V1, CONTRACT_V2, DEMO_OWNER, IS_V2, txUrl } from "../lib/config";
 import { badge } from "../lib/status";
-import { knownOwners, loadListings, loadMandate, loadOrders, loadTokens, loadVerifiers, rejectedCalls, type Listing, type Mandate, type Order, type VerifierConfig } from "../lib/explorer-data";
+import { knownOwners, loadListings, loadMandate, loadOrders, loadTokens, loadTransfers, loadVerifiers, rejectedCalls, type Listing, type Mandate, type Order, type ReceiptTransfer, type VerifierConfig } from "../lib/explorer-data";
 import type { ReceiptToken } from "../lib/receipt";
 import { header } from "../sections/header";
 import { footer } from "../sections/footer";
@@ -30,6 +30,8 @@ let tokens: ReceiptToken[] = [];
 let orders: Order[] = [];
 let verifiers: (VerifierConfig & { version: number })[] = [];
 let listings: (Listing & { id: string })[] = [];
+let transfers = new Map<string, ReceiptTransfer[]>();
+let transfersAt = 0;
 const mandates = new Map<string, Mandate | null>();
 const searched: string[] = [];
 let lastOk = 0;
@@ -73,6 +75,7 @@ const PANELS: [string, HTMLElement][] = [
   ["Listings", lv.el],
 ];
 const panel = h("div", { id: "ex-panel", role: "tabpanel", "aria-labelledby": "ex-tab-0", class: "ex-panel" });
+const startTab = location.hash.startsWith("#receipt") ? 1 : 0;
 const tabList = tabs(
   PANELS.map(([l]) => l),
   (i) => {
@@ -80,12 +83,15 @@ const tabList = tabs(
     panel.setAttribute("aria-labelledby", `ex-tab-${i}`);
   },
   "ex",
+  startTab,
 );
-mount(panel, PANELS[0][1]);
+mount(panel, PANELS[startTab][1]);
+panel.setAttribute("aria-labelledby", `ex-tab-${startTab}`);
+let scrolled = false;
 
 async function refreshMandates() {
   await Promise.all(
-    knownOwners(tokens, searched).map(async (o) => {
+    knownOwners(tokens, [...searched, ...orders.map((o) => o.buyer)]).map(async (o) => {
       try {
         mandates.set(o, await loadMandate(o));
       } catch {
@@ -97,7 +103,15 @@ async function refreshMandates() {
 
 function renderAll() {
   ov.render(orders, tokens);
-  rv.render(tokens, orders, verifiers);
+  rv.render(tokens, orders, verifiers, transfers);
+  if (!scrolled && location.hash.startsWith("#receipt-")) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) {
+      el.scrollIntoView({ block: "center" });
+      el.classList.add("rc-target");
+      scrolled = true;
+    }
+  }
   mv.render(mandates, DEMO_OWNER);
   vv.render(verifiers);
   lv.render(listings, mandates.get(DEMO_OWNER)?.allowed_sellers ?? []);
@@ -117,11 +131,19 @@ async function refresh() {
       [verifiers, listings] = await Promise.all([loadVerifiers(), loadListings()]);
       listingsAt = Date.now();
     }
+    if (IS_V2 && Date.now() - transfersAt > 60_000) {
+      try {
+        transfers = await loadTransfers();
+        transfersAt = Date.now();
+      } catch {
+        /* keep the previous list */
+      }
+    }
     await refreshMandates();
     lastOk = Date.now();
     errorBox.hidden = true;
     renderAll();
-    if (!rejected.isConnected) ordersPanel.append(rejected);
+    if (!IS_V2 && !rejected.isConnected) ordersPanel.append(rejected);
   } catch {
     errorBox.hidden = false;
     errorBox.textContent = lastOk ? "Testnet RPC did not answer; showing the last data read. Retrying in 10 s." : "Testnet RPC did not answer. Retrying in 10 s.";
@@ -154,7 +176,13 @@ mount(
     "div",
     { class: "wrap explorer" },
     h("p", { class: "eyebrow" }, "Explorer · read-only"),
-    h("h1", {}, "What is on escrow.horkos.testnet right now."),
+    h("h1", {}, `What is on ${CONTRACT} right now.`),
+    h(
+      "nav",
+      { class: "ex-switch", "aria-label": "Contract" },
+      h("a", { href: "./explorer.html", "aria-current": IS_V2 ? null : "page" }, h("b", {}, "v1"), " ", h("span", { class: "mono" }, CONTRACT_V1)),
+      h("a", { href: "./explorer.html?contract=v2", "aria-current": IS_V2 ? "page" : null }, h("b", {}, "v2"), " ", h("span", { class: "mono" }, CONTRACT_V2), " · transferable receipts"),
+    ),
     h("div", { class: "ex-bar" }, status, pauseBtn),
     errorBox,
     tabList,

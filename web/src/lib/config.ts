@@ -1,7 +1,14 @@
 export const NETWORK = "testnet";
-export const CONTRACT = "escrow.horkos.testnet";
+export const CONTRACT_V1 = "escrow.horkos.testnet";
+export const CONTRACT_V2 = "escrow-v2.horkos.testnet";
+/** The explorer reads v2 when opened with `?contract=v2`; every other page uses v1. */
+export const IS_V2 =
+  typeof location !== "undefined" && /explorer(\.html)?$/.test(location.pathname) && new URLSearchParams(location.search).get("contract") === "v2";
+export const CONTRACT = IS_V2 ? CONTRACT_V2 : CONTRACT_V1;
 export const TOKEN = "tusdc.horkos.testnet";
 export const RPC_URL = "https://test.rpc.fastnear.com";
+/** Tried in order: when FastNEAR rate-limits a visitor (its 429 has no CORS header and shows as a console error), NEAR's RPC answers instead. */
+export const RPC_URLS = [RPC_URL, "https://rpc.testnet.near.org"];
 export const REPO = "https://github.com/iusserhat/horkos";
 export const DEMO_OWNER = "horkos-owner.testnet";
 export const DEMO_AGENT = "horkos-agent.testnet";

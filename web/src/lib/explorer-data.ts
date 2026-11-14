@@ -1,5 +1,5 @@
-import { CONTRACT, DEMO_OWNER, RPC_URL } from "./config";
-import { view } from "./rpc";
+import { CONTRACT, DEMO_OWNER } from "./config";
+import { view, rpcPost } from "./rpc";
 import type { ReceiptToken } from "./receipt";
 import type { Status } from "./status";
 import demoHistory from "../data/demo-history.json";
@@ -127,11 +127,7 @@ export async function fromNearBlocks(order: Order): Promise<HistoryEvent[]> {
     .slice(0, 15);
   const events: HistoryEvent[] = [];
   for (const t of candidates) {
-    const body = await fetchJson(RPC_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "EXPERIMENTAL_tx_status", params: { tx_hash: t.transaction_hash, sender_account_id: t.signer_account_id, wait_until: "NONE" } }),
-    });
+    const body = await rpcPost({ jsonrpc: "2.0", id: 1, method: "EXPERIMENTAL_tx_status", params: { tx_hash: t.transaction_hash, sender_account_id: t.signer_account_id, wait_until: "NONE" } }, 5000);
     const r = body.result;
     if (!r) continue;
     const method = t.actions[0].method!;
@@ -168,4 +164,34 @@ export async function orderHistory(order: Order, updatedAtMs: number): Promise<H
     /* fall through */
   }
   return { source: "reconstructed", events: reconstructed(order, updatedAtMs) };
+}
+
+export interface ReceiptTransfer {
+  from: string;
+  to: string;
+  tx: string;
+  t: number;
+}
+
+/**
+ * v2 only: receipt transfers, read from the escrow's successful `nft_transfer`
+ * transactions (NearBlocks lists them; their args come from testnet RPC).
+ */
+export async function loadTransfers(): Promise<Map<string, ReceiptTransfer[]>> {
+  const out = new Map<string, ReceiptTransfer[]>();
+  const list = await fetchJson(`https://api-testnet.nearblocks.io/v1/account/${CONTRACT}/txns-only?per_page=50&order=desc`);
+  const txs = ((list?.txns ?? []) as any[]).filter(
+    (t) => t.outcomes?.status === true && (t.actions ?? []).some((a: any) => a.method === "nft_transfer"),
+  );
+  await Promise.all(
+    txs.map(async (t) => {
+      const res = await rpcPost({ jsonrpc: "2.0", id: "horkos-web", method: "tx", params: { tx_hash: t.transaction_hash, sender_account_id: t.signer_account_id, wait_until: "NONE" } }, 5000);
+      const fc = res?.result?.transaction?.actions?.find((a: any) => a.FunctionCall?.method_name === "nft_transfer")?.FunctionCall;
+      if (!fc) return;
+      const args = JSON.parse(atob(fc.args));
+      const item = { from: t.signer_account_id as string, to: args.receiver_id as string, tx: t.transaction_hash as string, t: Number(BigInt(t.block_timestamp) / 1_000_000n) };
+      out.set(args.token_id, [...(out.get(args.token_id) ?? []), item].sort((a, b) => a.t - b.t));
+    }),
+  );
+  return out;
 }

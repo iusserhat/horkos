@@ -40,7 +40,7 @@ const STEPS: Step[] = [
     tint: "lilac",
     title: "Closed on an NFT receipt",
     body: "Every order is a receipt that carries the claim. Pass it on, and the data or the refund goes with it.",
-    proof: [`${TX}C1BTBTksm2foRkPWLzuKKeNqfJi5Kz2fgH3474uGN8FS`, "Receipt passed on, order settled, the new holder opened the data"],
+    proof: ["./explorer.html?contract=v2#receipt-1", "v2 receipt #1, passed on and settled, in the explorer"],
   },
 ];
 
@@ -61,7 +61,7 @@ export function steps() {
       h("span", { class: "lq-tag" }, st.tag),
       h("h3", {}, st.title),
       h("p", {}, st.body),
-      h("a", { class: "lq-proof", href: st.proof[0], target: "_blank", rel: "noopener" }, "see it on testnet", h("span", { class: "visually-hidden" }, `: ${st.proof[1]}`), " ↗"),
+      h("a", { class: "lq-proof", href: st.proof[0], ...(st.proof[0].startsWith("./") ? {} : { target: "_blank", rel: "noopener" }) }, "see it on testnet", h("span", { class: "visually-hidden" }, `: ${st.proof[1]}`), " ↗"),
       i === 3 ? seal() : null,
     ),
   );

@@ -358,3 +358,4 @@ ul.plain {
 }
 .rc-moves { margin-top: var(--s2); }
 .rc-target .receipt { outline: 4px solid var(--gold-deep); outline-offset: 4px; }
+.ex-hint { margin: var(--s2) 0 0; font-size: var(--fs-small); }

@@ -77,7 +77,7 @@ const PANELS: [string, HTMLElement][] = [
   ["Listings", lv.el],
 ];
 const panel = h("div", { id: "ex-panel", role: "tabpanel", "aria-labelledby": "ex-tab-0", class: "ex-panel" });
-const startTab = location.hash.startsWith("#receipt") ? 1 : 0;
+const startTab = IS_V2 || location.hash.startsWith("#receipt") ? 1 : 0;
 const tabList = tabs(
   PANELS.map(([l]) => l),
   (i) => {
@@ -220,6 +220,7 @@ mount(
       h("a", { href: "./explorer.html", "aria-current": IS_V2 ? null : "page" }, h("b", {}, "v1"), " ", h("span", { class: "mono" }, CONTRACT_V1)),
       h("a", { href: "./explorer.html?contract=v2", "aria-current": IS_V2 ? "page" : null }, h("b", {}, "v2"), " ", h("span", { class: "mono" }, CONTRACT_V2), " · transferable receipts"),
     ),
+    IS_V2 ? null : h("p", { class: "ex-hint" }, "Receipts can be passed on in v2 → ", h("a", { href: "./explorer.html?contract=v2#receipts" }, "see transferred receipts"), "."),
     h("div", { class: "ex-bar" }, status, pauseBtn),
     errorBox,
     tabList,

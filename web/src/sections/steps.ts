@@ -40,7 +40,7 @@ const STEPS: Step[] = [
     tint: "lilac",
     title: "Closed on an NFT receipt",
     body: "Every order is a receipt that carries the claim. Pass it on, and the data or the refund goes with it.",
-    proof: ["./explorer.html?contract=v2#receipt-1", "v2 receipt #1, passed on and settled, in the explorer"],
+    proof: ["./explorer.html?contract=v2#receipts", "transferred v2 receipts in the explorer"],
   },
 ];
 

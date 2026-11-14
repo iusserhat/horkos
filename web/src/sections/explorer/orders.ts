@@ -1,3 +1,4 @@
+import { CONTRACT } from "../../lib/config";
 import { h, mount } from "../../lib/dom";
 import { fmtUsdc } from "../../lib/config";
 import { badge } from "../../lib/status";
@@ -57,7 +58,7 @@ export function ordersView() {
       h(
         "table",
         { class: "data-table" },
-        h("caption", { class: "visually-hidden" }, "Orders on escrow.horkos.testnet, newest first. Select an order number to show its status history."),
+        h("caption", { class: "visually-hidden" }, `Orders on ${CONTRACT}, newest first. Select an order number to show its status history.`),
         h("thead", {}, h("tr", {}, ...["Order", "Status", "Amount", "Seller", "Deadline", "Attempts", "Verifier"].map((c) => h("th", { scope: "col" }, c)))),
         h("tbody", {}, ...rows.flat()),
       ),

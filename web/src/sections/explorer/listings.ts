@@ -1,3 +1,4 @@
+import { CONTRACT } from "../../lib/config";
 import { h, mount, shorten } from "../../lib/dom";
 import { fmtUsdc } from "../../lib/config";
 import type { Listing } from "../../lib/explorer-data";
@@ -10,7 +11,7 @@ export function listingsView() {
       h(
         "table",
         { class: "data-table" },
-        h("caption", { class: "visually-hidden" }, "Listings registered on escrow.horkos.testnet"),
+        h("caption", { class: "visually-hidden" }, `Listings registered on ${CONTRACT}`),
         h("thead", {}, h("tr", {}, ...["Listing", "Seller", "Price", "Delivery window", "Condition", "Demo mandate"].map((c) => h("th", { scope: "col" }, c)))),
         h(
           "tbody",
